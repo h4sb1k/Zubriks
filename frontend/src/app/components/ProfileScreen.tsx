@@ -1,13 +1,13 @@
-import { Clock, MapPin, Star,Trophy } from 'lucide-react';
-import { useState } from 'react';
+import { Clock, MapPin, Star, Trophy } from 'lucide-react'
+import { useState } from 'react'
 
 type Achievement = {
-  id: string;
-  name: string;
-  description: string;
-  earned: boolean;
-  progress?: number;
-  emoji: string;
+  id: string
+  name: string
+  description: string
+  earned: boolean
+  progress?: number
+  emoji: string
 }
 
 const mockAchievements: Achievement[] = [
@@ -19,13 +19,13 @@ const mockAchievements: Achievement[] = [
   { id: '6', name: 'Мастер маршрутов', description: 'Создай 5 маршрутов', earned: false, emoji: '🗺️' },
   { id: '7', name: 'Легенда Орла', description: 'Найди всех зубриков', earned: false, emoji: '👑' },
   { id: '8', name: 'Активист', description: 'Посети 10 событий', earned: false, emoji: '🎉' },
-];
+]
 
 export default function ProfileScreen() {
-  const [activeTab, setActiveTab] = useState('Ачивки');
+  const [activeTab, setActiveTab] = useState('Ачивки')
 
-  const earnedAchievements = mockAchievements.filter(a => a.earned);
-  const totalAchievements = mockAchievements.length;
+  const earnedAchievements = mockAchievements.filter((a) => a.earned)
+  const totalAchievements = mockAchievements.length
 
   return (
     <div className="flex-1 overflow-y-auto pb-20">
@@ -74,9 +74,7 @@ export default function ProfileScreen() {
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-3 text-sm transition-colors relative ${
-                activeTab === tab
-                  ? 'text-[#1C1C1E]'
-                  : 'text-[#6B6B6B]'
+                activeTab === tab ? 'text-[#1C1C1E]' : 'text-[#6B6B6B]'
               }`}
             >
               {tab}
@@ -100,9 +98,7 @@ export default function ProfileScreen() {
                 <div
                   key={achievement.id}
                   className={`rounded-2xl p-4 shadow-sm relative ${
-                    achievement.earned
-                      ? 'bg-gradient-to-br from-[#D4A017] to-[#E8922A]'
-                      : 'bg-white'
+                    achievement.earned ? 'bg-gradient-to-br from-[#D4A017] to-[#E8922A]' : 'bg-white'
                   }`}
                 >
                   {!achievement.earned && (
@@ -138,20 +134,16 @@ export default function ProfileScreen() {
 
         {activeTab === 'Маршруты' && (
           <div className="pb-6">
-            <p className="text-center text-[#6B6B6B] py-12">
-              Здесь будут ваши пройденные маршруты
-            </p>
+            <p className="text-center text-[#6B6B6B] py-12">Здесь будут ваши пройденные маршруты</p>
           </div>
         )}
 
         {activeTab === 'Избранное' && (
           <div className="pb-6">
-            <p className="text-center text-[#6B6B6B] py-12">
-              Здесь будут ваши избранные места
-            </p>
+            <p className="text-center text-[#6B6B6B] py-12">Здесь будут ваши избранные места</p>
           </div>
         )}
       </div>
     </div>
-  );
+  )
 }

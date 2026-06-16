@@ -1,15 +1,15 @@
-import { Calendar, ChevronRight,MapPin, Trophy } from 'lucide-react';
-import { useState } from 'react';
+import { Calendar, ChevronRight, MapPin, Trophy } from 'lucide-react'
+import { useState } from 'react'
 
-import RouteActive from './RouteActive';
-import ZubrikDetail from './ZubrikDetail';
+import RouteActive from './RouteActive'
+import ZubrikDetail from './ZubrikDetail'
 
 type Zubrik = {
-  id: string;
-  name: string;
-  distance: string;
-  unlocked: boolean;
-  imageColor: string;
+  id: string
+  name: string
+  distance: string
+  unlocked: boolean
+  imageColor: string
 }
 
 const mockZubriks: Zubrik[] = [
@@ -18,17 +18,17 @@ const mockZubriks: Zubrik[] = [
   { id: '3', name: 'Зубрик-Музыкант', distance: '500м', unlocked: false, imageColor: '#6B6B6B' },
   { id: '4', name: 'Зубрик-Историк', distance: '780м', unlocked: false, imageColor: '#6B6B6B' },
   { id: '5', name: 'Зубрик-Гурман', distance: '1.2км', unlocked: false, imageColor: '#6B6B6B' },
-];
+]
 
 const mockEvents = [
   { id: '1', title: 'Выставка современного искусства', time: '14:00', venue: 'Галерея «Орёл»', category: 'Выставка' },
   { id: '2', title: 'Концерт симфонического оркестра', time: '19:00', venue: 'Филармония', category: 'Концерт' },
   { id: '3', title: 'Фестиваль уличной еды', time: '12:00', venue: 'Парк Культуры', category: 'Фестиваль' },
-];
+]
 
 export default function HomeScreen() {
-  const [selectedZubrik, setSelectedZubrik] = useState<Zubrik | null>(null);
-  const [showRouteActive, setShowRouteActive] = useState(false);
+  const [selectedZubrik, setSelectedZubrik] = useState<Zubrik | null>(null)
+  const [showRouteActive, setShowRouteActive] = useState(false)
   return (
     <>
       <div className="flex-1 overflow-y-auto pb-20">
@@ -136,9 +136,7 @@ export default function HomeScreen() {
         />
       )}
 
-      {showRouteActive && (
-        <RouteActive onClose={() => setShowRouteActive(false)} />
-      )}
+      {showRouteActive && <RouteActive onClose={() => setShowRouteActive(false)} />}
     </>
-  );
+  )
 }

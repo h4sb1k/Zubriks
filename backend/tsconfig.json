@@ -1,29 +1,28 @@
 {
-    "ts-node": {
-      "files": true,
-      "transpileOnly": true
-    },
-    "compilerOptions": {
-      "target": "ES2025",
-      "module": "nodenext",
-      "moduleResolution": "nodenext",
-      "outDir": "./dist",
-      "rootDir": "./src",
-      "allowJs": true,
-      "allowSyntheticDefaultImports": true,
-      "esModuleInterop": true,
-      "forceConsistentCasingInFileNames": true,
-      "noFallthroughCasesInSwitch": true,
-      "noImplicitAny": true,
-      "skipLibCheck": true,
-      "strict": true,
-      "sourceMap": true,
-      "resolveJsonModule": true,
-      "inlineSources": true,
-      "isolatedModules": false,
-      "lib": ["ES2025"],
-      "types": ["node"]
-    },
-    "include": ["src"]
-  }
-  
+  "ts-node": {
+    "files": true,
+    "transpileOnly": true
+  },
+  "compilerOptions": {
+    "target": "ES2025",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "inlineSources": true,
+    "isolatedModules": false,
+    "lib": ["ES2025"],
+    "types": ["node"]
+  },
+  "include": ["src"]
+}

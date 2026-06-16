@@ -1,34 +1,33 @@
-import { ArrowLeft, MapPin, Navigation,Share2 } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowLeft, MapPin, Navigation, Share2 } from 'lucide-react'
+import { useState } from 'react'
 
-import HomeScreen from './HomeScreen';
+import HomeScreen from './HomeScreen'
 
 type ZubrikDetailProps = {
-  name: string;
-  unlocked: boolean;
-  onClose: () => void;
+  name: string
+  unlocked: boolean
+  onClose: () => void
 }
 
 export default function ZubrikDetail({ name, unlocked, onClose }: ZubrikDetailProps) {
-  const [activeTab, setActiveTab] = useState('История');
+  const [activeTab, setActiveTab] = useState('История')
 
   return (
     <div className="fixed inset-0 z-50 bg-[#FAFAF7] overflow-y-auto">
       <div className="relative">
         <div className="h-72 bg-gradient-to-br from-[#1A3D2B] to-[#E8922A] relative">
-
-         <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            onClose();
-          }}
-          className="absolute top-6 left-4 w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors cursor-pointer z-50"
-          aria-label="Назад"
-        >
-          <ArrowLeft size={20} />
-         </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              e.preventDefault()
+              onClose()
+            }}
+            className="absolute top-6 left-4 w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors cursor-pointer z-50"
+            aria-label="Назад"
+          >
+            <ArrowLeft size={20} />
+          </button>
 
           <button className="absolute top-6 right-4 w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white">
             <Share2 size={20} />
@@ -75,17 +74,16 @@ export default function ZubrikDetail({ name, unlocked, onClose }: ZubrikDetailPr
             <div className="space-y-4">
               <p className="text-[#1C1C1E] leading-relaxed">
                 <span className="text-5xl float-left mr-3 mt-1 text-[#1A3D2B]">З</span>
-                убрик-Путешественник — это один из самых популярных персонажей коллекции.
-                Он символизирует дух исследования и открытий, который живёт в каждом жителе Орла.
+                убрик-Путешественник — это один из самых популярных персонажей коллекции. Он символизирует дух
+                исследования и открытий, который живёт в каждом жителе Орла.
               </p>
               <p className="text-[#1C1C1E] leading-relaxed">
-                Этот зубрик любит посещать исторические места города и знает множество
-                интересных историй о каждом уголке Орла. Его можно встретить возле главных
-                достопримечательностей, где он с радостью делится своими знаниями.
+                Этот зубрик любит посещать исторические места города и знает множество интересных историй о каждом
+                уголке Орла. Его можно встретить возле главных достопримечательностей, где он с радостью делится своими
+                знаниями.
               </p>
               <p className="text-[#1C1C1E] leading-relaxed">
-                Найди его, чтобы узнать больше об истории города и получить первое достижение
-                в своей коллекции!
+                Найди его, чтобы узнать больше об истории города и получить первое достижение в своей коллекции!
               </p>
             </div>
           )}
@@ -104,9 +102,7 @@ export default function ZubrikDetail({ name, unlocked, onClose }: ZubrikDetailPr
                     <MapPin size={20} className="text-[#E8922A] mt-0.5 flex-shrink-0" />
                     <div>
                       <h3 className="mb-1">Площадь Ленина</h3>
-                      <p className="text-sm text-[#6B6B6B]">
-                        г. Орёл, пл. Ленина, 1
-                      </p>
+                      <p className="text-sm text-[#6B6B6B]">г. Орёл, пл. Ленина, 1</p>
                     </div>
                   </div>
                   <button className="w-full bg-[#E8922A] text-white rounded-2xl py-3 flex items-center justify-center gap-2">
@@ -117,9 +113,7 @@ export default function ZubrikDetail({ name, unlocked, onClose }: ZubrikDetailPr
               </div>
 
               {!unlocked && (
-                <button className="w-full bg-[#1A3D2B] text-white rounded-2xl py-4 text-lg">
-                  Найти меня!
-                </button>
+                <button className="w-full bg-[#1A3D2B] text-white rounded-2xl py-4 text-lg">Найти меня!</button>
               )}
             </div>
           )}
@@ -128,21 +122,16 @@ export default function ZubrikDetail({ name, unlocked, onClose }: ZubrikDetailPr
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 {[1, 2, 3, 4].map((i) => (
-                  <div
-                    key={i}
-                    className="aspect-square bg-[#E5E3DD] rounded-2xl flex items-center justify-center"
-                  >
+                  <div key={i} className="aspect-square bg-[#E5E3DD] rounded-2xl flex items-center justify-center">
                     <span className="text-4xl">📷</span>
                   </div>
                 ))}
               </div>
-              <p className="text-center text-[#6B6B6B] text-sm py-4">
-                Здесь будут фотографии от сообщества
-              </p>
+              <p className="text-center text-[#6B6B6B] text-sm py-4">Здесь будут фотографии от сообщества</p>
             </div>
           )}
         </div>
       </div>
     </div>
-  );
+  )
 }

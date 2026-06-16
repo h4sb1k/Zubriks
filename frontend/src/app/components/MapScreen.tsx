@@ -1,25 +1,60 @@
-import { MapPin,Navigation2, Search } from 'lucide-react';
-import { useState } from 'react';
+import { MapPin, Navigation2, Search } from 'lucide-react'
+import { useState } from 'react'
 
 type MapZubrik = {
-  id: string;
-  name: string;
-  distance: string;
-  visited: boolean;
-  locked: boolean;
-  position: { top: string; left: string };
+  id: string
+  name: string
+  distance: string
+  visited: boolean
+  locked: boolean
+  position: { top: string; left: string }
 }
 
 const mapZubriks: MapZubrik[] = [
-  { id: '1', name: 'Зубрик-Путешественник', distance: '150м', visited: true, locked: false, position: { top: '25%', left: '35%' } },
-  { id: '2', name: 'Зубрик-Художник', distance: '320м', visited: true, locked: false, position: { top: '45%', left: '55%' } },
-  { id: '3', name: 'Зубрик-Музыкант', distance: '500м', visited: false, locked: false, position: { top: '60%', left: '40%' } },
-  { id: '4', name: 'Зубрик-Историк', distance: '780м', visited: false, locked: false, position: { top: '35%', left: '65%' } },
-  { id: '5', name: 'Зубрик-Гурман', distance: '1.2км', visited: false, locked: true, position: { top: '70%', left: '60%' } },
-];
+  {
+    id: '1',
+    name: 'Зубрик-Путешественник',
+    distance: '150м',
+    visited: true,
+    locked: false,
+    position: { top: '25%', left: '35%' },
+  },
+  {
+    id: '2',
+    name: 'Зубрик-Художник',
+    distance: '320м',
+    visited: true,
+    locked: false,
+    position: { top: '45%', left: '55%' },
+  },
+  {
+    id: '3',
+    name: 'Зубрик-Музыкант',
+    distance: '500м',
+    visited: false,
+    locked: false,
+    position: { top: '60%', left: '40%' },
+  },
+  {
+    id: '4',
+    name: 'Зубрик-Историк',
+    distance: '780м',
+    visited: false,
+    locked: false,
+    position: { top: '35%', left: '65%' },
+  },
+  {
+    id: '5',
+    name: 'Зубрик-Гурман',
+    distance: '1.2км',
+    visited: false,
+    locked: true,
+    position: { top: '70%', left: '60%' },
+  },
+]
 
 export default function MapScreen() {
-  const [selectedZubrik, setSelectedZubrik] = useState<MapZubrik | null>(null);
+  const [selectedZubrik, setSelectedZubrik] = useState<MapZubrik | null>(null)
 
   return (
     <div className="flex-1 relative overflow-hidden">
@@ -61,11 +96,7 @@ export default function MapScreen() {
               <div className="relative">
                 <div
                   className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-lg ${
-                    zubrik.locked
-                      ? 'bg-[#A0A0A0]'
-                      : zubrik.visited
-                      ? 'bg-[#E8922A]'
-                      : 'bg-[#1A3D2B]'
+                    zubrik.locked ? 'bg-[#A0A0A0]' : zubrik.visited ? 'bg-[#E8922A]' : 'bg-[#1A3D2B]'
                   }`}
                 >
                   {zubrik.locked ? '🔒' : '🦬'}
@@ -84,11 +115,7 @@ export default function MapScreen() {
             <div className="flex items-start gap-4">
               <div
                 className={`w-20 h-20 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0 ${
-                  selectedZubrik.locked
-                    ? 'bg-[#A0A0A0]'
-                    : selectedZubrik.visited
-                    ? 'bg-[#E8922A]'
-                    : 'bg-[#1A3D2B]'
+                  selectedZubrik.locked ? 'bg-[#A0A0A0]' : selectedZubrik.visited ? 'bg-[#E8922A]' : 'bg-[#1A3D2B]'
                 }`}
               >
                 {selectedZubrik.locked ? '🔒' : '🦬'}
@@ -110,16 +137,11 @@ export default function MapScreen() {
                     <span>Заблокирован</span>
                   </div>
                 ) : (
-                  <button className="bg-[#E8922A] text-white px-6 py-2.5 rounded-2xl text-sm">
-                    Найти меня!
-                  </button>
+                  <button className="bg-[#E8922A] text-white px-6 py-2.5 rounded-2xl text-sm">Найти меня!</button>
                 )}
               </div>
             </div>
-            <button
-              onClick={() => setSelectedZubrik(null)}
-              className="w-full mt-4 py-2 text-sm text-[#6B6B6B]"
-            >
+            <button onClick={() => setSelectedZubrik(null)} className="w-full mt-4 py-2 text-sm text-[#6B6B6B]">
               Закрыть
             </button>
           </div>
@@ -127,24 +149,25 @@ export default function MapScreen() {
 
         <div className="absolute bottom-20 left-4 right-4 z-10">
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {mapZubriks.filter(z => !z.visited && !z.locked).slice(0, 3).map((zubrik) => (
-              <button
-                key={zubrik.id}
-                onClick={() => setSelectedZubrik(zubrik)}
-                className="flex-shrink-0 bg-white rounded-2xl p-3 shadow-lg flex items-center gap-3"
-              >
-                <div className="w-10 h-10 rounded-xl bg-[#1A3D2B] flex items-center justify-center text-xl">
-                  🦬
-                </div>
-                <div className="text-left">
-                  <div className="text-sm mb-0.5 whitespace-nowrap">{zubrik.name}</div>
-                  <div className="text-xs text-[#6B6B6B]">{zubrik.distance}</div>
-                </div>
-              </button>
-            ))}
+            {mapZubriks
+              .filter((z) => !z.visited && !z.locked)
+              .slice(0, 3)
+              .map((zubrik) => (
+                <button
+                  key={zubrik.id}
+                  onClick={() => setSelectedZubrik(zubrik)}
+                  className="flex-shrink-0 bg-white rounded-2xl p-3 shadow-lg flex items-center gap-3"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-[#1A3D2B] flex items-center justify-center text-xl">🦬</div>
+                  <div className="text-left">
+                    <div className="text-sm mb-0.5 whitespace-nowrap">{zubrik.name}</div>
+                    <div className="text-xs text-[#6B6B6B]">{zubrik.distance}</div>
+                  </div>
+                </button>
+              ))}
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }

@@ -1,21 +1,21 @@
-import { ArrowLeft, CheckCircle2,MapPin, Navigation } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowLeft, CheckCircle2, MapPin, Navigation } from 'lucide-react'
+import { useState } from 'react'
 
-import { MapPoint,openPointInMaps, openRouteInMaps } from '../utils/openInMaps';
+import { MapPoint, openPointInMaps, openRouteInMaps } from '../utils/openInMaps'
 
 type RouteActiveProps = {
-  onClose: () => void;
+  onClose: () => void
 }
 
 type Waypoint = {
-  id: string;
-  name: string;
-  description: string;
-  distance: string;
-  completed: boolean;
-  emoji: string;
+  id: string
+  name: string
+  description: string
+  distance: string
+  completed: boolean
+  emoji: string
   // Реальные координаты точки (Орёл)
-  coords: MapPoint;
+  coords: MapPoint
 }
 
 const mockWaypoints: Waypoint[] = [
@@ -35,7 +35,7 @@ const mockWaypoints: Waypoint[] = [
     distance: '150 м',
     completed: true,
     emoji: '🌳',
-    coords: { lat: 52.9688, lon: 36.0710, name: 'Парк Культуры' },
+    coords: { lat: 52.9688, lon: 36.071, name: 'Парк Культуры' },
   },
   {
     id: '3',
@@ -53,7 +53,7 @@ const mockWaypoints: Waypoint[] = [
     distance: '580 м',
     completed: false,
     emoji: '🎨',
-    coords: { lat: 52.9720, lon: 36.0755, name: 'Музей изобразительных искусств' },
+    coords: { lat: 52.972, lon: 36.0755, name: 'Музей изобразительных искусств' },
   },
   {
     id: '5',
@@ -62,30 +62,27 @@ const mockWaypoints: Waypoint[] = [
     distance: '1.2 км',
     completed: false,
     emoji: '🌊',
-    coords: { lat: 52.9750, lon: 36.0800, name: 'Набережная' },
+    coords: { lat: 52.975, lon: 36.08, name: 'Набережная' },
   },
-];
-
+]
 
 export default function RouteActive({ onClose }: RouteActiveProps) {
-  const [waypoints] = useState(mockWaypoints);
+  const [waypoints] = useState(mockWaypoints)
 
-  const currentStep = waypoints.findIndex(w => !w.completed);
-  const progress = (currentStep / waypoints.length) * 100;
-  const nextWaypoint = waypoints[currentStep];
+  const currentStep = waypoints.findIndex((w) => !w.completed)
+  const progress = (currentStep / waypoints.length) * 100
+  const nextWaypoint = waypoints[currentStep]
 
   // Незавершённые точки — передаём в утилиту как маршрут
-  const remainingPoints = waypoints
-    .filter(w => !w.completed)
-    .map(w => w.coords);
+  const remainingPoints = waypoints.filter((w) => !w.completed).map((w) => w.coords)
 
   const handleOpenInMaps = () => {
     if (remainingPoints.length > 1) {
-      openRouteInMaps(remainingPoints);
+      openRouteInMaps(remainingPoints)
     } else if (remainingPoints.length === 1) {
-      openPointInMaps(remainingPoints[0]);
+      openPointInMaps(remainingPoints[0])
     }
-  };
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-[#FAFAF7] flex flex-col">
@@ -97,16 +94,15 @@ export default function RouteActive({ onClose }: RouteActiveProps) {
           </button>
           <div className="text-center flex-1">
             <div className="text-sm opacity-80">Тур «Зубрики»</div>
-            <div className="text-lg">Шаг {currentStep + 1} из {waypoints.length}</div>
+            <div className="text-lg">
+              Шаг {currentStep + 1} из {waypoints.length}
+            </div>
           </div>
           <div className="w-10" />
         </div>
 
         <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-[#E8922A] transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
+          <div className="h-full bg-[#E8922A] transition-all duration-500" style={{ width: `${progress}%` }} />
         </div>
       </div>
 
@@ -154,8 +150,8 @@ export default function RouteActive({ onClose }: RouteActiveProps) {
                     waypoint.completed
                       ? 'bg-[#34C759]/10'
                       : index === currentStep
-                      ? 'bg-white shadow-sm'
-                      : 'bg-[#F5F2EB]'
+                        ? 'bg-white shadow-sm'
+                        : 'bg-[#F5F2EB]'
                   }`}
                 >
                   <div className="flex items-center justify-center w-8 h-8 flex-shrink-0">
@@ -164,9 +160,7 @@ export default function RouteActive({ onClose }: RouteActiveProps) {
                     ) : (
                       <div
                         className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
-                          index === currentStep
-                            ? 'bg-[#E8922A] text-white'
-                            : 'bg-[#E5E3DD] text-[#6B6B6B]'
+                          index === currentStep ? 'bg-[#E8922A] text-white' : 'bg-[#E5E3DD] text-[#6B6B6B]'
                         }`}
                       >
                         {index + 1}
@@ -177,12 +171,8 @@ export default function RouteActive({ onClose }: RouteActiveProps) {
                   <div className="flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h4 className={waypoint.completed ? 'text-[#6B6B6B]' : ''}>
-                          {waypoint.name}
-                        </h4>
-                        <p className="text-sm text-[#6B6B6B] mt-0.5">
-                          {waypoint.description}
-                        </p>
+                        <h4 className={waypoint.completed ? 'text-[#6B6B6B]' : ''}>{waypoint.name}</h4>
+                        <p className="text-sm text-[#6B6B6B] mt-0.5">{waypoint.description}</p>
                       </div>
                       <span className="text-2xl flex-shrink-0">{waypoint.emoji}</span>
                     </div>
@@ -193,7 +183,6 @@ export default function RouteActive({ onClose }: RouteActiveProps) {
           </div>
         )}
       </div>
-
     </div>
-  );
+  )
 }

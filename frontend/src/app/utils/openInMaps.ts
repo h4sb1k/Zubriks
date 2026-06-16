@@ -13,9 +13,9 @@
  */
 
 export type MapPoint = {
-  lat: number;
-  lon: number;
-  name?: string;
+  lat: number
+  lon: number
+  name?: string
 }
 
 // ─── Одна точка ───────────────────────────────────────────────────────────────
@@ -27,16 +27,16 @@ export type MapPoint = {
  * openPointInMaps({ lat: 52.9674, lon: 36.0694, name: 'Площадь Ленина' });
  */
 export function openPointInMaps(point: MapPoint): void {
-  const { lat, lon, name } = point;
+  const { lat, lon, name } = point
 
   // geo:lat,lon?q=lat,lon(Label) — формат с меткой, понимают все приложения
-  const label = encodeURIComponent(name ?? '');
-  const geoUri = `geo:${lat},${lon}?q=${lat},${lon}(${label})`;
+  const label = encodeURIComponent(name ?? '')
+  const geoUri = `geo:${lat},${lon}?q=${lat},${lon}(${label})`
 
   // Fallback для ПК — Google Maps в браузере
-  const webFallback = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+  const webFallback = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
 
-  openGeoUri(geoUri, webFallback);
+  openGeoUri(geoUri, webFallback)
 }
 
 // ─── Маршрут с несколькими точками ────────────────────────────────────────────
@@ -55,24 +55,24 @@ export function openPointInMaps(point: MapPoint): void {
  * ]);
  */
 export function openRouteInMaps(points: MapPoint[]): void {
-  if (points.length === 0) return;
+  if (points.length === 0) return
   if (points.length === 1) {
-    openPointInMaps(points[0]);
-    return;
+    openPointInMaps(points[0])
+    return
   }
 
-  const finish = points[points.length - 1];
+  const finish = points[points.length - 1]
 
   // geo: не поддерживает промежуточные точки — это ограничение стандарта.
   // Все приложения получат маршрут «до финиша», используя текущую геолокацию
   // пользователя как старт (самый удобный UX для пешеходных маршрутов).
-  const label = encodeURIComponent(finish.name ?? '');
-  const geoUri = `geo:${finish.lat},${finish.lon}?q=${finish.lat},${finish.lon}(${label})`;
+  const label = encodeURIComponent(finish.name ?? '')
+  const geoUri = `geo:${finish.lat},${finish.lon}?q=${finish.lat},${finish.lon}(${label})`
 
   // Fallback для ПК — Google Maps с полным маршрутом через waypoints
-  const webFallback = buildGoogleMapsWebUrl(points);
+  const webFallback = buildGoogleMapsWebUrl(points)
 
-  openGeoUri(geoUri, webFallback);
+  openGeoUri(geoUri, webFallback)
 }
 
 // ─── Вспомогательные ─────────────────────────────────────────────────────────
@@ -84,34 +84,33 @@ export function openRouteInMaps(points: MapPoint[]): void {
  * если страница не ушла в фон.
  */
 function openGeoUri(geoUri: string, webFallback: string): void {
-  const startedAt = Date.now();
+  const startedAt = Date.now()
 
   const fallbackTimer = setTimeout(() => {
     // Страница осталась активной → geo: не был обработан (ПК)
     if (Date.now() - startedAt < 2500) {
-      window.open(webFallback, '_blank', 'noopener,noreferrer');
+      window.open(webFallback, '_blank', 'noopener,noreferrer')
     }
-  }, 1500);
+  }, 1500)
 
   const onHide = () => {
     // Страница ушла в фон → приложение открылось, fallback не нужен
-    clearTimeout(fallbackTimer);
-    document.removeEventListener('visibilitychange', onHide);
-  };
-  document.addEventListener('visibilitychange', onHide);
+    clearTimeout(fallbackTimer)
+    document.removeEventListener('visibilitychange', onHide)
+  }
+  document.addEventListener('visibilitychange', onHide)
 
-  window.location.href = geoUri;
+  window.location.href = geoUri
 }
 
 /** Google Maps Web URL с полным маршрутом — используется только как ПК-fallback */
 function buildGoogleMapsWebUrl(points: MapPoint[]): string {
-  const start  = points[0];
-  const finish = points[points.length - 1];
-  const via    = points.slice(1, -1);
+  const start = points[0]
+  const finish = points[points.length - 1]
+  const via = points.slice(1, -1)
 
-  const waypointsParam = via.length > 0
-    ? `&waypoints=${encodeURIComponent(via.map(p => `${p.lat},${p.lon}`).join('|'))}`
-    : '';
+  const waypointsParam =
+    via.length > 0 ? `&waypoints=${encodeURIComponent(via.map((p) => `${p.lat},${p.lon}`).join('|'))}` : ''
 
   return (
     `https://www.google.com/maps/dir/?api=1` +
@@ -119,5 +118,5 @@ function buildGoogleMapsWebUrl(points: MapPoint[]): string {
     `&destination=${finish.lat},${finish.lon}` +
     `&travelmode=walking` +
     waypointsParam
-  );
+  )
 }

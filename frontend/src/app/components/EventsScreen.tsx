@@ -1,15 +1,15 @@
-import { Calendar, MapPin, Tag } from 'lucide-react';
-import { useState } from 'react';
+import { Calendar, MapPin, Tag } from 'lucide-react'
+import { useState } from 'react'
 
 type Event = {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  venue: string;
-  category: string;
-  price: string;
-  imageEmoji: string;
+  id: string
+  title: string
+  date: string
+  time: string
+  venue: string
+  category: string
+  price: string
+  imageEmoji: string
 }
 
 const mockEvents: Event[] = [
@@ -73,14 +73,14 @@ const mockEvents: Event[] = [
     price: '150 ₽',
     imageEmoji: '🎬',
   },
-];
+]
 
-const dates = ['3 мая', '4 мая', '5 мая', '6 мая', '7 мая'];
+const dates = ['3 мая', '4 мая', '5 мая', '6 мая', '7 мая']
 
 export default function EventsScreen() {
-  const [selectedDate, setSelectedDate] = useState('3 мая');
+  const [selectedDate, setSelectedDate] = useState('3 мая')
 
-  const filteredEvents = mockEvents.filter(event => event.date === selectedDate);
+  const filteredEvents = mockEvents.filter((event) => event.date === selectedDate)
 
   return (
     <div className="flex-1 overflow-y-auto pb-20">
@@ -94,9 +94,7 @@ export default function EventsScreen() {
               key={date}
               onClick={() => setSelectedDate(date)}
               className={`flex-shrink-0 px-4 py-2.5 rounded-2xl text-sm transition-colors ${
-                selectedDate === date
-                  ? 'bg-[#E8922A] text-white'
-                  : 'bg-[#F5F2EB] text-[#1C1C1E]'
+                selectedDate === date ? 'bg-[#E8922A] text-white' : 'bg-[#F5F2EB] text-[#1C1C1E]'
               }`}
             >
               {date}
@@ -119,7 +117,9 @@ export default function EventsScreen() {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm text-[#6B6B6B]">
                   <Calendar size={16} />
-                  <span>{event.date} · {event.time}</span>
+                  <span>
+                    {event.date} · {event.time}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-[#6B6B6B]">
                   <MapPin size={16} />
@@ -127,9 +127,7 @@ export default function EventsScreen() {
                 </div>
                 <div className="flex items-center gap-2 text-sm text-[#6B6B6B]">
                   <Tag size={16} />
-                  <span className={event.price === 'Бесплатно' ? 'text-[#34C759]' : ''}>
-                    {event.price}
-                  </span>
+                  <span className={event.price === 'Бесплатно' ? 'text-[#34C759]' : ''}>{event.price}</span>
                 </div>
               </div>
             </div>
@@ -138,10 +136,8 @@ export default function EventsScreen() {
       </div>
 
       <div className="px-5 pb-6">
-        <div className="text-xs text-[#6B6B6B] text-center">
-          Источник: Яндекс Афиша
-        </div>
+        <div className="text-xs text-[#6B6B6B] text-center">Источник: Яндекс Афиша</div>
       </div>
     </div>
-  );
+  )
 }

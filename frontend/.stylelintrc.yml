@@ -19,4 +19,4 @@ rules:
   declaration-block-no-redundant-longhand-properties: null
   shorthand-property-no-redundant-values: null
   color-hex-length: null
-  no-empty-source: null 
+  no-empty-source: null

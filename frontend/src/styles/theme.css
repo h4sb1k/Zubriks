@@ -2,29 +2,29 @@
 
 :root {
   --font-size: 16px;
-  --background: #FAFAF7;
-  --foreground: #1C1C1E;
-  --card: #F5F2EB;
-  --card-foreground: #1C1C1E;
-  --popover: #F5F2EB;
-  --popover-foreground: #1C1C1E;
-  --primary: #1A3D2B;
-  --primary-foreground: #F5F2EB;
-  --secondary: #F5F2EB;
-  --secondary-foreground: #1C1C1E;
-  --muted: #F5F2EB;
-  --muted-foreground: #6B6B6B;
-  --accent: #E8922A;
-  --accent-foreground: #FAFAF7;
+  --background: #fafaf7;
+  --foreground: #1c1c1e;
+  --card: #f5f2eb;
+  --card-foreground: #1c1c1e;
+  --popover: #f5f2eb;
+  --popover-foreground: #1c1c1e;
+  --primary: #1a3d2b;
+  --primary-foreground: #f5f2eb;
+  --secondary: #f5f2eb;
+  --secondary-foreground: #1c1c1e;
+  --muted: #f5f2eb;
+  --muted-foreground: #6b6b6b;
+  --accent: #e8922a;
+  --accent-foreground: #fafaf7;
   --destructive: #d4183d;
   --destructive-foreground: #ffffff;
   --border: rgba(0, 0, 0, 0.1);
   --input: transparent;
-  --input-background: #F5F2EB;
+  --input-background: #f5f2eb;
   --switch-background: #cbced4;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: #E8922A;
+  --ring: #e8922a;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -41,13 +41,13 @@
   --sidebar-ring: oklch(0.708 0 0);
 
   /* Zubriki custom colors */
-  --forest-green: #1A3D2B;
-  --warm-amber: #E8922A;
-  --surface: #F5F2EB;
-  --text-primary: #1C1C1E;
-  --text-secondary: #6B6B6B;
-  --achievement-gold: #D4A017;
-  --success-gps: #34C759;
+  --forest-green: #1a3d2b;
+  --warm-amber: #e8922a;
+  --surface: #f5f2eb;
+  --text-primary: #1c1c1e;
+  --text-secondary: #6b6b6b;
+  --achievement-gold: #d4a017;
+  --success-gps: #34c759;
 }
 
 .dark {

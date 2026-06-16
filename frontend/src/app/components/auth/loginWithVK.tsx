@@ -6,9 +6,9 @@
  * https://vk.com/apps?act=manage
  */
 export async function loginWithVK(): Promise<void> {
-  const VK_CLIENT_ID = 'YOUR_VK_APP_ID';
-  const REDIRECT_URI = encodeURIComponent(window.location.origin + '/auth/vk/callback');
-  const SCOPE = 'email'; // space-separated list of permissions
+  const VK_CLIENT_ID = 'YOUR_VK_APP_ID'
+  const REDIRECT_URI = encodeURIComponent(window.location.origin + '/auth/vk/callback')
+  const SCOPE = 'email' // space-separated list of permissions
 
   // For a native/webview flow you would use VK Bridge instead:
   // import bridge from '@vkontakte/vk-bridge';
@@ -21,10 +21,10 @@ export async function loginWithVK(): Promise<void> {
     `&display=mobile` +
     `&scope=${SCOPE}` +
     `&response_type=code` +
-    `&v=5.199`;
+    `&v=5.199`
 
   // TODO: open authUrl in an in-app browser / WebView, capture the callback
   // and exchange the `code` for an access token on your backend.
-  console.info('[VK Auth] Redirect to:', authUrl);
-  window.location.href = authUrl;
+  console.info('[VK Auth] Redirect to:', authUrl)
+  window.location.href = authUrl
 }

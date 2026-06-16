@@ -1,15 +1,15 @@
-import { ChevronRight,Clock, Heart, MapPin, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { ChevronRight, Clock, Heart, MapPin, Plus } from 'lucide-react'
+import { useState } from 'react'
 
 type Route = {
-  id: string;
-  name: string;
-  distance: string;
-  duration: string;
-  stops: number;
-  author: string;
-  liked: boolean;
-  imageColor: string;
+  id: string
+  name: string
+  distance: string
+  duration: string
+  stops: number
+  author: string
+  liked: boolean
+  imageColor: string
 }
 
 const mainRoute = {
@@ -19,24 +19,58 @@ const mainRoute = {
   duration: '2-3 часа',
   stops: 8,
   description: 'Пройди по главным достопримечательностям Орла и собери всех зубриков',
-};
+}
 
 const mockRoutes: Route[] = [
-  { id: '1', name: 'Исторический центр', distance: '3.5 км', duration: '1.5 ч', stops: 5, author: 'Анна К.', liked: false, imageColor: '#1A3D2B' },
-  { id: '2', name: 'Парки и скверы', distance: '4.2 км', duration: '2 ч', stops: 6, author: 'Дмитрий М.', liked: true, imageColor: '#34C759' },
-  { id: '3', name: 'Музеи Орла', distance: '2.8 км', duration: '3 ч', stops: 4, author: 'Елена В.', liked: false, imageColor: '#E8922A' },
-  { id: '4', name: 'Архитектура модерна', distance: '3.0 км', duration: '1 ч', stops: 7, author: 'Игорь С.', liked: false, imageColor: '#D4A017' },
-];
+  {
+    id: '1',
+    name: 'Исторический центр',
+    distance: '3.5 км',
+    duration: '1.5 ч',
+    stops: 5,
+    author: 'Анна К.',
+    liked: false,
+    imageColor: '#1A3D2B',
+  },
+  {
+    id: '2',
+    name: 'Парки и скверы',
+    distance: '4.2 км',
+    duration: '2 ч',
+    stops: 6,
+    author: 'Дмитрий М.',
+    liked: true,
+    imageColor: '#34C759',
+  },
+  {
+    id: '3',
+    name: 'Музеи Орла',
+    distance: '2.8 км',
+    duration: '3 ч',
+    stops: 4,
+    author: 'Елена В.',
+    liked: false,
+    imageColor: '#E8922A',
+  },
+  {
+    id: '4',
+    name: 'Архитектура модерна',
+    distance: '3.0 км',
+    duration: '1 ч',
+    stops: 7,
+    author: 'Игорь С.',
+    liked: false,
+    imageColor: '#D4A017',
+  },
+]
 
 export default function RoutesScreen() {
-  const [activeFilter, setActiveFilter] = useState('Все');
-  const [routes, setRoutes] = useState(mockRoutes);
+  const [activeFilter, setActiveFilter] = useState('Все')
+  const [routes, setRoutes] = useState(mockRoutes)
 
   const toggleLike = (id: string) => {
-    setRoutes(routes.map(route =>
-      route.id === id ? { ...route, liked: !route.liked } : route
-    ));
-  };
+    setRoutes(routes.map((route) => (route.id === id ? { ...route, liked: !route.liked } : route)))
+  }
 
   return (
     <div className="flex-1 overflow-y-auto pb-20">
@@ -49,9 +83,7 @@ export default function RoutesScreen() {
               key={filter}
               onClick={() => setActiveFilter(filter)}
               className={`flex-shrink-0 px-4 py-2 rounded-full text-sm transition-colors ${
-                activeFilter === filter
-                  ? 'bg-[#E8922A] text-white'
-                  : 'bg-[#F5F2EB] text-[#1C1C1E]'
+                activeFilter === filter ? 'bg-[#E8922A] text-white' : 'bg-[#F5F2EB] text-[#1C1C1E]'
               }`}
             >
               {filter}
@@ -118,14 +150,8 @@ export default function RoutesScreen() {
                     </div>
                     <span className="text-xs text-[#6B6B6B]">{route.author}</span>
                   </div>
-                  <button
-                    onClick={() => toggleLike(route.id)}
-                    className="p-1"
-                  >
-                    <Heart
-                      size={16}
-                      className={route.liked ? 'fill-[#E8922A] text-[#E8922A]' : 'text-[#6B6B6B]'}
-                    />
+                  <button onClick={() => toggleLike(route.id)} className="p-1">
+                    <Heart size={16} className={route.liked ? 'fill-[#E8922A] text-[#E8922A]' : 'text-[#6B6B6B]'} />
                   </button>
                 </div>
               </div>
@@ -138,5 +164,5 @@ export default function RoutesScreen() {
         <Plus size={24} />
       </button>
     </div>
-  );
+  )
 }
