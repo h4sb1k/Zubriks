@@ -1,34 +1,43 @@
 import { Calendar, ChevronRight, MapPin, Trophy } from 'lucide-react'
 import { useState } from 'react'
 
+import { trpc } from '../lib/trpc'
 import RouteActive from './RouteActive'
 import ZubrikDetail from './ZubrikDetail'
 
 type Zubrik = {
   id: string
   name: string
+  description: string
   distance: string
   unlocked: boolean
   imageColor: string
+  imageUrl: string 
 }
 
-const mockZubriks: Zubrik[] = [
-  { id: '1', name: 'Зубрик-Путешественник', distance: '150м', unlocked: true, imageColor: '#34C759' },
-  { id: '2', name: 'Зубрик-Художник', distance: '320м', unlocked: true, imageColor: '#E8922A' },
-  { id: '3', name: 'Зубрик-Музыкант', distance: '500м', unlocked: false, imageColor: '#6B6B6B' },
-  { id: '4', name: 'Зубрик-Историк', distance: '780м', unlocked: false, imageColor: '#6B6B6B' },
-  { id: '5', name: 'Зубрик-Гурман', distance: '1.2км', unlocked: false, imageColor: '#6B6B6B' },
-]
-
-const mockEvents = [
-  { id: '1', title: 'Выставка современного искусства', time: '14:00', venue: 'Галерея «Орёл»', category: 'Выставка' },
-  { id: '2', title: 'Концерт симфонического оркестра', time: '19:00', venue: 'Филармония', category: 'Концерт' },
-  { id: '3', title: 'Фестиваль уличной еды', time: '12:00', venue: 'Парк Культуры', category: 'Фестиваль' },
-]
+type Event = {
+  id: string
+  title: string
+  time: string
+  venue: string
+  category: string
+}
 
 export default function HomeScreen() {
   const [selectedZubrik, setSelectedZubrik] = useState<Zubrik | null>(null)
   const [showRouteActive, setShowRouteActive] = useState(false)
+  const {
+    data: zubriksData,
+    isLoading: zubriksLoading,
+    isError: zubriksIsError,
+    error: zubriksError,
+  } = trpc.getZubriks.useQuery()
+  const {
+    data: eventsData,
+    isLoading: eventsLoading,
+    isError: eventsIsError,
+    error: eventsError,
+  } = trpc.getEvents.useQuery()
   return (
     <>
       <div className="flex-1 overflow-y-auto pb-20">
@@ -73,31 +82,42 @@ export default function HomeScreen() {
             <h2 className="text-xl">Зубрики рядом</h2>
             <MapPin size={20} className="text-[#E8922A]" />
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5 scrollbar-hide">
-            {mockZubriks.map((zubrik) => (
-              <button
-                key={zubrik.id}
-                onClick={() => setSelectedZubrik(zubrik)}
-                className="flex-shrink-0 w-40 bg-white rounded-2xl p-4 shadow-sm"
-              >
-                <div
-                  className="w-20 h-20 rounded-2xl mx-auto mb-3 flex items-center justify-center text-3xl"
-                  style={{ backgroundColor: zubrik.imageColor + '20' }}
+
+          {zubriksLoading && <span className="text-[#6B6B6B]">Загрузка...</span>}
+          {zubriksIsError && <span className="text-red-500">Ошибка: {zubriksError.message}</span>}
+
+          {zubriksData && (
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5 scrollbar-hide">
+              {zubriksData.zubriks.map((zubrik) => (
+                <button
+                  key={zubrik.id}
+                  onClick={() => setSelectedZubrik(zubrik as Zubrik)}
+                  className="flex-shrink-0 w-40 bg-white rounded-2xl p-4 shadow-sm"
                 >
-                  🦬
-                </div>
-                <h3 className="text-sm mb-1 line-clamp-2 min-h-[2.5rem]">{zubrik.name}</h3>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#6B6B6B]">{zubrik.distance}</span>
-                  {zubrik.unlocked ? (
-                    <span className="text-[#34C759]">✓</span>
-                  ) : (
-                    <span className="text-[#6B6B6B]">🔒</span>
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
+                  <div
+                    className="w-20 h-20 rounded-2xl mx-auto mb-3 flex items-center justify-center overflow-hidden"
+                    style={{ backgroundColor: zubrik.imageColor + '20' }}
+                  >
+                    {/* 3. Рендерим изображение. Если ссылки нет, оставляем эмодзи как фолбек */}
+                    {zubrik.imageUrl ? (
+                      <img src={zubrik.imageUrl} alt={zubrik.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-3xl">🦬</span>
+                    )}
+                  </div>
+                  <h3 className="text-sm mb-1 line-clamp-2 min-h-[2.5rem]">{zubrik.name}</h3>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[#6B6B6B]">{zubrik.distance}</span>
+                    {zubrik.unlocked ? (
+                      <span className="text-[#34C759]">✓</span>
+                    ) : (
+                      <span className="text-[#6B6B6B]">🔒</span>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="px-5 pb-6">
@@ -105,26 +125,32 @@ export default function HomeScreen() {
             <h2 className="text-xl">События сегодня</h2>
             <Calendar size={20} className="text-[#E8922A]" />
           </div>
-          <div className="space-y-3">
-            {mockEvents.map((event) => (
-              <div key={event.id} className="bg-white rounded-2xl overflow-hidden shadow-sm">
-                <div className="h-24 bg-gradient-to-r from-[#1A3D2B] to-[#E8922A] flex items-center justify-center">
-                  <span className="text-4xl">🎭</span>
-                </div>
-                <div className="p-4">
-                  <div className="inline-block bg-[#F5F2EB] px-2.5 py-1 rounded-full text-xs text-[#6B6B6B] mb-2">
-                    {event.category}
+
+          {eventsLoading && <span className="text-[#6B6B6B]">Загрузка...</span>}
+          {eventsIsError && <span className="text-red-500">Ошибка: {eventsError.message}</span>}
+
+          {eventsData && (
+            <div className="space-y-3">
+              {eventsData.events.map((event) => (
+                <div key={event.id} className="bg-white rounded-2xl overflow-hidden shadow-sm">
+                  <div className="h-24 bg-gradient-to-r from-[#1A3D2B] to-[#E8922A] flex items-center justify-center">
+                    <span className="text-4xl">🎭</span>
                   </div>
-                  <h3 className="text-sm mb-2 line-clamp-2">{event.title}</h3>
-                  <div className="flex items-center gap-3 text-xs text-[#6B6B6B]">
-                    <span>{event.time}</span>
-                    <span>•</span>
-                    <span>{event.venue}</span>
+                  <div className="p-4">
+                    <div className="inline-block bg-[#F5F2EB] px-2.5 py-1 rounded-full text-xs text-[#6B6B6B] mb-2">
+                      {event.category}
+                    </div>
+                    <h3 className="text-sm mb-2 line-clamp-2">{event.title}</h3>
+                    <div className="flex items-center gap-3 text-xs text-[#6B6B6B]">
+                      <span>{event.time}</span>
+                      <span>•</span>
+                      <span>{event.venue}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -132,6 +158,8 @@ export default function HomeScreen() {
         <ZubrikDetail
           name={selectedZubrik.name}
           unlocked={selectedZubrik.unlocked}
+          description={selectedZubrik.description}
+          imageUrl={selectedZubrik.imageUrl}
           onClose={() => setSelectedZubrik(null)}
         />
       )}

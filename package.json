@@ -11,6 +11,10 @@
     "lint": "concurrently 'pnpm b lint' 'pnpm w lint'",
     "prepare": "husky"
   },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.60.1",
     "@typescript-eslint/parser": "^8.60.1",

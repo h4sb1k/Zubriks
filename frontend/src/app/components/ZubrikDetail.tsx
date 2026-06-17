@@ -1,15 +1,19 @@
 import { ArrowLeft, MapPin, Navigation, Share2 } from 'lucide-react'
 import { useState } from 'react'
 
+import { trpc } from '../lib/trpc'
 import HomeScreen from './HomeScreen'
+
 
 type ZubrikDetailProps = {
   name: string
+  description: string
+  imageUrl: string
   unlocked: boolean
   onClose: () => void
 }
 
-export default function ZubrikDetail({ name, unlocked, onClose }: ZubrikDetailProps) {
+export default function ZubrikDetail({ name, description, imageUrl, unlocked, onClose }: ZubrikDetailProps) {
   const [activeTab, setActiveTab] = useState('История')
 
   return (
@@ -33,8 +37,14 @@ export default function ZubrikDetail({ name, unlocked, onClose }: ZubrikDetailPr
             <Share2 size={20} />
           </button>
 
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-9xl">🦬</div>
+          <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+            {imageUrl ? (
+              <div className="w-48 h-48 rounded-full overflow-hidden bg-white/20 backdrop-blur-sm border-4 border-white flex items-center justify-center shadow-lg transition-transform hover:scale-105 duration-300">
+                <img src={imageUrl} alt={name} className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <div className="text-9xl">🦬</div>
+            )}
           </div>
 
           {unlocked && (
@@ -73,17 +83,20 @@ export default function ZubrikDetail({ name, unlocked, onClose }: ZubrikDetailPr
           {activeTab === 'История' && (
             <div className="space-y-4">
               <p className="text-[#1C1C1E] leading-relaxed">
-                <span className="text-5xl float-left mr-3 mt-1 text-[#1A3D2B]">З</span>
-                убрик-Путешественник — это один из самых популярных персонажей коллекции. Он символизирует дух
-                исследования и открытий, который живёт в каждом жителе Орла.
+                {description ? (
+                  <>
+                    <span className="text-5xl float-left mr-3 mt-1 text-[#1A3D2B] font-bold">
+                      {description.charAt(0).toUpperCase()}
+                    </span>
+                    {description.slice(1)}
+                  </>
+                ) : (
+                  'Описание отсутствует.'
+                )}
               </p>
               <p className="text-[#1C1C1E] leading-relaxed">
-                Этот зубрик любит посещать исторические места города и знает множество интересных историй о каждом
-                уголке Орла. Его можно встретить возле главных достопримечательностей, где он с радостью делится своими
-                знаниями.
-              </p>
-              <p className="text-[#1C1C1E] leading-relaxed">
-                Найди его, чтобы узнать больше об истории города и получить первое достижение в своей коллекции!
+                Каждый Зубрик уникален и связан с определённым памятным местом или культурной особенностью нашего города.
+                Найдите их всех, чтобы собрать полную коллекцию достижений и открыть новые захватывающие подробности об Орле!
               </p>
             </div>
           )}

@@ -10,4 +10,5 @@ dist
 .DS_Store
 .cursorignore
 .cursorrules
-.cursorignore
+.cursorignorae
+.zubriks-agent.json
