@@ -1,5 +1,7 @@
+import * as L from 'leaflet'
 import { ArrowLeft, MapPin, Navigation, Share2 } from 'lucide-react'
 import { useState } from 'react'
+import { MapContainer, Marker, TileLayer } from 'react-leaflet'
 
 import { openPointInMaps } from '../utils/openInMaps'
 
@@ -10,6 +12,24 @@ type ZubrikDetailProps = {
   unlocked: boolean
   coordinates?: [number, number, string]
   onClose: () => void
+}
+
+const createZubrikIcon = (imageUrl: string, name: string) => {
+  const iconHtml = `
+    <div class="relative w-10 h-10 rounded-full flex items-center justify-center shadow-lg border-2 border-[#E8922A] bg-[#FEA35A] overflow-hidden">
+      ${
+        imageUrl
+          ? `<img src="${imageUrl}" alt="${name}" class="w-full h-full object-cover" />`
+          : '<span class="text-lg text-white">🦬</span>'
+      }
+    </div>
+  `
+  return L.divIcon({
+    html: iconHtml,
+    className: 'custom-leaflet-marker-detail',
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
+  })
 }
 
 export default function ZubrikDetail({
@@ -118,12 +138,37 @@ export default function ZubrikDetail({
           {activeTab === 'Где найти' && (
             <div className="space-y-4">
               <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
-                <div className="h-48 bg-[#E5E3DD] flex items-center justify-center">
-                  <div className="text-center text-[#6B6B6B]">
-                    <MapPin size={48} className="mx-auto mb-2" />
-                    <p>Карта местоположения</p>
+                {coordinates ? (
+                  <div className="h-48 rounded-2xl overflow-hidden shadow-sm z-0 relative">
+                    <MapContainer
+                      center={[coordinates[0], coordinates[1]]}
+                      zoom={15}
+                      zoomControl={false}
+                      attributionControl={false}
+                      dragging={false}
+                      doubleClickZoom={false}
+                      scrollWheelZoom={false}
+                      touchZoom={false}
+                      style={{ width: '100%', height: '100%' }}
+                    >
+                      <TileLayer
+                        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                        attribution='&copy; CARTO'
+                      />
+                      <Marker
+                        position={[coordinates[0], coordinates[1]]}
+                        icon={createZubrikIcon(imageUrl, name)}
+                      />
+                    </MapContainer>
                   </div>
-                </div>
+                ) : (
+                  <div className="h-48 bg-[#E5E3DD] flex items-center justify-center">
+                    <div className="text-center text-[#6B6B6B]">
+                      <MapPin size={48} className="mx-auto mb-2" />
+                      <p>Карта местоположения</p>
+                    </div>
+                  </div>
+                )}
                 <div className="p-4">
                   <div className="flex items-start gap-3 mb-4">
                     <MapPin size={20} className="text-[#E8922A] mt-0.5 flex-shrink-0" />
@@ -141,12 +186,6 @@ export default function ZubrikDetail({
                   </button>
                 </div>
               </div>
-
-              {!unlocked && (
-                <button onClick={handleOpenInMaps} className="w-full bg-[#1A3D2B] text-white rounded-2xl py-4 text-lg">
-                  Найти меня!
-                </button>
-              )}
             </div>
           )}
 
@@ -161,6 +200,15 @@ export default function ZubrikDetail({
               </div>
               <p className="text-center text-[#6B6B6B] text-sm py-4">Здесь будут фотографии от сообщества</p>
             </div>
+          )}
+
+          {!unlocked && (
+            <button
+              onClick={handleOpenInMaps}
+              className="w-full bg-[#1A3D2B] text-white rounded-2xl py-4 text-lg mt-6 active:scale-95 transition-transform"
+            >
+              Найти меня!
+            </button>
           )}
         </div>
       </div>

@@ -337,7 +337,6 @@ export default function MapScreen() {
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               {mapZubriks
                 .filter((z) => !z.visited)
-                .slice(0, 3)
                 .map((zubrik) => (
                   <button
                     key={zubrik.id}
