@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── User ────────────────────────────────────────────────────────────
+// Авторизация: пока email + пароль, позже — OAuth (VK / Yandex).
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  unlockedZubriks    UserZubrik[]
+  routeInteractions  UserRoute[]
+  completedWaypoints UserWaypoint[]
+  createdRoutes      Route[]        @relation("RouteAuthor")
+}
+
+// ─── Zubrik ──────────────────────────────────────────────────────────
+// Коллекционный персонаж, привязанный к конкретной точке на карте.
+model Zubrik {
+  id           String   @id @default(cuid())
+  name         String
+  description  String
+  imageColor   String
+  imageUrl     String?
+  latitude     Float
+  longitude    Float
+  locationName String
+  createdAt    DateTime @default(now())
+
+  unlockedBy UserZubrik[]
+}
+
+// Связь «какой пользователь нашёл какого Зубрика».
+model UserZubrik {
+  userId     String
+  zubrikId   String
+  unlockedAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  zubrik Zubrik @relation(fields: [zubrikId], references: [id], onDelete: Cascade)
+
+  @@id([userId, zubrikId])
+}
+
+// ─── Event ───────────────────────────────────────────────────────────
+// Городское событие / мероприятие.
+model Event {
+  id        String   @id @default(cuid())
+  title     String
+  date      DateTime
+  time      String
+  venue     String
+  category  String
+  price     String?
+  imageUrl  String?
+  url       String?
+  createdAt DateTime @default(now())
+}
+
+// ─── Route ───────────────────────────────────────────────────────────
+// Маршрут. isMain = true — главный тур «Зубрики».
+// stops вычисляется из waypoints._count.
+model Route {
+  id          String   @id @default(cuid())
+  name        String
+  distance    String
+  duration    String
+  description String?
+  imageColor  String?
+  isMain      Boolean  @default(false)
+  authorId    String?
+  createdAt   DateTime @default(now())
+
+  author           User?       @relation("RouteAuthor", fields: [authorId], references: [id])
+  waypoints        Waypoint[]
+  userInteractions UserRoute[]
+}
+
+// Точка маршрута с порядковым номером.
+model Waypoint {
+  id          String  @id @default(cuid())
+  routeId     String
+  name        String
+  description String?
+  emoji       String?
+  latitude    Float
+  longitude   Float
+  orderIndex  Int
+
+  route       Route          @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  completedBy UserWaypoint[]
+
+  @@index([routeId])
+}
+
+// Связь «какой пользователь взаимодействует с каким маршрутом».
+model UserRoute {
+  userId      String
+  routeId     String
+  liked       Boolean   @default(false)
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  route Route @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  @@id([userId, routeId])
+}
+
+// Связь «какой пользователь прошёл какую точку маршрута».
+model UserWaypoint {
+  userId      String
+  waypointId  String
+  completedAt DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  waypoint Waypoint @relation(fields: [waypointId], references: [id], onDelete: Cascade)
+
+  @@id([userId, waypointId])
+}

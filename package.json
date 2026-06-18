@@ -9,7 +9,13 @@
     "types": "concurrently 'pnpm f types' 'pnpm b types'",
     "prettify": "pnpm -r --parallel prettify",
     "lint": "concurrently 'pnpm b lint' 'pnpm f lint'",
-    "prepare": "husky"
+    "prepare": "husky",
+    "db:up": "sudo docker compose up -d",
+    "db:down": "sudo docker compose down",
+    "db:migrate": "pnpm b db:migrate",
+    "db:seed": "pnpm b db:seed",
+    "db:studio": "pnpm b db:studio",
+    "db:reset": "pnpm b db:reset"
   },
   "engines": {
     "node": ">=22.0.0"

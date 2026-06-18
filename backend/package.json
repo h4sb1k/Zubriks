@@ -8,9 +8,19 @@
     "start": "node ./dist/index.js",
     "prettify": "prettier --log-level warn --cache --write '{**/src/**/*,*}.{ts,tsx,js,json,yml,scss,css}' '!**/{node_modules,dist}/**/*'",
     "types": "tsc --noEmit --project ./tsconfig.json",
-    "lint": "eslint --cache --cache-location ./node_modules/.cache/.eslintcache ."
+    "lint": "eslint --cache --cache-location ./node_modules/.cache/.eslintcache .",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "db:reset": "prisma migrate reset"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@prisma/client": "^6.10.1",
     "@trpc/server": "^11.17.0",
     "Express": "^3.0.1",
     "cors": "^2.8.6",
@@ -24,6 +34,7 @@
     "@types/express": "^5.0.6",
     "@types/lodash": "^4.17.24",
     "@types/node": "^25.9.1",
+    "prisma": "^6.10.1",
     "tsx": "^4.22.4"
   }
 }

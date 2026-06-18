@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: zubriks-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: zubriks
+      POSTGRES_PASSWORD: zubriks
+      POSTGRES_DB: zubriks
+    ports:
+      - '5432:5432'
+    volumes:
+      - zubriks-pgdata:/var/lib/postgresql/data
+
+volumes:
+  zubriks-pgdata:
