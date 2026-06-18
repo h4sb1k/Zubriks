@@ -1,7 +1,8 @@
-import { Calendar, ChevronRight, MapPin, Trophy } from 'lucide-react'
-import { useState } from 'react'
+import { Calendar, ChevronRight, MapPin } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 import { trpc } from '../lib/trpc'
+import { calculateDistance } from '../utils/distance'
 import RouteActive from './RouteActive'
 import ZubrikDetail from './ZubrikDetail'
 
@@ -12,22 +13,28 @@ type Zubrik = {
   distance: string
   unlocked: boolean
   imageColor: string
-  imageUrl: string 
-}
-
-type Event = {
-  id: string
-  title: string
-  time: string
-  venue: string
-  category: string
   imageUrl: string
-  Url: string
+  coordinates?: [number, number, string]
 }
 
 export default function HomeScreen() {
   const [selectedZubrik, setSelectedZubrik] = useState<Zubrik | null>(null)
   const [showRouteActive, setShowRouteActive] = useState(false)
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null)
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation([position.coords.latitude, position.coords.longitude])
+        },
+        (error) => {
+          console.warn('Geolocation error on home screen:', error)
+        }
+      )
+    }
+  }, [])
+
   const {
     data: zubriksData,
     isLoading: zubriksLoading,
@@ -40,6 +47,18 @@ export default function HomeScreen() {
     isError: eventsIsError,
     error: eventsError,
   } = trpc.getEvents.useQuery()
+
+  const zubriks = (zubriksData?.zubriks || []).map((z) => {
+    let distance = z.distance
+    if (userLocation && z.coordinates) {
+      distance = calculateDistance(userLocation[0], userLocation[1], z.coordinates[0], z.coordinates[1])
+    }
+    return {
+      ...(z as Zubrik),
+      distance,
+    }
+  })
+
   return (
     <>
       <div className="flex-1 overflow-y-auto pb-20">
@@ -90,7 +109,7 @@ export default function HomeScreen() {
 
           {zubriksData && (
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5 scrollbar-hide">
-              {zubriksData.zubriks.map((zubrik) => (
+              {zubriks.map((zubrik) => (
                 <button
                   key={zubrik.id}
                   onClick={() => setSelectedZubrik(zubrik as Zubrik)}
@@ -162,6 +181,7 @@ export default function HomeScreen() {
           unlocked={selectedZubrik.unlocked}
           description={selectedZubrik.description}
           imageUrl={selectedZubrik.imageUrl}
+          coordinates={selectedZubrik.coordinates}
           onClose={() => setSelectedZubrik(null)}
         />
       )}

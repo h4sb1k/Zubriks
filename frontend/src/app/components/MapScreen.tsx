@@ -1,9 +1,11 @@
 import * as L from 'leaflet'
-import { MapPin, Navigation2, Search } from 'lucide-react'
+import { MapPin, Navigation, Navigation2, Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet'
 
 import { trpc } from '../lib/trpc'
+import { calculateDistance } from '../utils/distance'
+import { openPointInMaps } from '../utils/openInMaps'
 import ZubrikDetail from './ZubrikDetail'
 
 type Zubrik = {
@@ -14,22 +16,15 @@ type Zubrik = {
   unlocked: boolean
   imageColor: string
   imageUrl: string
+  coordinates?: [number, number, string]
 }
 
 // Real locations of interest in Orel for the walking tour
-const ZUBRIK_COORDINATES: Record<string, [number, number]> = {
-  '1': [52.9701, 36.0732], // Park of Culture / Children's Park
-  '2': [52.9722, 36.0753], // Art Museum
-  '3': [52.9681, 36.0695], // Central Square Bridge / River
-  '4': [52.9754, 36.0812], // Historical Museum of Writers
-  '5': [52.9655, 36.0671], // Turgenev Museum area
-  '6': [52.9712, 36.0785], // Central Plaza Cafes
-}
 
 // Controller component to dynamically change map view and fix initial container size issues
 function MapController({ center }: { center: [number, number] | null }) {
   const map = useMap()
-  
+
   useEffect(() => {
     // Invalidate map size after mount to force Leaflet to recalculate size.
     // This solves the common issue of a blank/gray/white screen when Leaflet mounts
@@ -45,7 +40,7 @@ function MapController({ center }: { center: [number, number] | null }) {
       map.setView(center, 15, { animate: true })
     }
   }, [center, map])
-  
+
   return null
 }
 
@@ -56,9 +51,7 @@ const createZubrikIcon = (zubrik: Zubrik) => {
   const pulseHtml = !isFound
     ? '<div class="absolute -top-1 -right-1 w-4 h-4 bg-[#E8922A] rounded-full border-2 border-white animate-pulse"></div>'
     : ''
-  const tintHtml = isFound
-    ? '<div class="absolute inset-0 bg-[#34C759]/20 mix-blend-color rounded-full"></div>'
-    : ''
+  const tintHtml = isFound ? '<div class="absolute inset-0 bg-[#34C759]/20 mix-blend-color rounded-full"></div>' : ''
 
   const iconHtml = `
     <div class="relative w-12 h-12 rounded-full flex items-center justify-center shadow-lg border-3 overflow-hidden transition-all duration-300 hover:scale-110 ${borderClass}">
@@ -105,6 +98,13 @@ export default function MapScreen() {
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null)
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null)
 
+  // Center map on selected Zubrik
+  useEffect(() => {
+    if (selectedZubrik && selectedZubrik.coordinates) {
+      setMapCenter([selectedZubrik.coordinates[0], selectedZubrik.coordinates[1]])
+    }
+  }, [selectedZubrik])
+
   // Touch gesture state for bottom sheet
   const [translateY, setTranslateY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
@@ -118,11 +118,15 @@ export default function MapScreen() {
   } = trpc.getZubriks.useQuery()
 
   const mapZubriks = (zubriksData?.zubriks || []).map((z) => {
-    const coords = ZUBRIK_COORDINATES[z.id] || [52.9701, 36.0732]
+    let distance = z.distance
+    if (userLocation && z.coordinates) {
+      distance = calculateDistance(userLocation[0], userLocation[1], z.coordinates[0], z.coordinates[1])
+    }
     return {
       ...(z as Zubrik),
       visited: z.unlocked,
-      coords,
+      coords: (z.coordinates ? [z.coordinates[0], z.coordinates[1]] : [0, 0]) as [number, number],
+      distance,
     }
   })
 
@@ -166,6 +170,13 @@ export default function MapScreen() {
       setSelectedZubrik(null)
     }
     setTranslateY(0)
+  }
+
+  const handleOpenInMaps = () => {
+    if (selectedZubrik && selectedZubrik.coordinates) {
+      const [lat, lon, name] = selectedZubrik.coordinates
+      openPointInMaps({ lat, lon, name })
+    }
   }
 
   return (
@@ -290,9 +301,17 @@ export default function MapScreen() {
                       <span>Найден</span>
                     </div>
                   ) : (
-                    <button className="bg-[#E8922A] text-white px-6 py-2.5 rounded-2xl text-sm font-medium hover:bg-[#d68120] active:scale-95 transition-all">
-                      Найти меня!
+                    <button
+                      onClick={handleOpenInMaps}
+                      className="w-full bg-[#E8922A] text-white rounded-2xl py-3.5 flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                    >
+                      <Navigation size={20} />
+                      <span>Открыть в картах</span>
                     </button>
+
+                    // <button className="bg-[#E8922A] text-white px-6 py-2.5 rounded-2xl text-sm font-medium hover:bg-[#d68120] active:scale-95 transition-all">
+                    //   Найти меня!
+                    // </button>
                   )}
                   <button
                     onClick={() => setDetailZubrik(selectedZubrik)}
@@ -350,6 +369,7 @@ export default function MapScreen() {
           description={detailZubrik.description}
           imageUrl={detailZubrik.imageUrl}
           unlocked={detailZubrik.unlocked}
+          coordinates={detailZubrik.coordinates}
           onClose={() => setDetailZubrik(null)}
         />
       )}

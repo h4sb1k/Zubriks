@@ -6,9 +6,9 @@
     "b": "pnpm --filter @Zubriki/backend",
     "f": "pnpm --filter @Zubriki/frontend",
     "dev": "pnpm -r --parallel dev",
-    "types": "concurrently 'pnpm w types' 'pnpm b types'",
+    "types": "concurrently 'pnpm f types' 'pnpm b types'",
     "prettify": "pnpm -r --parallel prettify",
-    "lint": "concurrently 'pnpm b lint' 'pnpm w lint'",
+    "lint": "concurrently 'pnpm b lint' 'pnpm f lint'",
     "prepare": "husky"
   },
   "engines": {

@@ -1,6 +1,8 @@
-import confetti, { Options as ConfettiOptions } from 'canvas-confetti'
+import type { Options as ConfettiOptions } from 'canvas-confetti'
+import confetti from 'canvas-confetti'
 import { Share2 } from 'lucide-react'
-import { ReactNode, useCallback, useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

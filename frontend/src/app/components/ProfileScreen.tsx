@@ -1,4 +1,3 @@
-import { Clock, MapPin, Star, Trophy } from 'lucide-react'
 import { useState } from 'react'
 
 type Achievement = {

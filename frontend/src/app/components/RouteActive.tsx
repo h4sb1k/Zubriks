@@ -1,7 +1,8 @@
 import { ArrowLeft, CheckCircle2, MapPin, Navigation } from 'lucide-react'
 import { useState } from 'react'
 
-import { MapPoint, openPointInMaps, openRouteInMaps } from '../utils/openInMaps'
+import type { MapPoint } from '../utils/openInMaps'
+import { openPointInMaps, openRouteInMaps } from '../utils/openInMaps'
 
 type RouteActiveProps = {
   onClose: () => void

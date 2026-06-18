@@ -1,20 +1,33 @@
 import { ArrowLeft, MapPin, Navigation, Share2 } from 'lucide-react'
 import { useState } from 'react'
 
-import { trpc } from '../lib/trpc'
-import HomeScreen from './HomeScreen'
-
+import { openPointInMaps } from '../utils/openInMaps'
 
 type ZubrikDetailProps = {
   name: string
   description: string
   imageUrl: string
   unlocked: boolean
+  coordinates?: [number, number, string]
   onClose: () => void
 }
 
-export default function ZubrikDetail({ name, description, imageUrl, unlocked, onClose }: ZubrikDetailProps) {
+export default function ZubrikDetail({
+  name,
+  description,
+  imageUrl,
+  unlocked,
+  coordinates,
+  onClose,
+}: ZubrikDetailProps) {
   const [activeTab, setActiveTab] = useState('История')
+
+  const handleOpenInMaps = () => {
+    if (coordinates) {
+      const [lat, lon, label] = coordinates
+      openPointInMaps({ lat, lon, name: label || name })
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-[#FAFAF7] overflow-y-auto">
@@ -95,8 +108,9 @@ export default function ZubrikDetail({ name, description, imageUrl, unlocked, on
                 )}
               </p>
               <p className="text-[#1C1C1E] leading-relaxed">
-                Каждый Зубрик уникален и связан с определённым памятным местом или культурной особенностью нашего города.
-                Найдите их всех, чтобы собрать полную коллекцию достижений и открыть новые захватывающие подробности об Орле!
+                Каждый Зубрик уникален и связан с определённым памятным местом или культурной особенностью нашего
+                города. Найдите их всех, чтобы собрать полную коллекцию достижений и открыть новые захватывающие
+                подробности об Орле!
               </p>
             </div>
           )}
@@ -114,11 +128,14 @@ export default function ZubrikDetail({ name, description, imageUrl, unlocked, on
                   <div className="flex items-start gap-3 mb-4">
                     <MapPin size={20} className="text-[#E8922A] mt-0.5 flex-shrink-0" />
                     <div>
-                      <h3 className="mb-1">Площадь Ленина</h3>
-                      <p className="text-sm text-[#6B6B6B]">г. Орёл, пл. Ленина, 1</p>
+                      <h3 className="mb-1">{coordinates ? coordinates[2] : 'Местоположение'}</h3>
+                      <p className="text-sm text-[#6B6B6B]">г. Орёл{coordinates ? `, ${coordinates[2]}` : ''}</p>
                     </div>
                   </div>
-                  <button className="w-full bg-[#E8922A] text-white rounded-2xl py-3 flex items-center justify-center gap-2">
+                  <button
+                    onClick={handleOpenInMaps}
+                    className="w-full bg-[#E8922A] text-white rounded-2xl py-3 flex items-center justify-center gap-2"
+                  >
                     <Navigation size={20} />
                     <span>Построить маршрут</span>
                   </button>
@@ -126,7 +143,9 @@ export default function ZubrikDetail({ name, description, imageUrl, unlocked, on
               </div>
 
               {!unlocked && (
-                <button className="w-full bg-[#1A3D2B] text-white rounded-2xl py-4 text-lg">Найти меня!</button>
+                <button onClick={handleOpenInMaps} className="w-full bg-[#1A3D2B] text-white rounded-2xl py-4 text-lg">
+                  Найти меня!
+                </button>
               )}
             </div>
           )}
