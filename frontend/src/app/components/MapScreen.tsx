@@ -110,6 +110,9 @@ export default function MapScreen() {
   const [isDragging, setIsDragging] = useState(false)
   const [startY, setStartY] = useState(0)
 
+  // Search query state
+  const [searchQuery, setSearchQuery] = useState('')
+
   const {
     data: zubriksData,
     isLoading: zubriksLoading,
@@ -120,7 +123,12 @@ export default function MapScreen() {
   const mapZubriks = (zubriksData?.zubriks || []).map((z) => {
     let distance = z.distance
     if (userLocation && z.coordinates) {
-      distance = calculateDistance(userLocation[0], userLocation[1], z.coordinates[0], z.coordinates[1])
+      distance = calculateDistance(
+        userLocation[0],
+        userLocation[1],
+        z.coordinates[0],
+        z.coordinates[1]
+      )
     }
     return {
       ...(z as Zubrik),
@@ -129,6 +137,19 @@ export default function MapScreen() {
       distance,
     }
   })
+
+  // Filter Zubriks based on search query
+  const searchResults = searchQuery.trim()
+    ? mapZubriks.filter((zubrik) => {
+        const query = searchQuery.toLowerCase()
+        const matchesName = zubrik.name.toLowerCase().includes(query)
+        const matchesPlace =
+          zubrik.coordinates && zubrik.coordinates[2]
+            ? zubrik.coordinates[2].toLowerCase().includes(query)
+            : false
+        return matchesName || matchesPlace
+      })
+    : []
 
   // Geolocation centering logic
   const handleCenterUserLocation = () => {
@@ -218,16 +239,58 @@ export default function MapScreen() {
 
       {/* Floating overlays (placed in absolute positioning over Leaflet relative container) */}
       <div className="absolute inset-0 pointer-events-none z-10">
-        {/* Search Bar */}
-        <div className="absolute top-4 left-4 right-4 pointer-events-auto">
+        {/* Search Bar & Results Dropdown */}
+        <div className="absolute top-4 left-4 right-4 pointer-events-auto flex flex-col gap-2">
           <div className="bg-white rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
             <Search size={20} className="text-[#6B6B6B]" />
             <input
               type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Найти место или зубрика..."
               className="flex-1 bg-transparent outline-none text-sm"
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="text-xs text-[#6B6B6B] hover:text-[#1C1C1E] active:scale-95 transition-transform"
+              >
+                Очистить
+              </button>
+            )}
           </div>
+
+          {/* Search Results Dropdown */}
+          {searchQuery.trim() && (
+            <div className="bg-white rounded-2xl shadow-xl max-h-60 overflow-y-auto border border-gray-100 flex flex-col divide-y divide-gray-50 z-20">
+              {searchResults.length > 0 ? (
+                searchResults.map((zubrik) => (
+                  <button
+                    key={zubrik.id}
+                    onClick={() => {
+                      setSelectedZubrik(zubrik)
+                      setSearchQuery('')
+                    }}
+                    className="px-4 py-3 text-left hover:bg-gray-50 active:bg-gray-100 transition-colors flex items-center justify-between cursor-pointer"
+                  >
+                    <div>
+                      <div className="text-sm font-medium text-[#1C1C1E]">{zubrik.name}</div>
+                      <div className="text-xs text-[#6B6B6B] mt-0.5">
+                        {zubrik.coordinates ? zubrik.coordinates[2] : 'Местоположение'} · {zubrik.distance}
+                      </div>
+                    </div>
+                    <span className="text-xs text-[#E8922A] font-medium">
+                      {zubrik.unlocked ? '✓ Найден' : '🔒 Искать'}
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <div className="px-4 py-4 text-center text-sm text-[#6B6B6B]">
+                  Ничего не найдено 🔍
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* GPS Centering FAB */}
