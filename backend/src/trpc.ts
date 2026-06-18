@@ -76,9 +76,11 @@ type Event = {
   time: string
   venue: string
   category: string
+  imageUrl?: string
+  Url?: string
 }
 const mockEvents: Event[] = [
-  { id: '1', title: 'Выставка современного Хуюсства', time: '14:00', venue: 'Галерея «Орёл»', category: 'Выставка' },
+  { id: '1', title: 'Выставка современного Хуюсства', time: '14:00', venue: 'Галерея «Орёл»', category: 'Выставка'},
   { id: '2', title: 'Концерт симфонического оркестра', time: '19:00', venue: 'Филармония', category: 'Концерт' },
   { id: '3', title: 'Фестиваль уличной еды', time: '12:00', venue: 'Парк Культуры', category: 'Фестиваль' },
 ]

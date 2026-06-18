@@ -21,6 +21,8 @@ type Event = {
   time: string
   venue: string
   category: string
+  imageUrl: string
+  Url: string
 }
 
 export default function HomeScreen() {
