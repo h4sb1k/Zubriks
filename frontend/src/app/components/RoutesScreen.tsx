@@ -1,6 +1,9 @@
 import { ChevronRight, Clock, Heart, MapPin, Plus } from 'lucide-react'
 import { useState } from 'react'
 
+import { trpc } from '../lib/trpc'
+import RouteActive from './RouteActive'
+
 type Route = {
   id: string
   name: string
@@ -8,69 +11,54 @@ type Route = {
   duration: string
   stops: number
   author: string
+  description?: string
   liked: boolean
   imageColor: string
 }
 
-const mainRoute = {
-  id: 'main',
-  name: 'Тур «Зубрики»',
-  distance: '5.2 км',
-  duration: '2-3 часа',
-  stops: 8,
-  description: 'Пройди по главным достопримечательностям Орла и собери всех зубриков',
-}
-
-const mockRoutes: Route[] = [
-  {
-    id: '1',
-    name: 'Исторический центр',
-    distance: '3.5 км',
-    duration: '1.5 ч',
-    stops: 5,
-    author: 'Анна К.',
-    liked: false,
-    imageColor: '#1A3D2B',
-  },
-  {
-    id: '2',
-    name: 'Парки и скверы',
-    distance: '4.2 км',
-    duration: '2 ч',
-    stops: 6,
-    author: 'Дмитрий М.',
-    liked: true,
-    imageColor: '#34C759',
-  },
-  {
-    id: '3',
-    name: 'Музеи Орла',
-    distance: '2.8 км',
-    duration: '3 ч',
-    stops: 4,
-    author: 'Елена В.',
-    liked: false,
-    imageColor: '#E8922A',
-  },
-  {
-    id: '4',
-    name: 'Архитектура модерна',
-    distance: '3.0 км',
-    duration: '1 ч',
-    stops: 7,
-    author: 'Игорь С.',
-    liked: false,
-    imageColor: '#D4A017',
-  },
-]
-
 export default function RoutesScreen() {
   const [activeFilter, setActiveFilter] = useState('Все')
-  const [routes, setRoutes] = useState(mockRoutes)
+  const [likedRoutes, setLikedRoutes] = useState<Record<string, boolean>>({})
+  const [showRouteActive, setShowRouteActive] = useState(false)
+
+  const { data: routesData, isLoading, isError, error } = trpc.getRoutes.useQuery()
 
   const toggleLike = (id: string) => {
-    setRoutes(routes.map((route) => (route.id === id ? { ...route, liked: !route.liked } : route)))
+    setLikedRoutes((prev) => ({ ...prev, [id]: !prev[id] }))
   }
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-[#FAFAF7]">
+        <span className="text-[#6B6B6B]">Загрузка маршрутов...</span>
+      </div>
+    )
+  }
+
+  if (isError || !routesData) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-[#FAFAF7] p-5">
+        <span className="text-red-500">Ошибка загрузки: {error?.message || 'Неизвестная ошибка'}</span>
+      </div>
+    )
+  }
+
+  const { routes, mainRoute } = routesData
+
+  const displayedRoutes = (routes || []).map((route) => ({
+    ...(route as Route),
+    liked: likedRoutes[route.id] !== undefined ? likedRoutes[route.id] : route.liked,
+  }))
+
+  const filteredRoutes = displayedRoutes.filter((route) => {
+    if (activeFilter === 'Избранные') {
+      return route.liked
+    }
+    if (activeFilter === 'Мои') {
+      return route.author === 'Я' || route.id === 'user-created'
+    }
+    return true
+  })
 
   return (
     <div className="flex-1 overflow-y-auto pb-20">
@@ -117,7 +105,10 @@ export default function RoutesScreen() {
                 <span>{mainRoute.stops} остановок</span>
               </div>
             </div>
-            <button className="w-full bg-[#E8922A] text-white rounded-2xl py-3.5 flex items-center justify-center gap-2">
+            <button
+              onClick={() => setShowRouteActive(true)}
+              className="w-full bg-[#E8922A] text-white rounded-2xl py-3.5 flex items-center justify-center gap-2 active:scale-95 transition-transform"
+            >
               <span>В путь</span>
               <ChevronRight size={20} />
             </button>
@@ -128,8 +119,12 @@ export default function RoutesScreen() {
       <div className="px-5 pb-6">
         <h2 className="text-lg mb-4">Другие маршруты</h2>
         <div className="grid grid-cols-2 gap-3">
-          {routes.map((route) => (
-            <div key={route.id} className="bg-white rounded-2xl overflow-hidden shadow-sm">
+          {filteredRoutes.map((route) => (
+            <div
+              key={route.id}
+              onClick={() => setShowRouteActive(true)}
+              className="bg-white rounded-2xl overflow-hidden shadow-sm cursor-pointer active:scale-[0.98] transition-transform"
+            >
               <div
                 className="h-28 flex items-center justify-center text-4xl"
                 style={{ backgroundColor: route.imageColor }}
@@ -150,7 +145,13 @@ export default function RoutesScreen() {
                     </div>
                     <span className="text-xs text-[#6B6B6B]">{route.author}</span>
                   </div>
-                  <button onClick={() => toggleLike(route.id)} className="p-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleLike(route.id)
+                    }}
+                    className="p-1"
+                  >
                     <Heart size={16} className={route.liked ? 'fill-[#E8922A] text-[#E8922A]' : 'text-[#6B6B6B]'} />
                   </button>
                 </div>
@@ -163,6 +164,8 @@ export default function RoutesScreen() {
       <button className="fixed bottom-24 right-5 w-14 h-14 bg-[#E8922A] text-white rounded-full shadow-lg flex items-center justify-center">
         <Plus size={24} />
       </button>
+
+      {showRouteActive && <RouteActive onClose={() => setShowRouteActive(false)} />}
     </div>
   )
 }

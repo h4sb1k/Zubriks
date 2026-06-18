@@ -153,12 +153,9 @@ export default function ZubrikDetail({
                     >
                       <TileLayer
                         url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                        attribution='&copy; CARTO'
+                        attribution="&copy; CARTO"
                       />
-                      <Marker
-                        position={[coordinates[0], coordinates[1]]}
-                        icon={createZubrikIcon(imageUrl, name)}
-                      />
+                      <Marker position={[coordinates[0], coordinates[1]]} icon={createZubrikIcon(imageUrl, name)} />
                     </MapContainer>
                   </div>
                 ) : (

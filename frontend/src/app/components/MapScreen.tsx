@@ -90,13 +90,18 @@ const createUserLocationIcon = () => {
   })
 }
 
-export default function MapScreen() {
+export default function MapScreen({
+  userLocation,
+  setUserLocation,
+}: {
+  userLocation: [number, number] | null
+  setUserLocation: React.Dispatch<React.SetStateAction<[number, number] | null>>
+}) {
   const [selectedZubrik, setSelectedZubrik] = useState<Zubrik | null>(null)
   const [detailZubrik, setDetailZubrik] = useState<Zubrik | null>(null)
 
   // Map settings
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null)
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null)
 
   // Center map on selected Zubrik
   useEffect(() => {
@@ -121,14 +126,9 @@ export default function MapScreen() {
   } = trpc.getZubriks.useQuery()
 
   const mapZubriks = (zubriksData?.zubriks || []).map((z) => {
-    let distance = z.distance
+    let distance = '...'
     if (userLocation && z.coordinates) {
-      distance = calculateDistance(
-        userLocation[0],
-        userLocation[1],
-        z.coordinates[0],
-        z.coordinates[1]
-      )
+      distance = calculateDistance(userLocation[0], userLocation[1], z.coordinates[0], z.coordinates[1])
     }
     return {
       ...(z as Zubrik),
@@ -144,29 +144,31 @@ export default function MapScreen() {
         const query = searchQuery.toLowerCase()
         const matchesName = zubrik.name.toLowerCase().includes(query)
         const matchesPlace =
-          zubrik.coordinates && zubrik.coordinates[2]
-            ? zubrik.coordinates[2].toLowerCase().includes(query)
-            : false
+          zubrik.coordinates && zubrik.coordinates[2] ? zubrik.coordinates[2].toLowerCase().includes(query) : false
         return matchesName || matchesPlace
       })
     : []
 
   // Geolocation centering logic
   const handleCenterUserLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords
-          setMapCenter([latitude, longitude])
-          setUserLocation([latitude, longitude])
-        },
-        (error) => {
-          console.error('Error getting user location:', error)
-          alert('Не удалось получить ваше местоположение. Убедитесь, что геопозиция включена в настройках браузера.')
-        }
-      )
+    if (userLocation) {
+      setMapCenter(userLocation)
     } else {
-      alert('Геолокация не поддерживается вашим устройством.')
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const coords: [number, number] = [position.coords.latitude, position.coords.longitude]
+            setUserLocation(coords)
+            setMapCenter(coords)
+          },
+          (error) => {
+            console.error('Error getting user location:', error)
+            alert('Не удалось получить ваше местоположение. Убедитесь, что геопозиция включена в настройках браузера.')
+          }
+        )
+      } else {
+        alert('Геолокация не поддерживается вашим устройством.')
+      }
     }
   }
 
@@ -285,9 +287,7 @@ export default function MapScreen() {
                   </button>
                 ))
               ) : (
-                <div className="px-4 py-4 text-center text-sm text-[#6B6B6B]">
-                  Ничего не найдено 🔍
-                </div>
+                <div className="px-4 py-4 text-center text-sm text-[#6B6B6B]">Ничего не найдено 🔍</div>
               )}
             </div>
           )}
@@ -332,9 +332,9 @@ export default function MapScreen() {
           >
             {/* Drag Handle Indicator */}
             <div className="w-12 h-1.5 bg-[#E5E3DD] rounded-full mx-auto mb-4 cursor-grab active:cursor-grabbing" />
-            <div className="flex items-start gap-4">
+            <div className="flex items-center gap-4 mb-4">
               <div
-                className={`w-20 h-20 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0 overflow-hidden shadow-sm border-3 ${
+                className={`w-20 h-20 rounded-full flex items-center justify-center text-3xl flex-shrink-0 overflow-hidden shadow-sm border-3 ${
                   selectedZubrik.unlocked ? 'border-[#34C759] bg-[#34C759]/10' : 'border-[#E8922A] bg-[#E8922A]/10'
                 }`}
               >
@@ -351,39 +351,36 @@ export default function MapScreen() {
                   <span className="text-3xl text-white">🦬</span>
                 )}
               </div>
-              <div className="flex-1">
-                <h3 className="text-lg mb-1">{selectedZubrik.name}</h3>
-                <div className="flex items-center gap-2 text-sm text-[#6B6B6B] mb-3">
-                  <MapPin size={16} />
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-semibold text-[#1C1C1E] mb-1 truncate">{selectedZubrik.name}</h3>
+                <div className="flex items-center gap-2 text-sm text-[#6B6B6B]">
+                  <MapPin size={16} className="text-[#E8922A]" />
                   <span>{selectedZubrik.distance}</span>
                 </div>
-                <div className="flex gap-2">
-                  {selectedZubrik.unlocked ? (
-                    <div className="inline-flex items-center gap-2 bg-[#34C759]/10 text-[#34C759] px-3 py-1.5 rounded-full text-sm">
-                      <span>✓</span>
-                      <span>Найден</span>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={handleOpenInMaps}
-                      className="w-full bg-[#E8922A] text-white rounded-2xl py-3.5 flex items-center justify-center gap-2 active:scale-95 transition-transform"
-                    >
-                      <Navigation size={20} />
-                      <span>Открыть в картах</span>
-                    </button>
-
-                    // <button className="bg-[#E8922A] text-white px-6 py-2.5 rounded-2xl text-sm font-medium hover:bg-[#d68120] active:scale-95 transition-all">
-                    //   Найти меня!
-                    // </button>
-                  )}
-                  <button
-                    onClick={() => setDetailZubrik(selectedZubrik)}
-                    className="border border-[#E5E3DD] text-[#1C1C1E] px-4 py-2.5 rounded-2xl text-sm font-medium hover:bg-gray-50 active:scale-95 transition-all"
-                  >
-                    Подробнее
-                  </button>
-                </div>
               </div>
+            </div>
+
+            <div className="flex flex-col gap-2 mt-4">
+              {selectedZubrik.unlocked ? (
+                <div className="w-full bg-[#34C759]/10 text-[#34C759] py-3.5 rounded-2xl text-sm flex items-center justify-center gap-2 font-medium">
+                  <span>✓</span>
+                  <span>Найден</span>
+                </div>
+              ) : (
+                <button
+                  onClick={handleOpenInMaps}
+                  className="w-full bg-[#E8922A] text-white rounded-2xl py-3.5 flex items-center justify-center gap-2 active:scale-95 transition-transform text-sm font-medium shadow-sm hover:bg-[#d68120]"
+                >
+                  <Navigation size={18} />
+                  <span>Открыть в картах</span>
+                </button>
+              )}
+              <button
+                onClick={() => setDetailZubrik(selectedZubrik)}
+                className="w-full border border-[#E5E3DD] text-[#1C1C1E] py-3.5 rounded-2xl text-sm font-medium hover:bg-gray-50 active:scale-95 transition-all flex items-center justify-center"
+              >
+                Подробнее
+              </button>
             </div>
             <button
               onClick={() => setSelectedZubrik(null)}

@@ -1,5 +1,5 @@
 import { Calendar, ChevronRight, MapPin } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { trpc } from '../lib/trpc'
 import { calculateDistance } from '../utils/distance'
@@ -17,23 +17,9 @@ type Zubrik = {
   coordinates?: [number, number, string]
 }
 
-export default function HomeScreen() {
+export default function HomeScreen({ userLocation }: { userLocation: [number, number] | null }) {
   const [selectedZubrik, setSelectedZubrik] = useState<Zubrik | null>(null)
   const [showRouteActive, setShowRouteActive] = useState(false)
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null)
-
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation([position.coords.latitude, position.coords.longitude])
-        },
-        (error) => {
-          console.warn('Geolocation error on home screen:', error)
-        }
-      )
-    }
-  }, [])
 
   const {
     data: zubriksData,
@@ -49,7 +35,7 @@ export default function HomeScreen() {
   } = trpc.getEvents.useQuery()
 
   const zubriks = (zubriksData?.zubriks || []).map((z) => {
-    let distance = z.distance
+    let distance = '...'
     if (userLocation && z.coordinates) {
       distance = calculateDistance(userLocation[0], userLocation[1], z.coordinates[0], z.coordinates[1])
     }

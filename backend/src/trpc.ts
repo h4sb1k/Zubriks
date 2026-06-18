@@ -13,7 +13,6 @@ type Zubrik = {
   imageUrl: string
   coordinates: [number, number, string]
 }
-
 export const mockZubriks: Zubrik[] = [
   {
     id: '1',
@@ -98,6 +97,69 @@ const mockEvents: Event[] = [
   { id: '3', title: 'Фестиваль уличной еды', time: '12:00', venue: 'Парк Культуры', category: 'Фестиваль' },
 ]
 
+type Route = {
+  id: string
+  name: string
+  distance: string
+  duration: string
+  stops: number
+  author: string
+  description?: string
+  liked: boolean
+  imageColor: string
+}
+export const mockRoutes: Route[] = [
+  {
+    id: '1',
+    name: 'Исторический центр',
+    distance: '3.5 км',
+    duration: '1.5 ч',
+    stops: 5,
+    author: 'Анна К.',
+    liked: false,
+    imageColor: '#1A3D2B',
+  },
+  {
+    id: '2',
+    name: 'Парки и скверы',
+    distance: '4.2 км',
+    duration: '2 ч',
+    stops: 6,
+    author: 'Дмитрий М.',
+    liked: true,
+    imageColor: '#34C759',
+  },
+  {
+    id: '3',
+    name: 'Музеи Орла',
+    distance: '2.8 км',
+    duration: '3 ч',
+    stops: 4,
+    author: 'Елена В.',
+    liked: false,
+    imageColor: '#E8922A',
+  },
+  {
+    id: '4',
+    name: 'Архитектура модерна',
+    distance: '3.0 км',
+    duration: '1 ч',
+    stops: 7,
+    author: 'Игорь С.',
+    liked: false,
+    imageColor: '#D4A017',
+  },
+]
+
+export const mainRoute = {
+  id: 'main',
+  name: 'Тур «Зубрики»',
+  distance: '5.2 км',
+  duration: '2-3 часа',
+  stops: 8,
+  description: 'Пройди по главным достопримечательностям Орла и собери всех зубриков',
+}
+
 export const trpcRouter = trpc.router({
   getZubriks: trpc.procedure.query(() => {
     return {
@@ -109,6 +171,14 @@ export const trpcRouter = trpc.router({
   getEvents: trpc.procedure.query(() => {
     return {
       events: mockEvents.map((event) => _.pick(event, ['id', 'title', 'time', 'venue', 'category'])),
+    }
+  }),
+  getRoutes: trpc.procedure.query(() => {
+    return {
+      routes: mockRoutes.map((route) =>
+        _.pick(route, ['id', 'name', 'distance', 'duration', 'stops', 'author', 'description', 'liked', 'imageColor'])
+      ),
+      mainRoute: _.pick(mainRoute, ['id', 'name', 'distance', 'duration', 'stops', 'description']),
     }
   }),
   //   getIdeas: trpc.procedure.query(() => {

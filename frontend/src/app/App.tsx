@@ -1,6 +1,6 @@
 // src/App.tsx
 import { Calendar, Home, Map, Route, User } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import AchievementUnlock from './components/AchievementUnlock'
 import EventsScreen from './components/EventsScreen'
@@ -29,6 +29,37 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(() => localStorage.getItem(ONBOARDING_KEY) !== 'true')
   const [showAchievement, setShowAchievement] = useState(false)
 
+  // Global user location state, initialized from cache if available
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(() => {
+    const cached = localStorage.getItem('last_user_location')
+    if (cached) {
+      try {
+        return JSON.parse(cached) as [number, number]
+      } catch (e) {
+        return null
+      }
+    }
+    return null
+  })
+
+  // Watch user location in real-time
+  useEffect(() => {
+    if (navigator.geolocation) {
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const coords: [number, number] = [position.coords.latitude, position.coords.longitude]
+          setUserLocation(coords)
+          localStorage.setItem('last_user_location', JSON.stringify(coords))
+        },
+        (error) => {
+          console.warn('Geolocation watch error:', error)
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      )
+      return () => navigator.geolocation.clearWatch(watchId)
+    }
+  }, [])
+
   const handleOnboardingComplete = () => {
     localStorage.setItem(ONBOARDING_KEY, 'true')
     setShowOnboarding(false)
@@ -42,8 +73,8 @@ export default function App() {
   return (
     <TrpcProvider>
       <div className="size-full flex flex-col bg-[#FAFAF7] max-w-md mx-auto relative">
-        {activeTab === 'home' && <HomeScreen />}
-        {activeTab === 'map' && <MapScreen />}
+        {activeTab === 'home' && <HomeScreen userLocation={userLocation} />}
+        {activeTab === 'map' && <MapScreen userLocation={userLocation} setUserLocation={setUserLocation} />}
         {activeTab === 'routes' && <RoutesScreen />}
         {activeTab === 'events' && <EventsScreen />}
         {activeTab === 'profile' && <ProfileScreen />}
