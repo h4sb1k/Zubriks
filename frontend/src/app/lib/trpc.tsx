@@ -29,6 +29,9 @@ const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
       url: getBaseUrl(),
+      fetch(url, options) {
+        return fetch(url, { ...options, credentials: 'include' })
+      },
     }),
   ],
 })

@@ -10,7 +10,7 @@ import OnboardingScreen from './components/OnboardingScreen'
 import bisonSVG from './components/pics/zubr.svg'
 import ProfileScreen from './components/ProfileScreen'
 import RoutesScreen from './components/RoutesScreen'
-import { TrpcProvider } from './lib/trpc'
+import { trpc,TrpcProvider } from './lib/trpc'
 
 type TabType = 'home' | 'map' | 'routes' | 'events' | 'profile'
 
@@ -24,10 +24,15 @@ const tabs: { id: TabType; icon: typeof Home; label: string }[] = [
   { id: 'profile', icon: User, label: 'Профиль' },
 ]
 
-export default function App() {
+function MainApp() {
   const [activeTab, setActiveTab] = useState<TabType>('home')
   const [showOnboarding, setShowOnboarding] = useState(() => localStorage.getItem(ONBOARDING_KEY) !== 'true')
   const [showAchievement, setShowAchievement] = useState(false)
+
+  // tRPC query to get user
+  const { data: user, isLoading, refetch } = trpc.me.useQuery(undefined, {
+    retry: false,
+  })
 
   // Global user location state, initialized from cache if available
   const [userLocation, setUserLocation] = useState<[number, number] | null>(() => {
@@ -66,57 +71,77 @@ export default function App() {
     setTimeout(() => setShowAchievement(true), 1000)
   }
 
-  if (showOnboarding) {
-    return <OnboardingScreen onComplete={handleOnboardingComplete} />
+  if (isLoading) {
+    return <div className="flex-1 flex items-center justify-center min-h-screen bg-[#FAFAF7]"><div className="w-10 h-10 border-4 border-[#E8922A] border-t-transparent rounded-full animate-spin" /></div>
+  }
+
+  if (!user || showOnboarding) {
+    return (
+      <OnboardingScreen
+        initialStep={showOnboarding ? 0 : 2}
+        onComplete={() => {
+          if (showOnboarding) {
+            handleOnboardingComplete()
+          }
+          refetch()
+        }}
+      />
+    )
   }
 
   return (
-    <TrpcProvider>
-      <div className="size-full flex flex-col bg-[#FAFAF7] max-w-md mx-auto relative">
-        {activeTab === 'home' && <HomeScreen userLocation={userLocation} />}
-        {activeTab === 'map' && <MapScreen userLocation={userLocation} setUserLocation={setUserLocation} />}
-        {activeTab === 'routes' && <RoutesScreen userLocation={userLocation} />}
-        {activeTab === 'events' && <EventsScreen />}
-        {activeTab === 'profile' && <ProfileScreen />}
+    <div className="size-full flex flex-col bg-[#FAFAF7] max-w-md mx-auto relative min-h-screen">
+      {activeTab === 'home' && <HomeScreen userLocation={userLocation} />}
+      {activeTab === 'map' && <MapScreen userLocation={userLocation} setUserLocation={setUserLocation} />}
+      {activeTab === 'routes' && <RoutesScreen userLocation={userLocation} />}
+      {activeTab === 'events' && <EventsScreen />}
+      {activeTab === 'profile' && <ProfileScreen />}
 
-        <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-[#E5E3DD] px-2 pt-2 pb-safe">
-          <div className="flex items-center justify-around">
-            {tabs.map(({ id, icon: Icon, label }) => {
-              const isActive = activeTab === id
-              return (
-                <button
-                  key={id}
-                  onClick={() => setActiveTab(id)}
-                  className="flex-1 flex flex-col items-center gap-1 py-2 relative transition-all"
-                >
-                  <div className={`transition-all ${isActive ? 'scale-110' : ''}`}>
-                    <Icon
-                      size={24}
-                      className={isActive ? 'text-[#E8922A]' : 'text-[#6B6B6B]'}
-                      fill={isActive ? '#E8922A' : 'none'}
-                    />
-                  </div>
-                  <span className={`text-xs transition-colors ${isActive ? 'text-[#E8922A]' : 'text-[#6B6B6B]'}`}>
-                    {label}
-                  </span>
-                  {isActive && (
-                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-12 h-1 bg-[#E8922A] rounded-full" />
-                  )}
-                </button>
-              )
-            })}
-          </div>
+      <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-[#E5E3DD] px-2 pt-2 pb-safe z-40">
+        <div className="flex items-center justify-around">
+          {tabs.map(({ id, icon: Icon, label }) => {
+            const isActive = activeTab === id
+            return (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className="flex-1 flex flex-col items-center gap-1 py-2 relative transition-all"
+              >
+                <div className={`transition-all ${isActive ? 'scale-110' : ''}`}>
+                  <Icon
+                    size={24}
+                    className={isActive ? 'text-[#E8922A]' : 'text-[#6B6B6B]'}
+                    fill={isActive ? '#E8922A' : 'none'}
+                  />
+                </div>
+                <span className={`text-xs transition-colors ${isActive ? 'text-[#E8922A]' : 'text-[#6B6B6B]'}`}>
+                  {label}
+                </span>
+                {isActive && (
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-12 h-1 bg-[#E8922A] rounded-full" />
+                )}
+              </button>
+            )
+          })}
         </div>
-
-        {showAchievement && (
-          <AchievementUnlock
-            name="Начало пути"
-            description="Ты начал своё путешествие по Орлу!"
-            image={bisonSVG}
-            onClose={() => setShowAchievement(false)}
-          />
-        )}
       </div>
+
+      {showAchievement && (
+        <AchievementUnlock
+          name="Начало пути"
+          description="Ты начал своё путешествие по Орлу!"
+          image={bisonSVG}
+          onClose={() => setShowAchievement(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+export default function App() {
+  return (
+    <TrpcProvider>
+      <MainApp />
     </TrpcProvider>
   )
 }

@@ -12,7 +12,7 @@ datasource db {
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
-  passwordHash String
+  passwordHash String?
   name         String?
   avatarUrl    String?
   createdAt    DateTime @default(now())
@@ -21,7 +21,37 @@ model User {
   unlockedZubriks    UserZubrik[]
   routeInteractions  UserRoute[]
   completedWaypoints UserWaypoint[]
-  createdRoutes      Route[]        @relation("RouteAuthor")
+  createdRoutes      Route[]           @relation("RouteAuthor")
+  achievements       UserAchievement[]
+
+  refreshTokens      RefreshToken[]
+  oauthAccounts      OAuthAccount[]
+}
+
+// ─── OAuth & Auth ────────────────────────────────────────────────────────
+
+// Таблица для хранения Refresh токенов
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Таблица для привязки социальных сетей (VK, Yandex и др.)
+model OAuthAccount {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String   // "vk", "yandex"
+  providerAccountId String   // ID пользователя в соцсети
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
 }
 
 // ─── Zubrik ──────────────────────────────────────────────────────────
@@ -127,4 +157,28 @@ model UserWaypoint {
   waypoint Waypoint @relation(fields: [waypointId], references: [id], onDelete: Cascade)
 
   @@id([userId, waypointId])
+}
+
+model Achievement {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  imageUrl    String
+  emoji       String?
+
+  users       UserAchievement[]
+}
+
+// Связь «какой пользователь какую ачивку получил»
+model UserAchievement {
+  userId        String
+  achievementId String
+  earned        Boolean   @default(false)
+  progress      Int       @default(0)
+  earnedAt      DateTime?
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@id([userId, achievementId])
 }

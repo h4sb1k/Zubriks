@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🌱 Seeding database...')
+  console.info('🌱 Seeding database...')
 
   // ──────────────────────────────────────────────────────────────────
   // 1. Зубрики
@@ -73,7 +73,7 @@ async function main() {
     ],
     skipDuplicates: true,
   })
-  console.log('  ✅ Zubriks seeded')
+  console.info('  ✅ Zubriks seeded')
 
   // ──────────────────────────────────────────────────────────────────
   // 2. События
@@ -131,7 +131,7 @@ async function main() {
     ],
     skipDuplicates: true,
   })
-  console.log('  ✅ Events seeded')
+  console.info('  ✅ Events seeded')
 
   // ──────────────────────────────────────────────────────────────────
   // 3. Маршруты + Waypoints
@@ -222,9 +222,67 @@ async function main() {
     ],
     skipDuplicates: true,
   })
-  console.log('  ✅ Routes & Waypoints seeded')
+  console.info('  ✅ Routes & Waypoints seeded')
 
-  console.log('🎉 Database seeded successfully!')
+  // ──────────────────────────────────────────────────────────────────
+  // 4. Ачивки
+  // ──────────────────────────────────────────────────────────────────
+  await prisma.achievement.createMany({
+    data: [
+      {
+        name: 'Начало пути',
+        description: 'Найди своего первого зубрика',
+        imageUrl: '/images/Achievement-1.png',
+        emoji: '🦬',
+      },
+      {
+        name: 'Исследователь',
+        description: 'Найди 5 зубриков',
+        imageUrl: '/images/Achievement-2.png',
+        emoji: '🗺️',
+      },
+      {
+        name: 'Путешественник',
+        description: 'Пройди 10 км по городу',
+        imageUrl: '/images/Achievement-3.png',
+        emoji: '🚶',
+      },
+      {
+        name: 'Коллекционер',
+        description: 'Найди 10 зубриков',
+        imageUrl: '/images/Achievement-4.png',
+        emoji: '📦',
+      },
+      {
+        name: 'Знаток истории',
+        description: 'Посети все музеи',
+        imageUrl: '/images/Achievement-5.png',
+        emoji: '🏛️',
+      },
+      {
+        name: 'Мастер маршрутов',
+        description: 'Создай 5 маршрутов',
+        imageUrl: '/images/Achievement-6.png',
+        emoji: '🗺️',
+      },
+      {
+        name: 'Легенда Орла',
+        description: 'Найди всех зубриков',
+        imageUrl: '/images/Achievement-7.png',
+        emoji: '👑',
+      },
+      {
+        name: 'Активист',
+        description: 'Посети 10 событий',
+        imageUrl: '/images/Achievement-8.png',
+        emoji: '🎉',
+      },
+    ],
+    skipDuplicates: true,
+  })
+  console.info('  ✅ Achievements seeded')
+
+  console.info('🎉 Database seeded successfully!')
 }
 
 main()

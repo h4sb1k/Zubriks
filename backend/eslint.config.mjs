@@ -19,7 +19,9 @@ export default [
       parser: tsParser,
       parserOptions: {
         // ✅ Используем projectService вместо явного project
-        projectService: true,
+        projectService: {
+          allowDefaultProject: ['prisma/*.ts', 'eslint.config.mjs'],
+        },
         tsconfigRootDir: import.meta.dirname,
       },
     },

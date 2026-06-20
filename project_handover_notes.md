@@ -15,7 +15,7 @@
 ---
 
 ## ⚙️ Окружение и Запуск
-* **Node.js**: Версия `>=22.0.0` (в сессии использовалась установленная через NVM `v22.22.3`).
+* **Node.js**: Версия `>=22.0.0` (настроена по умолчанию `v22.22.3` через `nvm alias default`).
 * **Docker**: Требуется для запуска PostgreSQL.
 * **Скрипты монорепозитория** (в корневом [package.json](file:///home/invigar/IT/Development/Zubriks/package.json)):
   * `pnpm dev` — запуск бэкенда и фронтенда параллельно (поддерживает флаг `--host` для локальной сети).
@@ -46,6 +46,8 @@
 | **Waypoint** | Точка маршрута с `orderIndex` для гарантированного порядка |
 | **UserRoute** | Связь пользователь ↔ маршрут (liked, started, completed) |
 | **UserWaypoint** | Связь пользователь ↔ пройденная точка маршрута |
+| **Achievement** | Игровое достижение (картинка `imageUrl`, описание) |
+| **UserAchievement**| Связь пользователь ↔ достижение (earned, progress, earnedAt) |
 
 ### Ключевые решения
 * `coordinates: [number, number, string]` разбиты на 3 поля в БД для индексации и типобезопасности.
@@ -107,10 +109,25 @@ pnpm dev            # Запустить проект
     * Добавлен затемняющий градиент поверх изображения (`absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent`) для обеспечения высокой читаемости текста названия маршрута.
     * **Оптимизация API**: На бэкенде в [trpc.ts](file:///home/invigar/IT/Development/Zubriks/backend/src/trpc.ts) добавлен новый эндпоинт `getMainRoute`. В [HomeScreen.tsx](file:///home/invigar/IT/Development/Zubriks/frontend/src/app/components/HomeScreen.tsx) тяжелый вызов `getRoutes` заменен на `getMainRoute`, устранены дублирующиеся запросы, исправлены конфликты переменных и очищен неиспользуемый код.
 
+ 9. **Интеграция системы достижений (Ачивок)**:
+    * В схему БД добавлены модели `Achievement` и связующая `UserAchievement` (для отслеживания прогресса и статуса "earned" для каждого пользователя).
+    * `seed.ts` дополнен 8 базовыми достижениями. У каждого теперь есть `imageUrl` вместо старых эмодзи.
+    * В tRPC (`backend/src/trpc.ts`) добавлен эндпоинт `getAchievements` для получения списка достижений из базы.
+    * Экран профиля [ProfileScreen.tsx](file:///home/invigar/IT/Development/Zubriks/frontend/src/app/components/ProfileScreen.tsx) переведен с моковых данных на серверные (`trpc.getAchievements.useQuery()`), реализована отрисовка изображений и UI-состояний загрузки.
+
+ 10. **Система Авторизации и Онбординга**:
+     * Спроектирована архитектура для сессий на основе JWT (`accessToken`, `refreshToken`) с хранением в безопасных **HttpOnly** куках.
+     * В Prisma-схему добавлены модели `RefreshToken` и `OAuthAccount` (задел для будущей интеграции VK и Яндекс авторизации).
+     * В API бэкенда (`backend/src/trpc.ts` и `auth.ts`) реализованы эндпоинты `register`, `login`, `logout` и `me`, а также middleware `protectedProcedure`.
+     * Настроена передача кук между фронтендом и бэкендом (свойство `credentials: 'include'` в tRPC-клиенте).
+     * Старые моковые проверки (`unlocked: false`) в `getZubriks` и `getAchievements` переписаны на проверку реального прогресса авторизованного пользователя (`ctx.userId`).
+     * Экран авторизации элегантно объединен с онбордингом (`OnboardingScreen.tsx`): 3-й слайд теперь отображает кнопки "Использовать E-mail", "ВКонтакте", "Яндекс", при нажатии на E-mail открывается инлайн-форма с перехватчиком Zod-ошибок.
+     * `App.tsx` обновлен: теперь онбординг является обязательным шлюзом перед доступом к главному приложению. Возвращающиеся пользователи (у которых протухла сессия) автоматически попадают на 3-й экран авторизации.
+
 ---
 
 ## 🚀 Вектор дальнейшего развития
-* **Авторизация**: Реализовать регистрацию/логин (email → VK/Yandex OAuth). Привязка `unlocked`, `liked`, `completed` к конкретному пользователю.
+* **OAuth Интеграция**: Прикрутить реальные ключи VK API / Яндекс API к созданным кнопкам-заглушкам и реализовать обмен кодов на JWT-сессии.
 * **RouteActive → БД**: Подключить [RouteActive.tsx](file:///home/invigar/IT/Development/Zubriks/frontend/src/app/components/RouteActive.tsx) к `getRouteWaypoints` вместо захардкоженных `mockWaypoints`.
 * **Геймификация**: Реализовать проверку приближения игрока к Зубрику по GPS-координатам для его автоматической разблокировки и открытия ачивки через [AchievementUnlock.tsx](file:///home/invigar/IT/Development/Zubriks/frontend/src/app/components/AchievementUnlock.tsx).
 * **Маршруты на карте**: Добавить прорисовку линий маршрута непосредственно на карте с использованием Leaflet Polyline.
