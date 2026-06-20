@@ -60,8 +60,6 @@ export default function App() {
     }
   }, [])
 
-  
-
   const handleOnboardingComplete = () => {
     localStorage.setItem(ONBOARDING_KEY, 'true')
     setShowOnboarding(false)

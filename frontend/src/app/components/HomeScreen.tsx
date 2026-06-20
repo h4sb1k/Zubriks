@@ -6,7 +6,6 @@ import { calculateDistance } from '../utils/distance'
 import RouteActive from './RouteActive'
 import ZubrikDetail from './ZubrikDetail'
 
-
 type Zubrik = {
   id: string
   name: string
@@ -68,8 +67,6 @@ export default function HomeScreen({ userLocation }: { userLocation: [number, nu
     )
   }
 
-
-
   return (
     <>
       <div className="flex-1 overflow-y-auto pb-20">
@@ -85,48 +82,46 @@ export default function HomeScreen({ userLocation }: { userLocation: [number, nu
           </div>
 
           <div className="bg-white rounded-3xl overflow-hidden shadow-sm mb-6">
-          <div className="h-48 relative overflow-hidden flex items-end p-5">
-            <img
-              src="/images/Tour-Zubriki-1.png"
-              alt="Тур Зубрики"
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-            <div className="absolute top-4 right-4 bg-[#E8922A] text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-sm z-10">
-              Главный маршрут
-            </div>
-            <div className="relative z-10">
-              <h2 className="text-white text-2xl font-bold mb-1 drop-shadow-sm">{mainRouteData?.mainRoute?.name}</h2>
-            </div>
-          </div>
-          <div className="p-5">
-            <p className="text-[#6B6B6B] mb-4">{mainRouteData?.mainRoute?.description}</p>
-            <div className="flex items-center gap-4 mb-4 text-sm text-[#6B6B6B]">
-              <div className="flex items-center gap-1.5">
-                <MapPin size={16} />
-                <span>{mainRouteData?.mainRoute?.distance}</span>
+            <div className="h-48 relative overflow-hidden flex items-end p-5">
+              <img
+                src="/images/Tour-Zubriki-1.png"
+                alt="Тур Зубрики"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+              <div className="absolute top-4 right-4 bg-[#E8922A] text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-sm z-10">
+                Главный маршрут
               </div>
-              <div className="flex items-center gap-1.5">
-                {/* <Clock size={16} /> */}
-                <span>{mainRouteData?.mainRoute?.duration}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span>📍</span>
-                <span>{mainRouteData?.mainRoute?.stops} остановок</span>
+              <div className="relative z-10">
+                <h2 className="text-white text-2xl font-bold mb-1 drop-shadow-sm">{mainRouteData?.mainRoute?.name}</h2>
               </div>
             </div>
-            <button
+            <div className="p-5">
+              <p className="text-[#6B6B6B] mb-4">{mainRouteData?.mainRoute?.description}</p>
+              <div className="flex items-center gap-4 mb-4 text-sm text-[#6B6B6B]">
+                <div className="flex items-center gap-1.5">
+                  <MapPin size={16} />
+                  <span>{mainRouteData?.mainRoute?.distance}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {/* <Clock size={16} /> */}
+                  <span>{mainRouteData?.mainRoute?.duration}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span>📍</span>
+                  <span>{mainRouteData?.mainRoute?.stops} остановок</span>
+                </div>
+              </div>
+              <button
                 onClick={() => setShowMainRoute(true)}
                 className="w-full bg-[#E8922A] text-white rounded-2xl py-3.5 flex items-center justify-center gap-2"
               >
                 <span>Начать путешествие</span>
                 <ChevronRight size={20} />
-            </button>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-
-
 
         <div className="px-5 py-6">
           <div className="flex items-center justify-between mb-4">

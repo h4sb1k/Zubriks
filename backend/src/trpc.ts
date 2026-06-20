@@ -94,7 +94,7 @@ export const trpcRouter = trpc.router({
       where: { isMain: true },
       include: { _count: { select: { waypoints: true } } },
     })
-    
+
     if (!mainRoute) {
       return null
     }
@@ -106,10 +106,9 @@ export const trpcRouter = trpc.router({
         duration: mainRoute.duration,
         stops: mainRoute._count.waypoints,
         description: mainRoute.description,
-      } 
+      },
     }
   }),
-
 
   // ─── Точки маршрута ──────────────────────────────────────────────
   getRouteWaypoints: trpc.procedure.input(z.object({ routeId: z.string() })).query(async ({ input }) => {
