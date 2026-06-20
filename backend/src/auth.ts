@@ -2,13 +2,30 @@ import bcrypt from 'bcryptjs'
 import { Response } from 'express'
 import jwt from 'jsonwebtoken'
 
-// Use environment variables in production
-const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'super-secret-access-key'
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'super-secret-refresh-key'
+function requireEnv(name: string): string {
+  const value = process.env[name]
+  if (!value) {
+    // In development, use deterministic fallbacks; in production, crash.
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(`Missing required environment variable: ${name}`)
+    }
+    return `dev-fallback-${name}`
+  }
+  return value
+}
+
+const JWT_ACCESS_SECRET = requireEnv('JWT_ACCESS_SECRET')
+const JWT_REFRESH_SECRET = requireEnv('JWT_REFRESH_SECRET')
 
 // Tokens expire configuration
 const ACCESS_TOKEN_EXPIRES_IN = '15m' // 15 minutes
 const REFRESH_TOKEN_EXPIRES_IN_DAYS = 7
+
+const COOKIE_OPTIONS_BASE = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax' as const,
+}
 
 export async function hashPassword(password: string): Promise<string> {
   const salt = await bcrypt.genSalt(10)
@@ -46,24 +63,20 @@ export function verifyRefreshToken(token: string): { userId: string } | null {
 export function setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
   // Access token cookie
   res.cookie('accessToken', accessToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    ...COOKIE_OPTIONS_BASE,
     maxAge: 15 * 60 * 1000, // 15 minutes
   })
 
   // Refresh token cookie
   res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    ...COOKIE_OPTIONS_BASE,
     maxAge: REFRESH_TOKEN_EXPIRES_IN_DAYS * 24 * 60 * 60 * 1000, // 7 days
   })
 }
 
 export function clearAuthCookies(res: Response) {
-  res.clearCookie('accessToken')
-  res.clearCookie('refreshToken')
+  res.clearCookie('accessToken', COOKIE_OPTIONS_BASE)
+  res.clearCookie('refreshToken', COOKIE_OPTIONS_BASE)
 }
 
 export function getRefreshTokenExpiry(): Date {

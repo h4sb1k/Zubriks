@@ -7,9 +7,13 @@ import { createContext, trpcRouter } from './trpc'
 
 const expressApp = express()
 
+const ALLOWED_ORIGINS = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',')
+  : true // In development, allow all origins
+
 expressApp.use(
   cors({
-    origin: true, // В production лучше указать конкретный домен
+    origin: ALLOWED_ORIGINS,
     credentials: true,
   })
 )
@@ -23,6 +27,7 @@ expressApp.use(
   })
 )
 
-expressApp.listen(3000, () => {
-  console.info('Server is running on http://localhost:3000')
+const PORT = process.env.PORT || 3000
+expressApp.listen(PORT, () => {
+  console.info(`Server is running on http://localhost:${PORT}`)
 })

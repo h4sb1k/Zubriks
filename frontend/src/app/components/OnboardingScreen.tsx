@@ -22,11 +22,16 @@ const STEP_KEY = 'onboarding_step'
  */
 function usePersistedStep(total: number, initialStep: number = 0): [number, (n: number) => void] {
   const [step, setStepRaw] = useState<number>(() => {
+    // If caller explicitly requests a non-zero step (e.g., auth screen),
+    // override any stale sessionStorage value
+    if (initialStep > 0) {
+      try { sessionStorage.setItem(STEP_KEY, String(initialStep)) } catch { /* ignore */ }
+      return initialStep
+    }
     try {
       const saved = sessionStorage.getItem(STEP_KEY)
       if (saved !== null) {
         const parsed = parseInt(saved, 10)
-        // Guard against stale values if the screen count changes
         if (!isNaN(parsed) && parsed >= 0 && parsed < total) return parsed
       }
     } catch {
@@ -70,7 +75,7 @@ export default function OnboardingScreen({ onComplete, initialStep = 0 }: Onboar
     } catch { /* ignore */ }
     if (err.message === 'User already exists') return 'Пользователь с таким email уже существует'
     if (err.message === 'Invalid credentials') return 'Неверный email или пароль'
-    return err.message
+    return 'Произошла ошибка. Попробуйте позже.'
   }
 
   const loginMutation = trpc.login.useMutation({

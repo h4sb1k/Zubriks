@@ -39,6 +39,8 @@ model RefreshToken {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // Таблица для привязки социальных сетей (VK, Yandex и др.)
@@ -95,6 +97,8 @@ model Event {
   imageUrl  String?
   url       String?
   createdAt DateTime @default(now())
+
+  @@index([date])
 }
 
 // ─── Route ───────────────────────────────────────────────────────────
@@ -145,6 +149,7 @@ model UserRoute {
   route Route @relation(fields: [routeId], references: [id], onDelete: Cascade)
 
   @@id([userId, routeId])
+  @@index([userId])
 }
 
 // Связь «какой пользователь прошёл какую точку маршрута».
@@ -181,4 +186,5 @@ model UserAchievement {
   achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
 
   @@id([userId, achievementId])
+  @@index([userId])
 }

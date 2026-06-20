@@ -1,6 +1,5 @@
 import { initTRPC, TRPCError } from '@trpc/server'
 import { CreateExpressContextOptions } from '@trpc/server/adapters/express'
-import { orderBy } from 'lodash'
 import { z } from 'zod'
 
 import {
@@ -12,6 +11,7 @@ import {
   setAuthCookies,
   verifyAccessToken,
   verifyPassword,
+  verifyRefreshToken,
 } from './auth'
 import { prisma } from './prisma'
 
@@ -23,6 +23,33 @@ export const createContext = async ({ req, res }: CreateExpressContextOptions) =
     const payload = verifyAccessToken(accessToken)
     if (payload) {
       userId = payload.userId
+    }
+  }
+
+  // If access token is missing or expired, try to refresh using refresh token
+  if (!userId) {
+    const refreshTokenValue = req.cookies?.refreshToken
+    if (refreshTokenValue) {
+      const payload = verifyRefreshToken(refreshTokenValue)
+      if (payload) {
+        // Verify the refresh token exists in DB and hasn't expired
+        const storedToken = await prisma.refreshToken.findUnique({
+          where: { token: refreshTokenValue },
+        })
+        if (storedToken && storedToken.expiresAt > new Date()) {
+          userId = payload.userId
+
+          // Rotate tokens: delete old, create new
+          await prisma.refreshToken.delete({ where: { id: storedToken.id } })
+
+          const newAccessToken = generateAccessToken(userId)
+          const newRefreshToken = generateRefreshToken(userId)
+          await prisma.refreshToken.create({
+            data: { token: newRefreshToken, userId, expiresAt: getRefreshTokenExpiry() },
+          })
+          setAuthCookies(res, newAccessToken, newRefreshToken)
+        }
+      }
     }
   }
 
@@ -44,26 +71,6 @@ const protectedProcedure = trpc.procedure.use(async ({ ctx, next }) => {
   })
 })
 
-type Achievement = {
-  id: string
-  name: string
-  description: string
-  earned: boolean
-  progress?: number
-  emoji: string
-}
-
-// const mockAchievements: Achievement[] = [
-//   { id: '1', name: 'Начало пути', description: 'Найди своего первого зубрика', earned: true, emoji: '🦬' },
-//   { id: '2', name: 'Исследователь', description: 'Найди 5 зубриков', earned: true, emoji: '🗺️' },
-//   { id: '3', name: 'Путешественник', description: 'Пройди 10 км по городу', earned: true, emoji: '🚶' },
-//   { id: '4', name: 'Коллекционер', description: 'Найди 10 зубриков', earned: false, progress: 60, emoji: '📦' },
-//   { id: '5', name: 'Знаток истории', description: 'Посети все музеи', earned: false, progress: 40, emoji: '🏛️' },
-//   { id: '6', name: 'Мастер маршрутов', description: 'Создай 5 маршрутов', earned: false, emoji: '🗺️' },
-//   { id: '7', name: 'Легенда Орла', description: 'Найди всех зубриков', earned: false, emoji: '👑' },
-//   { id: '8', name: 'Активист', description: 'Посети 10 событий', earned: false, emoji: '🎉' },
-// ]
-
 export const trpcRouter = trpc.router({
   // ─── Auth ────────────────────────────────────────────────────────
 
@@ -77,6 +84,11 @@ export const trpcRouter = trpc.router({
       const passwordHash = await hashPassword(input.password)
       const user = await ctx.prisma.user.create({
         data: { email: input.email, passwordHash, name: input.name },
+      })
+
+      // Clean up expired refresh tokens for this user
+      await ctx.prisma.refreshToken.deleteMany({
+        where: { userId: user.id, expiresAt: { lt: new Date() } },
       })
 
       const accessToken = generateAccessToken(user.id)
@@ -102,6 +114,11 @@ export const trpcRouter = trpc.router({
         throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid credentials' })
       }
 
+      // Clean up expired refresh tokens for this user
+      await ctx.prisma.refreshToken.deleteMany({
+        where: { userId: user.id, expiresAt: { lt: new Date() } },
+      })
+
       const accessToken = generateAccessToken(user.id)
       const refreshToken = generateRefreshToken(user.id)
 
@@ -126,6 +143,50 @@ export const trpcRouter = trpc.router({
     const user = await ctx.prisma.user.findUnique({ where: { id: ctx.userId } })
     if (!user) throw new TRPCError({ code: 'UNAUTHORIZED' })
     return { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl }
+  }),
+
+  getProfileStats: protectedProcedure.query(async ({ ctx }) => {
+    const user = await ctx.prisma.user.findUnique({
+      where: { id: ctx.userId },
+      include: {
+        _count: {
+          select: { unlockedZubriks: true }
+        },
+        routeInteractions: {
+          include: {
+            route: { include: { _count: { select: { waypoints: true } } } }
+          }
+        },
+        createdRoutes: {
+          include: { _count: { select: { waypoints: true } } }
+        }
+      }
+    })
+
+    if (!user) throw new TRPCError({ code: 'UNAUTHORIZED' })
+
+    const daysInApp = Math.floor((Date.now() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    const completedRoutesCount = user.routeInteractions.filter(r => r.completedAt !== null).length
+
+    const mapRoute = (r: { id: string; name: string; distance: string; duration: string; description: string | null; imageColor: string | null; _count: { waypoints: number } }) => ({
+      id: r.id,
+      name: r.name,
+      distance: r.distance,
+      duration: r.duration,
+      stops: r._count.waypoints,
+      description: r.description,
+      imageColor: r.imageColor ?? '#1A3D2B',
+    })
+
+    return {
+      stats: {
+        zubriksCount: user._count.unlockedZubriks,
+        routesCount: completedRoutesCount,
+        daysCount: daysInApp,
+      },
+      likedRoutes: user.routeInteractions.filter(r => r.liked).map(r => mapRoute(r.route)),
+      createdRoutes: user.createdRoutes.map(mapRoute),
+    }
   }),
 
   getZubriks: trpc.procedure.query(async ({ ctx }) => {
@@ -154,8 +215,8 @@ export const trpcRouter = trpc.router({
   }),
 
   // ─── События ─────────────────────────────────────────────────────
-  getEvents: trpc.procedure.query(async () => {
-    const events = await prisma.event.findMany({
+  getEvents: trpc.procedure.query(async ({ ctx }) => {
+    const events = await ctx.prisma.event.findMany({
       orderBy: [{ date: 'asc' }, { time: 'asc' }],
     })
 
@@ -175,8 +236,8 @@ export const trpcRouter = trpc.router({
   }),
 
   // ─── Маршруты ────────────────────────────────────────────────────
-  getRoutes: trpc.procedure.query(async () => {
-    const routes = await prisma.route.findMany({
+  getRoutes: trpc.procedure.query(async ({ ctx }) => {
+    const routes = await ctx.prisma.route.findMany({
       where: { isMain: false },
       include: {
         author: { select: { name: true } },
@@ -185,7 +246,17 @@ export const trpcRouter = trpc.router({
       orderBy: { createdAt: 'asc' },
     })
 
-    const mainRoute = await prisma.route.findFirst({
+    // Get liked route IDs for the current user
+    let likedRouteIds = new Set<string>()
+    if (ctx.userId) {
+      const userRoutes = await ctx.prisma.userRoute.findMany({
+        where: { userId: ctx.userId, liked: true },
+        select: { routeId: true },
+      })
+      userRoutes.forEach((ur) => likedRouteIds.add(ur.routeId))
+    }
+
+    const mainRoute = await ctx.prisma.route.findFirst({
       where: { isMain: true },
       include: { _count: { select: { waypoints: true } } },
     })
@@ -199,7 +270,7 @@ export const trpcRouter = trpc.router({
         stops: r._count.waypoints,
         author: r.author?.name ?? 'Аноним',
         description: r.description,
-        liked: false, // TODO: определять по UserRoute после реализации авторизации
+        liked: likedRouteIds.has(r.id),
         imageColor: r.imageColor ?? '#1A3D2B',
       })),
       mainRoute: mainRoute
@@ -216,8 +287,8 @@ export const trpcRouter = trpc.router({
   }),
 
   // ---Главный маршрут ----
-  getMainRoute: trpc.procedure.query(async () => {
-    const mainRoute = await prisma.route.findFirst({
+  getMainRoute: trpc.procedure.query(async ({ ctx }) => {
+    const mainRoute = await ctx.prisma.route.findFirst({
       where: { isMain: true },
       include: { _count: { select: { waypoints: true } } },
     })
@@ -238,11 +309,20 @@ export const trpcRouter = trpc.router({
   }),
 
   // ─── Точки маршрута ──────────────────────────────────────────────
-  getRouteWaypoints: trpc.procedure.input(z.object({ routeId: z.string() })).query(async ({ input }) => {
-    const waypoints = await prisma.waypoint.findMany({
+  getRouteWaypoints: trpc.procedure.input(z.object({ routeId: z.string() })).query(async ({ input, ctx }) => {
+    const waypoints = await ctx.prisma.waypoint.findMany({
       where: { routeId: input.routeId },
       orderBy: { orderIndex: 'asc' },
     })
+
+    let completedIds = new Set<string>()
+    if (ctx.userId) {
+      const userWaypoints = await ctx.prisma.userWaypoint.findMany({
+        where: { userId: ctx.userId, waypointId: { in: waypoints.map(w => w.id) } },
+        select: { waypointId: true },
+      })
+      userWaypoints.forEach((uw) => completedIds.add(uw.waypointId))
+    }
 
     return {
       waypoints: waypoints.map((w) => ({
@@ -253,7 +333,7 @@ export const trpcRouter = trpc.router({
         latitude: w.latitude,
         longitude: w.longitude,
         orderIndex: w.orderIndex,
-        completed: false, // TODO: определять по UserWaypoint после реализации авторизации
+        completed: completedIds.has(w.id),
       })),
     }
   }),
