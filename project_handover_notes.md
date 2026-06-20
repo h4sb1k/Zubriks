@@ -86,7 +86,7 @@ pnpm dev            # Запустить проект
 
 5. **Ошибки и Сеть**:
    * Для тестирования в LAN бэкенд-хост в [trpc.tsx](file:///home/invigar/IT/Development/Zubriks/frontend/src/app/lib/trpc.tsx) вычисляется динамически из `window.location.hostname` (решает ошибку `Failed to Fetch`).
-   * Внедрены типы-заглушки для `react-dom/client` и `canvas-confetti`, исправлены опечатки в скриптах запуска.
+   * Внедрены типы-заглушки для `react-dom/client` and `canvas-confetti`, исправлены опечатки в скриптах запуска.
 
 6. **База данных (Prisma + PostgreSQL)**:
    * Создана Prisma-схема с 8 моделями (User, Zubrik, Event, Route, Waypoint + 3 связующие таблицы).
@@ -96,11 +96,21 @@ pnpm dev            # Запустить проект
    * Добавлен новый эндпоинт `getRouteWaypoints` для получения точек конкретного маршрута.
    * Модель User подготовлена для будущей авторизации (email/пароль → VK/Yandex OAuth).
 
+ 7. **Подключение Экрана Событий (EventsScreen)**:
+    * Экран событий [EventsScreen.tsx](file:///home/invigar/IT/Development/Zubriks/frontend/src/app/components/EventsScreen.tsx) успешно подключен к API через tRPC (`getEvents`).
+    * Добавлено получение реальных данных: дата, время, цена, место проведения и изображения (`imageUrl`).
+    * Реализовано динамическое извлечение уникальных дат для навигационных вкладок. Если у события нет изображения, отображается подходящее по категории эмодзи-фолбек.
+
+ 8. **Оформление и оптимизация Главного маршрута (Тур Зубрики)**:
+    * Заменена старая иконка-эмодзи на полноразмерное изображение `Tour-Zubriki.png` (находится в `frontend/public/images/Tour-Zubriki.png`, доступно по пути `/images/Tour-Zubriki.png`).
+    * В [RoutesScreen.tsx](file:///home/invigar/IT/Development/Zubriks/frontend/src/app/components/RoutesScreen.tsx) и [HomeScreen.tsx](file:///home/invigar/IT/Development/Zubriks/frontend/src/app/components/HomeScreen.tsx) баннер главного маршрута был переделан: изображение растянуто во всю ширину и высоту шапки (`absolute inset-0 w-full h-full object-cover`).
+    * Добавлен затемняющий градиент поверх изображения (`absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent`) для обеспечения высокой читаемости текста названия маршрута.
+    * **Оптимизация API**: На бэкенде в [trpc.ts](file:///home/invigar/IT/Development/Zubriks/backend/src/trpc.ts) добавлен новый эндпоинт `getMainRoute`. В [HomeScreen.tsx](file:///home/invigar/IT/Development/Zubriks/frontend/src/app/components/HomeScreen.tsx) тяжелый вызов `getRoutes` заменен на `getMainRoute`, устранены дублирующиеся запросы, исправлены конфликты переменных и очищен неиспользуемый код.
+
 ---
 
 ## 🚀 Вектор дальнейшего развития
 * **Авторизация**: Реализовать регистрацию/логин (email → VK/Yandex OAuth). Привязка `unlocked`, `liked`, `completed` к конкретному пользователю.
-* **EventsScreen**: Подключить экран событий [EventsScreen.tsx](file:///home/invigar/IT/Development/Zubriks/frontend/src/app/components/EventsScreen.tsx) к обновлённому `getEvents` из tRPC (дата, цена, imageUrl уже в БД).
 * **RouteActive → БД**: Подключить [RouteActive.tsx](file:///home/invigar/IT/Development/Zubriks/frontend/src/app/components/RouteActive.tsx) к `getRouteWaypoints` вместо захардкоженных `mockWaypoints`.
 * **Геймификация**: Реализовать проверку приближения игрока к Зубрику по GPS-координатам для его автоматической разблокировки и открытия ачивки через [AchievementUnlock.tsx](file:///home/invigar/IT/Development/Zubriks/frontend/src/app/components/AchievementUnlock.tsx).
 * **Маршруты на карте**: Добавить прорисовку линий маршрута непосредственно на карте с использованием Leaflet Polyline.

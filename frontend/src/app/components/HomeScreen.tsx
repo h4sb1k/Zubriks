@@ -6,6 +6,7 @@ import { calculateDistance } from '../utils/distance'
 import RouteActive from './RouteActive'
 import ZubrikDetail from './ZubrikDetail'
 
+
 type Zubrik = {
   id: string
   name: string
@@ -19,7 +20,7 @@ type Zubrik = {
 
 export default function HomeScreen({ userLocation }: { userLocation: [number, number] | null }) {
   const [selectedZubrik, setSelectedZubrik] = useState<Zubrik | null>(null)
-  const [showRouteActive, setShowRouteActive] = useState(false)
+  const [showMainRoute, setShowMainRoute] = useState(false)
 
   const {
     data: zubriksData,
@@ -33,7 +34,6 @@ export default function HomeScreen({ userLocation }: { userLocation: [number, nu
     isError: eventsIsError,
     error: eventsError,
   } = trpc.getEvents.useQuery()
-
   const zubriks = (zubriksData?.zubriks || []).map((z) => {
     let distance = '...'
     if (userLocation && z.coordinates) {
@@ -44,6 +44,31 @@ export default function HomeScreen({ userLocation }: { userLocation: [number, nu
       distance,
     }
   })
+
+  const {
+    data: mainRouteData,
+    isLoading: isMainRouteLoading,
+    isError: isMainRouteError,
+    error: mainRouteError,
+  } = trpc.getMainRoute.useQuery()
+
+  if (isMainRouteLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-[#FAFAF7]">
+        <span className="text-[#6B6B6B]">Загрузка маршрутов...</span>
+      </div>
+    )
+  }
+
+  if (isMainRouteError || !mainRouteData?.mainRoute) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-[#FAFAF7] p-5">
+        <span className="text-red-500">Ошибка загрузки: {mainRouteError?.message || 'Маршрут не найден'}</span>
+      </div>
+    )
+  }
+
+
 
   return (
     <>
@@ -59,30 +84,49 @@ export default function HomeScreen({ userLocation }: { userLocation: [number, nu
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl overflow-hidden shadow-sm">
-            <div className="h-44 bg-gradient-to-br from-[#1A3D2B] to-[#2A5D3B] flex items-center justify-center relative">
-              <div className="absolute top-4 right-4 bg-[#E8922A] text-white px-3 py-1.5 rounded-full text-sm">
-                Главный маршрут
+          <div className="bg-white rounded-3xl overflow-hidden shadow-sm mb-6">
+          <div className="h-48 relative overflow-hidden flex items-end p-5">
+            <img
+              src="/images/Tour-Zubriki-1.png"
+              alt="Тур Зубрики"
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+            <div className="absolute top-4 right-4 bg-[#E8922A] text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-sm z-10">
+              Главный маршрут
+            </div>
+            <div className="relative z-10">
+              <h2 className="text-white text-2xl font-bold mb-1 drop-shadow-sm">{mainRouteData?.mainRoute?.name}</h2>
+            </div>
+          </div>
+          <div className="p-5">
+            <p className="text-[#6B6B6B] mb-4">{mainRouteData?.mainRoute?.description}</p>
+            <div className="flex items-center gap-4 mb-4 text-sm text-[#6B6B6B]">
+              <div className="flex items-center gap-1.5">
+                <MapPin size={16} />
+                <span>{mainRouteData?.mainRoute?.distance}</span>
               </div>
-              <div className="text-center">
-                <div className="text-6xl mb-2">🦬</div>
-                <h2 className="text-white text-xl">Тур «Зубрики»</h2>
+              <div className="flex items-center gap-1.5">
+                {/* <Clock size={16} /> */}
+                <span>{mainRouteData?.mainRoute?.duration}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span>📍</span>
+                <span>{mainRouteData?.mainRoute?.stops} остановок</span>
               </div>
             </div>
-            <div className="p-5">
-              <p className="text-[#6B6B6B] mb-4">
-                Пройди по главным достопримечательностям Орла и собери всех зубриков
-              </p>
-              <button
-                onClick={() => setShowRouteActive(true)}
+            <button
+                onClick={() => setShowMainRoute(true)}
                 className="w-full bg-[#E8922A] text-white rounded-2xl py-3.5 flex items-center justify-center gap-2"
               >
                 <span>Начать путешествие</span>
                 <ChevronRight size={20} />
-              </button>
-            </div>
+            </button>
           </div>
         </div>
+      </div>
+
+
 
         <div className="px-5 py-6">
           <div className="flex items-center justify-between mb-4">
@@ -172,7 +216,14 @@ export default function HomeScreen({ userLocation }: { userLocation: [number, nu
         />
       )}
 
-      {showRouteActive && <RouteActive onClose={() => setShowRouteActive(false)} />}
+      {showMainRoute && mainRouteData?.mainRoute && (
+        <RouteActive
+          routeId={mainRouteData.mainRoute.id}
+          routeName={mainRouteData.mainRoute.name}
+          userLocation={userLocation}
+          onClose={() => setShowMainRoute(false)}
+        />
+      )}
     </>
   )
 }

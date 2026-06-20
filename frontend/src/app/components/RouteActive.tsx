@@ -1,78 +1,38 @@
 import { ArrowLeft, CheckCircle2, MapPin, Navigation } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo } from 'react'
 
+import { trpc } from '../lib/trpc'
+import { calculateDistance } from '../utils/distance'
 import type { MapPoint } from '../utils/openInMaps'
 import { openPointInMaps, openRouteInMaps } from '../utils/openInMaps'
 
 type RouteActiveProps = {
+  routeId: string
+  routeName: string
+  userLocation: [number, number] | null
   onClose: () => void
 }
 
-type Waypoint = {
-  id: string
-  name: string
-  description: string
-  distance: string
-  completed: boolean
-  emoji: string
-  // Реальные координаты точки (Орёл)
-  coords: MapPoint
-}
+export default function RouteActive({ routeId, routeName, userLocation, onClose }: RouteActiveProps) {
+  const { data: waypointsData, isLoading, isError, error } = trpc.getRouteWaypoints.useQuery({ routeId })
 
-const mockWaypoints: Waypoint[] = [
-  {
-    id: '1',
-    name: 'Площадь Ленина',
-    description: 'Главная площадь города',
-    distance: '0 м',
-    completed: true,
-    emoji: '🏛️',
-    coords: { lat: 52.9674, lon: 36.0694, name: 'Площадь Ленина' },
-  },
-  {
-    id: '2',
-    name: 'Парк Культуры',
-    description: 'Исторический парк',
-    distance: '150 м',
-    completed: true,
-    emoji: '🌳',
-    coords: { lat: 52.9688, lon: 36.071, name: 'Парк Культуры' },
-  },
-  {
-    id: '3',
-    name: 'Зубрик-Путешественник',
-    description: 'Найди первого зубрика',
-    distance: '320 м',
-    completed: false,
-    emoji: '🦬',
-    coords: { lat: 52.9701, lon: 36.0732, name: 'Зубрик-Путешественник' },
-  },
-  {
-    id: '4',
-    name: 'Музей изобразительных искусств',
-    description: 'Посети музей',
-    distance: '580 м',
-    completed: false,
-    emoji: '🎨',
-    coords: { lat: 52.972, lon: 36.0755, name: 'Музей изобразительных искусств' },
-  },
-  {
-    id: '5',
-    name: 'Набережная',
-    description: 'Прогуляйся вдоль реки',
-    distance: '1.2 км',
-    completed: false,
-    emoji: '🌊',
-    coords: { lat: 52.975, lon: 36.08, name: 'Набережная' },
-  },
-]
-
-export default function RouteActive({ onClose }: RouteActiveProps) {
-  const [waypoints] = useState(mockWaypoints)
+  // Трансформируем данные API в формат для рендеринга
+  const waypoints = useMemo(() => {
+    if (!waypointsData?.waypoints) return []
+    return waypointsData.waypoints.map((w) => ({
+      id: w.id,
+      name: w.name,
+      description: w.description,
+      emoji: w.emoji,
+      completed: w.completed,
+      coords: { lat: w.latitude, lon: w.longitude, name: w.name } as MapPoint,
+      distance: userLocation ? calculateDistance(userLocation[0], userLocation[1], w.latitude, w.longitude) : '...',
+    }))
+  }, [waypointsData, userLocation])
 
   const currentStep = waypoints.findIndex((w) => !w.completed)
-  const progress = (currentStep / waypoints.length) * 100
-  const nextWaypoint = waypoints[currentStep]
+  const progress = waypoints.length > 0 ? (Math.max(currentStep, 0) / waypoints.length) * 100 : 0
+  const nextWaypoint = currentStep >= 0 ? waypoints[currentStep] : null
 
   // Незавершённые точки — передаём в утилиту как маршрут
   const remainingPoints = waypoints.filter((w) => !w.completed).map((w) => w.coords)
@@ -85,6 +45,73 @@ export default function RouteActive({ onClose }: RouteActiveProps) {
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 z-50 bg-[#FAFAF7] flex flex-col">
+        <div className="bg-[#1A3D2B] px-5 py-4 text-white">
+          <div className="flex items-center justify-between mb-3">
+            <button onClick={onClose} className="p-2 -ml-2">
+              <ArrowLeft size={24} />
+            </button>
+            <div className="text-center flex-1">
+              <div className="text-sm opacity-80">{routeName}</div>
+            </div>
+            <div className="w-10" />
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <span className="text-[#6B6B6B]">Загрузка маршрута...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="fixed inset-0 z-50 bg-[#FAFAF7] flex flex-col">
+        <div className="bg-[#1A3D2B] px-5 py-4 text-white">
+          <div className="flex items-center justify-between mb-3">
+            <button onClick={onClose} className="p-2 -ml-2">
+              <ArrowLeft size={24} />
+            </button>
+            <div className="text-center flex-1">
+              <div className="text-sm opacity-80">{routeName}</div>
+            </div>
+            <div className="w-10" />
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center p-5">
+          <span className="text-red-500">Ошибка: {error?.message || 'Не удалось загрузить маршрут'}</span>
+        </div>
+      </div>
+    )
+  }
+
+  // Если у маршрута нет точек
+  if (waypoints.length === 0) {
+    return (
+      <div className="fixed inset-0 z-50 bg-[#FAFAF7] flex flex-col">
+        <div className="bg-[#1A3D2B] px-5 py-4 text-white">
+          <div className="flex items-center justify-between mb-3">
+            <button onClick={onClose} className="p-2 -ml-2">
+              <ArrowLeft size={24} />
+            </button>
+            <div className="text-center flex-1">
+              <div className="text-sm opacity-80">{routeName}</div>
+            </div>
+            <div className="w-10" />
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center p-5">
+          <div className="text-center text-[#6B6B6B]">
+            <span className="text-4xl block mb-3">🗺️</span>
+            <p>У этого маршрута пока нет точек</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="fixed inset-0 z-50 bg-[#FAFAF7] flex flex-col">
       {/* Header */}
@@ -94,7 +121,7 @@ export default function RouteActive({ onClose }: RouteActiveProps) {
             <ArrowLeft size={24} />
           </button>
           <div className="text-center flex-1">
-            <div className="text-sm opacity-80">Тур «Зубрики»</div>
+            <div className="text-sm opacity-80">{routeName}</div>
             <div className="text-lg">
               Шаг {currentStep + 1} из {waypoints.length}
             </div>

@@ -60,6 +60,8 @@ export default function App() {
     }
   }, [])
 
+  
+
   const handleOnboardingComplete = () => {
     localStorage.setItem(ONBOARDING_KEY, 'true')
     setShowOnboarding(false)
@@ -75,7 +77,7 @@ export default function App() {
       <div className="size-full flex flex-col bg-[#FAFAF7] max-w-md mx-auto relative">
         {activeTab === 'home' && <HomeScreen userLocation={userLocation} />}
         {activeTab === 'map' && <MapScreen userLocation={userLocation} setUserLocation={setUserLocation} />}
-        {activeTab === 'routes' && <RoutesScreen />}
+        {activeTab === 'routes' && <RoutesScreen userLocation={userLocation} />}
         {activeTab === 'events' && <EventsScreen />}
         {activeTab === 'profile' && <ProfileScreen />}
 

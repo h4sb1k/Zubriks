@@ -16,10 +16,10 @@ type Route = {
   imageColor: string
 }
 
-export default function RoutesScreen() {
+export default function RoutesScreen({ userLocation }: { userLocation: [number, number] | null }) {
   const [activeFilter, setActiveFilter] = useState('Все')
   const [likedRoutes, setLikedRoutes] = useState<Record<string, boolean>>({})
-  const [showRouteActive, setShowRouteActive] = useState(false)
+  const [activeRoute, setActiveRoute] = useState<{ id: string; name: string } | null>(null)
 
   const { data: routesData, isLoading, isError, error } = trpc.getRoutes.useQuery()
 
@@ -80,33 +80,38 @@ export default function RoutesScreen() {
         </div>
 
         <div className="bg-white rounded-3xl overflow-hidden shadow-sm mb-6">
-          <div className="h-48 bg-gradient-to-br from-[#1A3D2B] via-[#2A5D3B] to-[#E8922A] flex items-center justify-center relative">
-            <div className="absolute top-4 right-4 bg-[#E8922A] text-white px-3 py-1.5 rounded-full text-sm">
+          <div className="h-48 relative overflow-hidden flex items-end p-5">
+            <img
+              src="/images/Tour-Zubriki-1.png"
+              alt="Тур Зубрики"
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+            <div className="absolute top-4 right-4 bg-[#E8922A] text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-sm z-10">
               Главный маршрут
             </div>
-            <div className="text-center">
-              <div className="text-6xl mb-2">🦬</div>
-              <h2 className="text-white text-xl mb-1">{mainRoute.name}</h2>
+            <div className="relative z-10">
+              <h2 className="text-white text-2xl font-bold mb-1 drop-shadow-sm">{mainRoute?.name}</h2>
             </div>
           </div>
           <div className="p-5">
-            <p className="text-[#6B6B6B] mb-4">{mainRoute.description}</p>
+            <p className="text-[#6B6B6B] mb-4">{mainRoute?.description}</p>
             <div className="flex items-center gap-4 mb-4 text-sm text-[#6B6B6B]">
               <div className="flex items-center gap-1.5">
                 <MapPin size={16} />
-                <span>{mainRoute.distance}</span>
+                <span>{mainRoute?.distance}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Clock size={16} />
-                <span>{mainRoute.duration}</span>
+                <span>{mainRoute?.duration}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span>📍</span>
-                <span>{mainRoute.stops} остановок</span>
+                <span>{mainRoute?.stops} остановок</span>
               </div>
             </div>
             <button
-              onClick={() => setShowRouteActive(true)}
+              onClick={() => setActiveRoute({ id: mainRoute?.id, name: mainRoute?.name })}
               className="w-full bg-[#E8922A] text-white rounded-2xl py-3.5 flex items-center justify-center gap-2 active:scale-95 transition-transform"
             >
               <span>В путь</span>
@@ -122,7 +127,7 @@ export default function RoutesScreen() {
           {filteredRoutes.map((route) => (
             <div
               key={route.id}
-              onClick={() => setShowRouteActive(true)}
+              onClick={() => setActiveRoute({ id: route.id, name: route.name })}
               className="bg-white rounded-2xl overflow-hidden shadow-sm cursor-pointer active:scale-[0.98] transition-transform"
             >
               <div
@@ -165,7 +170,14 @@ export default function RoutesScreen() {
         <Plus size={24} />
       </button>
 
-      {showRouteActive && <RouteActive onClose={() => setShowRouteActive(false)} />}
+      {activeRoute && (
+        <RouteActive
+          routeId={activeRoute.id}
+          routeName={activeRoute.name}
+          userLocation={userLocation}
+          onClose={() => setActiveRoute(null)}
+        />
+      )}
     </div>
   )
 }

@@ -88,6 +88,29 @@ export const trpcRouter = trpc.router({
     }
   }),
 
+  // ---Главный маршрут ----
+  getMainRoute: trpc.procedure.query(async () => {
+    const mainRoute = await prisma.route.findFirst({
+      where: { isMain: true },
+      include: { _count: { select: { waypoints: true } } },
+    })
+    
+    if (!mainRoute) {
+      return null
+    }
+    return {
+      mainRoute: {
+        id: mainRoute.id,
+        name: mainRoute.name,
+        distance: mainRoute.distance,
+        duration: mainRoute.duration,
+        stops: mainRoute._count.waypoints,
+        description: mainRoute.description,
+      } 
+    }
+  }),
+
+
   // ─── Точки маршрута ──────────────────────────────────────────────
   getRouteWaypoints: trpc.procedure.input(z.object({ routeId: z.string() })).query(async ({ input }) => {
     const waypoints = await prisma.waypoint.findMany({
