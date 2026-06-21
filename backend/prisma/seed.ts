@@ -283,6 +283,18 @@ async function main() {
         imageUrl: '/images/Achievement-8.png',
         emoji: '🎉',
       },
+      {
+        name: 'Знаток классики',
+        description: 'Вы нашли Зубрика-Литератора!',
+        imageUrl: '/images/Achievement-1.png',
+        emoji: '📖',
+      },
+      {
+        name: 'Главный дегустатор',
+        description: 'Зубрик-Гурман раскрыл вам все кулинарные секреты Орла.',
+        imageUrl: '/images/Achievement-1.png',
+        emoji: '🍕',
+      },
     ],
     skipDuplicates: true,
   })

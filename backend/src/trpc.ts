@@ -73,12 +73,15 @@ const protectedProcedure = trpc.procedure.use(async ({ ctx, next }) => {
 })
 
 async function checkAndAwardAchievements(prisma: PrismaClient, userId: string) {
-  const [zubrikCount, totalZubriks, completedRoutes, createdRoutes] = await Promise.all([
-    prisma.userZubrik.count({ where: { userId } }),
+  const [unlockedZubriks, totalZubriks, completedRoutes, createdRoutes] = await Promise.all([
+    prisma.userZubrik.findMany({ where: { userId }, include: { zubrik: true } }),
     prisma.zubrik.count(),
     prisma.userRoute.count({ where: { userId, completedAt: { not: null } } }),
     prisma.route.count({ where: { authorId: userId } }),
   ])
+
+  const zubrikCount = unlockedZubriks.length
+  const unlockedNames = new Set(unlockedZubriks.map((uz) => uz.zubrik.name))
 
   // Правила ачивок: { название_ачивки → условие }
   const rules: Record<string, boolean> = {
@@ -87,6 +90,11 @@ async function checkAndAwardAchievements(prisma: PrismaClient, userId: string) {
     Коллекционер: zubrikCount >= 10,
     'Легенда Орла': zubrikCount >= totalZubriks && totalZubriks > 0,
     'Мастер маршрутов': createdRoutes >= 5,
+    
+    // Индивидуальные ачивки за зубриков
+    'Знаток истории': unlockedNames.has('Зубрик-Историк'),
+    'Знаток классики': unlockedNames.has('Зубрик-Литератор'),
+    'Главный дегустатор': unlockedNames.has('Зубрик-Гурман'),
   }
 
   // Получаем все ачивки из БД
@@ -134,7 +142,7 @@ export const trpcRouter = trpc.router({
       }
       const passwordHash = await hashPassword(input.password)
       const user = await ctx.prisma.user.create({
-        data: { email: input.email, passwordHash, name: input.name },
+        data: { email: input.email, passwordHash, name: input.name, avatarUrl: '/images/avatar.png' },
       })
 
       // Clean up expired refresh tokens for this user
