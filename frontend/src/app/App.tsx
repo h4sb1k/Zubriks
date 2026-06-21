@@ -1,6 +1,6 @@
 // src/App.tsx
 import { Calendar, Home, Map, Route, User } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import AchievementUnlock from './components/AchievementUnlock'
 import EventsScreen from './components/EventsScreen'
@@ -10,7 +10,9 @@ import OnboardingScreen from './components/OnboardingScreen'
 import bisonSVG from './components/pics/zubr.svg'
 import ProfileScreen from './components/ProfileScreen'
 import RoutesScreen from './components/RoutesScreen'
-import { trpc,TrpcProvider } from './lib/trpc'
+import type { NewAchievement } from './hooks/useProximityCheck'
+import { useProximityCheck } from './hooks/useProximityCheck'
+import { trpc, TrpcProvider } from './lib/trpc'
 
 type TabType = 'home' | 'map' | 'routes' | 'events' | 'profile'
 
@@ -27,11 +29,27 @@ const tabs: { id: TabType; icon: typeof Home; label: string }[] = [
 function MainApp() {
   const [activeTab, setActiveTab] = useState<TabType>('home')
   const [showOnboarding, setShowOnboarding] = useState(() => localStorage.getItem(ONBOARDING_KEY) !== 'true')
-  const [showAchievement, setShowAchievement] = useState(false)
+  const [achievementQueue, setAchievementQueue] = useState<NewAchievement[]>([])
+
+  const utils = trpc.useUtils()
 
   // tRPC query to get user
-  const { data: user, isLoading, refetch } = trpc.me.useQuery(undefined, {
+  const {
+    data: user,
+    isLoading,
+    refetch,
+  } = trpc.me.useQuery(undefined, {
     retry: false,
+  })
+
+  const completeOnboardingMutation = trpc.completeOnboarding.useMutation({
+    onSuccess: (data) => {
+      utils.getAchievements.invalidate()
+      utils.getProfileStats.invalidate()
+      if (data.success && data.newAchievement) {
+        setAchievementQueue((prev) => [...prev, data.newAchievement!])
+      }
+    },
   })
 
   // Global user location state, initialized from cache if available
@@ -65,14 +83,50 @@ function MainApp() {
     }
   }, [])
 
+  // Слушаем кастомные события ачивок от компонентов вроде RouteActive
+  useEffect(() => {
+    const handleNewAchievement = (e: CustomEvent<NewAchievement>) => {
+      setAchievementQueue((prev) => [...prev, e.detail])
+    }
+    window.addEventListener('new-achievement', handleNewAchievement as EventListener)
+    return () => window.removeEventListener('new-achievement', handleNewAchievement as EventListener)
+  }, [])
+
   const handleOnboardingComplete = () => {
     localStorage.setItem(ONBOARDING_KEY, 'true')
     setShowOnboarding(false)
-    setTimeout(() => setShowAchievement(true), 1000)
+    setTimeout(() => {
+      completeOnboardingMutation.mutate()
+    }, 1000)
   }
 
+  // Получаем зубриков для отслеживания на глобальном уровне
+  const { data: zubriksData } = trpc.getZubriks.useQuery(undefined, {
+    enabled: !!user && !showOnboarding,
+  })
+
+  const unlockedZubrikPoints = useMemo(() => {
+    if (!zubriksData?.zubriks) return []
+    return zubriksData.zubriks
+      .filter((z) => !z.unlocked)
+      .map((z) => ({
+        id: z.id,
+        latitude: z.coordinates[0],
+        longitude: z.coordinates[1],
+        type: 'zubrik' as const,
+      }))
+  }, [zubriksData])
+
+  useProximityCheck(userLocation, unlockedZubrikPoints, (ach) => {
+    setAchievementQueue((prev) => [...prev, ach])
+  })
+
   if (isLoading) {
-    return <div className="flex-1 flex items-center justify-center min-h-screen bg-[#FAFAF7]"><div className="w-10 h-10 border-4 border-[#E8922A] border-t-transparent rounded-full animate-spin" /></div>
+    return (
+      <div className="flex-1 flex items-center justify-center min-h-screen bg-[#FAFAF7]">
+        <div className="w-10 h-10 border-4 border-[#E8922A] border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
   }
 
   if (!user || showOnboarding) {
@@ -91,7 +145,9 @@ function MainApp() {
 
   return (
     <div className="size-full flex flex-col bg-[#FAFAF7] max-w-md mx-auto relative min-h-screen">
-      {activeTab === 'home' && <HomeScreen userLocation={userLocation} />}
+      {activeTab === 'home' && (
+        <HomeScreen userLocation={userLocation} user={user} onNavigate={() => setActiveTab('profile')} />
+      )}
       {activeTab === 'map' && <MapScreen userLocation={userLocation} setUserLocation={setUserLocation} />}
       {activeTab === 'routes' && <RoutesScreen userLocation={userLocation} />}
       {activeTab === 'events' && <EventsScreen />}
@@ -126,12 +182,14 @@ function MainApp() {
         </div>
       </div>
 
-      {showAchievement && (
+      {achievementQueue.length > 0 && (
         <AchievementUnlock
-          name="Начало пути"
-          description="Ты начал своё путешествие по Орлу!"
-          image={bisonSVG}
-          onClose={() => setShowAchievement(false)}
+          key={achievementQueue[0].id}
+          name={achievementQueue[0].name}
+          description={achievementQueue[0].description}
+          image={achievementQueue[0].imageUrl}
+          emoji={achievementQueue[0].emoji}
+          onClose={() => setAchievementQueue((prev) => prev.slice(1))}
         />
       )}
     </div>

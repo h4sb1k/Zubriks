@@ -25,7 +25,11 @@ function usePersistedStep(total: number, initialStep: number = 0): [number, (n: 
     // If caller explicitly requests a non-zero step (e.g., auth screen),
     // override any stale sessionStorage value
     if (initialStep > 0) {
-      try { sessionStorage.setItem(STEP_KEY, String(initialStep)) } catch { /* ignore */ }
+      try {
+        sessionStorage.setItem(STEP_KEY, String(initialStep))
+      } catch {
+        /* ignore */
+      }
       return initialStep
     }
     try {
@@ -69,10 +73,13 @@ export default function OnboardingScreen({ onComplete, initialStep = 0 }: Onboar
       const parsed = JSON.parse(err.message)
       if (Array.isArray(parsed) && parsed[0]?.message) {
         if (parsed[0].message === 'Invalid email address') return 'Некорректный формат Email'
-        if (parsed[0].message === 'String must contain at least 6 character(s)') return 'Пароль должен быть не менее 6 символов'
+        if (parsed[0].message === 'String must contain at least 6 character(s)')
+          return 'Пароль должен быть не менее 6 символов'
         return parsed[0].message
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     if (err.message === 'User already exists') return 'Пользователь с таким email уже существует'
     if (err.message === 'Invalid credentials') return 'Неверный email или пароль'
     return 'Произошла ошибка. Попробуйте позже.'
@@ -267,11 +274,7 @@ export default function OnboardingScreen({ onComplete, initialStep = 0 }: Onboar
                 </button>
 
                 <div className="flex items-center justify-between mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowEmailForm(false)}
-                    className="text-[#6B6B6B] text-sm"
-                  >
+                  <button type="button" onClick={() => setShowEmailForm(false)} className="text-[#6B6B6B] text-sm">
                     Назад
                   </button>
                   <button

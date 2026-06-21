@@ -1,3 +1,4 @@
+import { PrismaClient } from '@prisma/client'
 import { initTRPC, TRPCError } from '@trpc/server'
 import { CreateExpressContextOptions } from '@trpc/server/adapters/express'
 import { z } from 'zod'
@@ -71,6 +72,56 @@ const protectedProcedure = trpc.procedure.use(async ({ ctx, next }) => {
   })
 })
 
+async function checkAndAwardAchievements(prisma: PrismaClient, userId: string) {
+  const [zubrikCount, totalZubriks, completedRoutes, createdRoutes] = await Promise.all([
+    prisma.userZubrik.count({ where: { userId } }),
+    prisma.zubrik.count(),
+    prisma.userRoute.count({ where: { userId, completedAt: { not: null } } }),
+    prisma.route.count({ where: { authorId: userId } }),
+  ])
+
+  // Правила ачивок: { название_ачивки → условие }
+  const rules: Record<string, boolean> = {
+    'Первая находка': zubrikCount >= 1,
+    Исследователь: zubrikCount >= 5,
+    Коллекционер: zubrikCount >= 10,
+    'Легенда Орла': zubrikCount >= totalZubriks && totalZubriks > 0,
+    'Мастер маршрутов': createdRoutes >= 5,
+  }
+
+  // Получаем все ачивки из БД
+  const allAchievements = await prisma.achievement.findMany()
+  const existingUserAchievements = await prisma.userAchievement.findMany({
+    where: { userId, earned: true },
+    select: { achievementId: true },
+  })
+  const earnedIds = new Set(existingUserAchievements.map((a) => a.achievementId))
+
+  const newlyEarned: { id: string; name: string; description: string; emoji: string; imageUrl: string }[] = []
+
+  for (const achievement of allAchievements) {
+    if (earnedIds.has(achievement.id)) continue // уже получена
+    const shouldEarn = rules[achievement.name]
+    if (!shouldEarn) continue
+
+    await prisma.userAchievement.upsert({
+      where: { userId_achievementId: { userId, achievementId: achievement.id } },
+      create: { userId, achievementId: achievement.id, earned: true, earnedAt: new Date(), progress: 100 },
+      update: { earned: true, earnedAt: new Date(), progress: 100 },
+    })
+
+    newlyEarned.push({
+      id: achievement.id,
+      name: achievement.name,
+      description: achievement.description ?? '',
+      emoji: achievement.emoji ?? '🏆',
+      imageUrl: achievement.imageUrl ?? '',
+    })
+  }
+
+  return newlyEarned
+}
+
 export const trpcRouter = trpc.router({
   // ─── Auth ────────────────────────────────────────────────────────
 
@@ -139,6 +190,32 @@ export const trpcRouter = trpc.router({
     return { success: true }
   }),
 
+  completeOnboarding: protectedProcedure.mutation(async ({ ctx }) => {
+    const achievement = await ctx.prisma.achievement.findFirst({ where: { name: 'Начало пути' } })
+    if (!achievement) return { success: false }
+
+    const existing = await ctx.prisma.userAchievement.findUnique({
+      where: { userId_achievementId: { userId: ctx.userId, achievementId: achievement.id } },
+    })
+
+    if (!existing) {
+      await ctx.prisma.userAchievement.create({
+        data: { userId: ctx.userId, achievementId: achievement.id, earned: true, earnedAt: new Date(), progress: 100 },
+      })
+      return {
+        success: true,
+        newAchievement: {
+          id: achievement.id,
+          name: achievement.name,
+          description: achievement.description ?? '',
+          emoji: achievement.emoji ?? '🏆',
+          imageUrl: achievement.imageUrl ?? '',
+        },
+      }
+    }
+    return { success: false }
+  }),
+
   me: protectedProcedure.query(async ({ ctx }) => {
     const user = await ctx.prisma.user.findUnique({ where: { id: ctx.userId } })
     if (!user) throw new TRPCError({ code: 'UNAUTHORIZED' })
@@ -150,25 +227,33 @@ export const trpcRouter = trpc.router({
       where: { id: ctx.userId },
       include: {
         _count: {
-          select: { unlockedZubriks: true }
+          select: { unlockedZubriks: true },
         },
         routeInteractions: {
           include: {
-            route: { include: { _count: { select: { waypoints: true } } } }
-          }
+            route: { include: { _count: { select: { waypoints: true } } } },
+          },
         },
         createdRoutes: {
-          include: { _count: { select: { waypoints: true } } }
-        }
-      }
+          include: { _count: { select: { waypoints: true } } },
+        },
+      },
     })
 
     if (!user) throw new TRPCError({ code: 'UNAUTHORIZED' })
 
     const daysInApp = Math.floor((Date.now() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24)) + 1
-    const completedRoutesCount = user.routeInteractions.filter(r => r.completedAt !== null).length
+    const completedRoutesCount = user.routeInteractions.filter((r) => r.completedAt !== null).length
 
-    const mapRoute = (r: { id: string; name: string; distance: string; duration: string; description: string | null; imageColor: string | null; _count: { waypoints: number } }) => ({
+    const mapRoute = (r: {
+      id: string
+      name: string
+      distance: string
+      duration: string
+      description: string | null
+      imageColor: string | null
+      _count: { waypoints: number }
+    }) => ({
       id: r.id,
       name: r.name,
       distance: r.distance,
@@ -184,7 +269,7 @@ export const trpcRouter = trpc.router({
         routesCount: completedRoutesCount,
         daysCount: daysInApp,
       },
-      likedRoutes: user.routeInteractions.filter(r => r.liked).map(r => mapRoute(r.route)),
+      likedRoutes: user.routeInteractions.filter((r) => r.liked).map((r) => mapRoute(r.route)),
       createdRoutes: user.createdRoutes.map(mapRoute),
     }
   }),
@@ -318,7 +403,7 @@ export const trpcRouter = trpc.router({
     let completedIds = new Set<string>()
     if (ctx.userId) {
       const userWaypoints = await ctx.prisma.userWaypoint.findMany({
-        where: { userId: ctx.userId, waypointId: { in: waypoints.map(w => w.id) } },
+        where: { userId: ctx.userId, waypointId: { in: waypoints.map((w) => w.id) } },
         select: { waypointId: true },
       })
       userWaypoints.forEach((uw) => completedIds.add(uw.waypointId))
@@ -336,6 +421,59 @@ export const trpcRouter = trpc.router({
         completed: completedIds.has(w.id),
       })),
     }
+  }),
+
+  // --- Геймификация ---
+  completeWaypoint: protectedProcedure.input(z.object({ waypointId: z.string() })).mutation(async ({ input, ctx }) => {
+    // 1. Проверяем, что waypoint существует
+    const waypoint = await ctx.prisma.waypoint.findUnique({
+      where: { id: input.waypointId },
+      include: { route: true },
+    })
+    if (!waypoint) throw new TRPCError({ code: 'NOT_FOUND' })
+
+    // 2. Записываем прогресс (upsert чтобы не падать при повторном вызове)
+    await ctx.prisma.userWaypoint.upsert({
+      where: { userId_waypointId: { userId: ctx.userId, waypointId: input.waypointId } },
+      create: { userId: ctx.userId, waypointId: input.waypointId },
+      update: {},
+    })
+
+    // 3. Проверяем, все ли точки маршрута пройдены → отмечаем маршрут как завершённый
+    const totalWaypoints = await ctx.prisma.waypoint.count({ where: { routeId: waypoint.routeId } })
+    const completedWaypoints = await ctx.prisma.userWaypoint.count({
+      where: {
+        userId: ctx.userId,
+        waypoint: { routeId: waypoint.routeId },
+      },
+    })
+
+    if (completedWaypoints >= totalWaypoints) {
+      await ctx.prisma.userRoute.upsert({
+        where: { userId_routeId: { userId: ctx.userId, routeId: waypoint.routeId } },
+        create: { userId: ctx.userId, routeId: waypoint.routeId, completedAt: new Date(), startedAt: new Date() },
+        update: { completedAt: new Date() },
+      })
+    }
+
+    // 4. Проверяем ачивки
+    const newAchievements = await checkAndAwardAchievements(ctx.prisma, ctx.userId)
+    return { completed: true, routeCompleted: completedWaypoints >= totalWaypoints, newAchievements }
+  }),
+
+  unlockZubrik: protectedProcedure.input(z.object({ zubrikId: z.string() })).mutation(async ({ input, ctx }) => {
+    const zubrik = await ctx.prisma.zubrik.findUnique({ where: { id: input.zubrikId } })
+    if (!zubrik) throw new TRPCError({ code: 'NOT_FOUND' })
+
+    // Upsert — безопасно при повторном вызове
+    await ctx.prisma.userZubrik.upsert({
+      where: { userId_zubrikId: { userId: ctx.userId, zubrikId: input.zubrikId } },
+      create: { userId: ctx.userId, zubrikId: input.zubrikId },
+      update: {},
+    })
+
+    const newAchievements = await checkAndAwardAchievements(ctx.prisma, ctx.userId)
+    return { unlocked: true, newAchievements }
   }),
 
   // --- Ачивки ---

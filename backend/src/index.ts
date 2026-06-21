@@ -7,9 +7,7 @@ import { createContext, trpcRouter } from './trpc'
 
 const expressApp = express()
 
-const ALLOWED_ORIGINS = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(',')
-  : true // In development, allow all origins
+const ALLOWED_ORIGINS = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : true // In development, allow all origins
 
 expressApp.use(
   cors({

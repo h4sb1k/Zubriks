@@ -17,7 +17,22 @@ type Zubrik = {
   coordinates?: [number, number, string]
 }
 
-export default function HomeScreen({ userLocation }: { userLocation: [number, number] | null }) {
+type UserData = {
+  id: string
+  name: string | null
+  email: string
+  avatarUrl: string | null
+}
+
+export default function HomeScreen({
+  userLocation,
+  user,
+  onNavigate,
+}: {
+  userLocation: [number, number] | null
+  user: UserData
+  onNavigate: () => void
+}) {
   const [selectedZubrik, setSelectedZubrik] = useState<Zubrik | null>(null)
   const [showMainRoute, setShowMainRoute] = useState(false)
 
@@ -73,12 +88,19 @@ export default function HomeScreen({ userLocation }: { userLocation: [number, nu
         <div className="px-5 pt-6 pb-8 bg-[#F5F2EB]">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl mb-1">Привет, Исследователь! 👋</h1>
+              <h1 className="text-2xl mb-1">Привет, {user.name || 'Исследователь'}!</h1>
               <p className="text-[#6B6B6B]">Исследуй Орёл</p>
             </div>
-            <div className="w-12 h-12 rounded-full bg-[#1A3D2B] flex items-center justify-center">
-              <span className="text-white text-lg">🦬</span>
-            </div>
+            <button
+              onClick={onNavigate}
+              className="w-12 h-12 rounded-full bg-[#1A3D2B] flex items-center justify-center overflow-hidden transition-transform active:scale-95"
+            >
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt="Аватар" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-white text-lg">🦬</span>
+              )}
+            </button>
           </div>
 
           <div className="bg-white rounded-3xl overflow-hidden shadow-sm mb-6">

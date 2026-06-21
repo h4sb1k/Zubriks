@@ -231,6 +231,12 @@ async function main() {
     data: [
       {
         name: 'Начало пути',
+        description: 'Ты начал своё путешествие по Орлу!',
+        imageUrl: '/images/Achievement-1.png',
+        emoji: '👋',
+      },
+      {
+        name: 'Первая находка',
         description: 'Найди своего первого зубрика',
         imageUrl: '/images/Achievement-1.png',
         emoji: '🦬',
