@@ -3,6 +3,7 @@ import { useState } from 'react'
 
 import { trpc } from '../lib/trpc'
 import RouteActive from './RouteActive'
+import RouteBuilder from './RouteBuilder'
 
 type Route = {
   id: string
@@ -14,11 +15,13 @@ type Route = {
   description?: string
   liked: boolean
   imageColor: string
+  emoji: string
 }
 
 export default function RoutesScreen({ userLocation }: { userLocation: [number, number] | null }) {
   const [activeFilter, setActiveFilter] = useState('Все')
   const [activeRoute, setActiveRoute] = useState<{ id: string; name: string } | null>(null)
+  const [isBuilding, setIsBuilding] = useState(false)
 
   const utils = trpc.useUtils()
   const { data: routesData, isLoading, isError, error } = trpc.getRoutes.useQuery()
@@ -155,10 +158,10 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
               className="bg-white rounded-2xl overflow-hidden shadow-sm cursor-pointer active:scale-[0.98] transition-transform"
             >
               <div
-                className="h-28 flex items-center justify-center text-4xl"
+                className="w-full h-28 flex items-center justify-center shrink-0"
                 style={{ backgroundColor: route.imageColor }}
               >
-                🗺️
+                <span className="text-4xl">{route.emoji}</span>
               </div>
               <div className="p-3">
                 <h3 className="text-sm mb-2 line-clamp-2 min-h-[2.5rem]">{route.name}</h3>
@@ -191,9 +194,14 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
         </div>
       </div>
 
-      <button className="fixed bottom-24 right-5 w-14 h-14 bg-[#E8922A] text-white rounded-full shadow-lg flex items-center justify-center">
+      <button
+        onClick={() => setIsBuilding(true)}
+        className="fixed bottom-24 right-5 w-14 h-14 bg-[#E8922A] text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+      >
         <Plus size={24} />
       </button>
+
+      {isBuilding && <RouteBuilder onClose={() => setIsBuilding(false)} />}
 
       {activeRoute && (
         <RouteActive

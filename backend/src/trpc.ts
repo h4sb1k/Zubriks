@@ -367,6 +367,7 @@ export const trpcRouter = trpc.router({
         description: r.description,
         liked: likedRouteIds.has(r.id),
         imageColor: r.imageColor ?? '#1A3D2B',
+        emoji: r.emoji ?? '📍',
       })),
       mainRoute: mainRoute
         ? {
@@ -376,6 +377,7 @@ export const trpcRouter = trpc.router({
             duration: mainRoute.duration,
             stops: mainRoute._count.waypoints,
             description: mainRoute.description,
+            emoji: mainRoute.emoji ?? '👑',
           }
         : null,
     }
@@ -399,6 +401,7 @@ export const trpcRouter = trpc.router({
         duration: mainRoute.duration,
         stops: mainRoute._count.waypoints,
         description: mainRoute.description,
+        emoji: mainRoute.emoji ?? '👑',
       },
     }
   }),
@@ -455,6 +458,94 @@ export const trpcRouter = trpc.router({
           data: { userId: ctx.userId, routeId: input.routeId, liked: true },
         })
         return { liked: created.liked }
+      }
+    }),
+
+  // ─── Создание маршрута ───────────────────────────────────────────
+  createRoute: protectedProcedure
+    .input(
+      z.object({
+        name: z.string().min(1).max(100),
+        description: z.string().max(500).optional(),
+        imageColor: z.string().optional(),
+        emoji: z.string().optional(),
+        waypoints: z
+          .array(
+            z.object({
+              name: z.string().min(1),
+              description: z.string().optional(),
+              emoji: z.string().optional(),
+              latitude: z.number(),
+              longitude: z.number(),
+            }),
+          )
+          .min(2, 'Маршрут должен содержать минимум 2 точки'),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      // Рассчитываем расстояние и время (Haversine formula)
+      let totalKm = 0
+      for (let i = 0; i < input.waypoints.length - 1; i++) {
+        const p1 = input.waypoints[i]
+        const p2 = input.waypoints[i+1]
+        const R = 6371
+        const dLat = (p2.latitude - p1.latitude) * (Math.PI/180)
+        const dLon = (p2.longitude - p1.longitude) * (Math.PI/180)
+        const a = 
+          Math.sin(dLat/2) * Math.sin(dLat/2) +
+          Math.cos(p1.latitude * (Math.PI/180)) * Math.cos(p2.latitude * (Math.PI/180)) * 
+          Math.sin(dLon/2) * Math.sin(dLon/2)
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+        totalKm += R * c
+      }
+
+      const distanceStr = totalKm < 0.1 ? '0.1' : totalKm.toFixed(1)
+      const estimatedMin = Math.max(1, Math.round((totalKm / 5) * 60))
+      const duration =
+        estimatedMin < 60
+          ? `${estimatedMin} мин`
+          : `${Math.floor(estimatedMin / 60)} ч ${estimatedMin % 60 > 0 ? (estimatedMin % 60) + ' мин' : ''}`.trim()
+
+      let finalName = input.name
+      const existingRoute = await ctx.prisma.route.findFirst({
+        where: { name: finalName }
+      })
+
+      if (existingRoute) {
+        const hash = Math.floor(1000 + Math.random() * 9000)
+        finalName = `${finalName} #${hash}`
+      }
+
+      const route = await ctx.prisma.route.create({
+        data: {
+          name: finalName,
+          description: input.description,
+          distance: `${distanceStr} км`,
+          duration,
+          imageColor: input.imageColor ?? '#1A3D2B',
+          emoji: input.emoji ?? '📍',
+          isMain: false,
+          authorId: ctx.userId,
+          waypoints: {
+            create: input.waypoints.map((wp, idx) => ({
+              name: wp.name,
+              description: wp.description,
+              emoji: wp.emoji ?? '📍',
+              latitude: wp.latitude,
+              longitude: wp.longitude,
+              orderIndex: idx,
+            })),
+          },
+        },
+        include: { _count: { select: { waypoints: true } } },
+      })
+
+      return {
+        id: route.id,
+        name: route.name,
+        distance: route.distance,
+        duration: route.duration,
+        stops: route._count.waypoints,
       }
     }),
 
