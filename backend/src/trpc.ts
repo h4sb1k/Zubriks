@@ -284,6 +284,45 @@ export const trpcRouter = trpc.router({
     }
   }),
 
+  getPublicProfile: trpc.procedure.input(z.object({ userId: z.string() })).query(async ({ input, ctx }) => {
+    const user = await ctx.prisma.user.findUnique({
+      where: { id: input.userId },
+      include: {
+        _count: { select: { unlockedZubriks: true } },
+        routeInteractions: { where: { completedAt: { not: null } } },
+        createdRoutes: { include: { _count: { select: { waypoints: true } } } },
+        achievements: { include: { achievement: true } },
+      }
+    })
+    
+    if (!user) throw new TRPCError({ code: 'NOT_FOUND' })
+    
+    const daysInApp = Math.floor((Date.now() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    
+    const allAchievements = await ctx.prisma.achievement.findMany()
+    const earnedMap = new Map(user.achievements.map(ua => [ua.achievementId, { earned: ua.earned, progress: ua.progress, isPinned: ua.isPinned, pinnedAt: ua.pinnedAt }]))
+    
+    return {
+      id: user.id,
+      name: user.name || 'Исследователь',
+      avatarUrl: user.avatarUrl,
+      stats: {
+        zubriksCount: user._count.unlockedZubriks,
+        routesCount: user.routeInteractions.length,
+        daysCount: daysInApp
+      },
+      createdRoutes: user.createdRoutes.map(r => ({
+        id: r.id, name: r.name, distance: r.distance, duration: r.duration, stops: r._count.waypoints, description: r.description, imageColor: r.imageColor ?? '#1A3D2B', emoji: r.emoji ?? '📍'
+      })),
+      achievements: allAchievements.map(a => {
+        const userState = earnedMap.get(a.id) || { earned: false, progress: 0, isPinned: false, pinnedAt: null }
+        return {
+          id: a.id, name: a.name, description: a.description, emoji: a.emoji ?? '🏆', imageUrl: a.imageUrl, earned: userState.earned, progress: userState.progress, isPinned: userState.isPinned, pinnedAt: userState.pinnedAt ? userState.pinnedAt.toISOString() : null
+        }
+      })
+    }
+  }),
+
   getZubriks: trpc.procedure.query(async ({ ctx }) => {
     const zubriks = await ctx.prisma.zubrik.findMany({
       orderBy: { createdAt: 'asc' },
@@ -363,6 +402,7 @@ export const trpcRouter = trpc.router({
         distance: r.distance,
         duration: r.duration,
         stops: r._count.waypoints,
+        authorId: r.authorId,
         author: r.author?.name ?? 'Аноним',
         description: r.description,
         liked: likedRouteIds.has(r.id),
@@ -606,15 +646,15 @@ export const trpcRouter = trpc.router({
   getAchievements: trpc.procedure.query(async ({ ctx }) => {
     const achievements = await ctx.prisma.achievement.findMany()
 
-    let earnedMap = new Map<string, { earned: boolean; progress: number }>()
+    let earnedMap = new Map<string, { earned: boolean; progress: number, isPinned: boolean, pinnedAt: Date | null }>()
     if (ctx.userId) {
       const userAchievements = await ctx.prisma.userAchievement.findMany({ where: { userId: ctx.userId } })
-      userAchievements.forEach((ua) => earnedMap.set(ua.achievementId, { earned: ua.earned, progress: ua.progress }))
+      userAchievements.forEach((ua) => earnedMap.set(ua.achievementId, { earned: ua.earned, progress: ua.progress, isPinned: ua.isPinned, pinnedAt: ua.pinnedAt }))
     }
 
     return {
       achievements: achievements.map((a) => {
-        const userState = earnedMap.get(a.id) || { earned: false, progress: 0 }
+        const userState = earnedMap.get(a.id) || { earned: false, progress: 0, isPinned: false, pinnedAt: null }
         return {
           id: a.id,
           name: a.name,
@@ -623,9 +663,41 @@ export const trpcRouter = trpc.router({
           emoji: a.emoji ?? '🏆',
           earned: userState.earned,
           progress: userState.progress,
+          isPinned: userState.isPinned,
+          pinnedAt: userState.pinnedAt ? userState.pinnedAt.toISOString() : null,
         }
       }),
     }
+  }),
+  
+  togglePinAchievement: protectedProcedure.input(z.object({ achievementId: z.string() })).mutation(async ({ input, ctx }) => {
+    const existing = await ctx.prisma.userAchievement.findUnique({
+      where: { userId_achievementId: { userId: ctx.userId, achievementId: input.achievementId } },
+    })
+
+    if (!existing || !existing.earned) {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'You can only pin earned achievements' })
+    }
+
+    // Если хотим закрепить, проверим, сколько уже закреплено. Разрешим максимум 3
+    if (!existing.isPinned) {
+      const pinnedCount = await ctx.prisma.userAchievement.count({
+        where: { userId: ctx.userId, isPinned: true },
+      })
+      if (pinnedCount >= 3) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Максимум 3 закрепленных достижения' })
+      }
+    }
+
+    const updated = await ctx.prisma.userAchievement.update({
+      where: { userId_achievementId: { userId: ctx.userId, achievementId: input.achievementId } },
+      data: { 
+        isPinned: !existing.isPinned,
+        pinnedAt: !existing.isPinned ? new Date() : null
+      },
+    })
+
+    return { isPinned: updated.isPinned, pinnedAt: updated.pinnedAt ? updated.pinnedAt.toISOString() : null }
   }),
 })
 

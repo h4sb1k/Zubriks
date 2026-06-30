@@ -181,6 +181,8 @@ model UserAchievement {
   achievementId String
   earned        Boolean   @default(false)
   progress      Int       @default(0)
+  isPinned      Boolean   @default(false)
+  pinnedAt      DateTime?
   earnedAt      DateTime?
 
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -49,10 +49,23 @@ export default function ProfileScreen() {
       window.location.reload()
     },
   })
+  
+  const togglePin = trpc.togglePinAchievement.useMutation({
+    onSuccess: () => utils.getAchievements.invalidate()
+  })
 
   const achievements = achievementsData?.achievements ?? []
   const earnedAchievements = achievements.filter((a) => a.earned)
   const totalAchievements = achievements.length
+  
+  const pinnedAchievements = earnedAchievements
+    .filter((a) => a.isPinned)
+    .sort((a, b) => {
+      const timeA = a.pinnedAt ? new Date(a.pinnedAt).getTime() : 0
+      const timeB = b.pinnedAt ? new Date(b.pinnedAt).getTime() : 0
+      return timeA - timeB
+    })
+  const topAchievements = pinnedAchievements.length > 0 ? pinnedAchievements.slice(0, 3) : earnedAchievements.slice(0, 3)
 
   const stats = statsData?.stats ?? { zubriksCount: 0, routesCount: 0, daysCount: 0 }
   const createdRoutes = statsData?.createdRoutes ?? []
@@ -106,7 +119,7 @@ export default function ProfileScreen() {
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-3 mb-6">
-            {earnedAchievements.slice(0, 3).map((achievement) => (
+            {topAchievements.map((achievement) => (
               <div
                 key={achievement.id}
                 className="aspect-[4/5] bg-gradient-to-br from-[#1A3D2B] to-[#2E5A41] rounded-[24px] p-2 flex flex-col items-center justify-end text-center shadow-lg shadow-[#1A3D2B]/10 relative overflow-hidden transition-transform active:scale-95"
@@ -227,6 +240,19 @@ export default function ProfileScreen() {
                       )}
                     </div>
 
+                    {achievement.earned && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          togglePin.mutate({ achievementId: achievement.id })
+                        }}
+                        className={`absolute top-2 right-2 z-20 w-7 h-7 rounded-full flex items-center justify-center backdrop-blur-md transition-colors ${
+                          achievement.isPinned ? 'bg-[#E8922A] text-white shadow-md' : 'bg-black/20 text-white/50 hover:text-white hover:bg-black/40'
+                        }`}
+                      >
+                        {achievement.isPinned ? '📌' : '📍'}
+                      </button>
+                    )}
                     {!achievement.earned && <div className="absolute top-3 right-3 text-lg opacity-20">🔒</div>}
                   </div>
                 ))

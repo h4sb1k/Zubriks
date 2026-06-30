@@ -2,6 +2,7 @@ import { ChevronRight, Clock, Heart, MapPin, Plus } from 'lucide-react'
 import { useState } from 'react'
 
 import { trpc } from '../lib/trpc'
+import PublicProfileScreen from './PublicProfileScreen'
 import RouteActive from './RouteActive'
 import RouteBuilder from './RouteBuilder'
 
@@ -11,6 +12,7 @@ type Route = {
   distance: string
   duration: string
   stops: number
+  authorId?: string | null
   author: string
   description?: string
   liked: boolean
@@ -21,6 +23,7 @@ type Route = {
 export default function RoutesScreen({ userLocation }: { userLocation: [number, number] | null }) {
   const [activeFilter, setActiveFilter] = useState('Все')
   const [activeRoute, setActiveRoute] = useState<{ id: string; name: string } | null>(null)
+  const [viewProfileId, setViewProfileId] = useState<string | null>(null)
   const [isBuilding, setIsBuilding] = useState(false)
 
   const utils = trpc.useUtils()
@@ -171,11 +174,20 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
                   <span>{route.duration}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-5 h-5 rounded-full bg-[#E8922A] flex items-center justify-center text-xs">
+                  <div 
+                    className={`flex items-center gap-1.5 ${route.authorId ? 'hover:opacity-80 active:scale-95 transition-all' : ''}`}
+                    onClick={(e) => {
+                      if (route.authorId) {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        setViewProfileId(route.authorId)
+                      }
+                    }}
+                  >
+                    <div className="w-5 h-5 rounded-full bg-[#E8922A] flex items-center justify-center text-xs text-white">
                       {route.author.charAt(0)}
                     </div>
-                    <span className="text-xs text-[#6B6B6B]">{route.author}</span>
+                    <span className="text-xs text-[#6B6B6B] truncate max-w-[80px]">{route.author}</span>
                   </div>
                   <button
                     onClick={(e) => {
@@ -210,6 +222,10 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
           userLocation={userLocation}
           onClose={() => setActiveRoute(null)}
         />
+      )}
+
+      {viewProfileId && (
+        <PublicProfileScreen userId={viewProfileId} onClose={() => setViewProfileId(null)} />
       )}
     </div>
   )
