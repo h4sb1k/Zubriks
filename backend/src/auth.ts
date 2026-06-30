@@ -21,10 +21,14 @@ const JWT_REFRESH_SECRET = requireEnv('JWT_REFRESH_SECRET')
 const ACCESS_TOKEN_EXPIRES_IN = '15m' // 15 minutes
 const REFRESH_TOKEN_EXPIRES_IN_DAYS = 7
 
+const isDev = process.env.NODE_ENV !== 'production'
+
 const COOKIE_OPTIONS_BASE = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
+  // В dev используем 'lax', т.к. localhost не поддерживает sameSite=none без HTTPS
+  // В prod используем 'none' + secure для cross-origin запросов
+  secure: !isDev,
+  sameSite: isDev ? ('lax' as const) : ('none' as const),
 }
 
 export async function hashPassword(password: string): Promise<string> {

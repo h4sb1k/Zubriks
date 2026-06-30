@@ -18,13 +18,40 @@ type Route = {
 
 export default function RoutesScreen({ userLocation }: { userLocation: [number, number] | null }) {
   const [activeFilter, setActiveFilter] = useState('Все')
-  const [likedRoutes, setLikedRoutes] = useState<Record<string, boolean>>({})
   const [activeRoute, setActiveRoute] = useState<{ id: string; name: string } | null>(null)
 
+  const utils = trpc.useUtils()
   const { data: routesData, isLoading, isError, error } = trpc.getRoutes.useQuery()
 
+  const toggleLikeMutation = trpc.toggleRouteLike.useMutation({
+    onMutate: async ({ routeId }) => {
+      await utils.getRoutes.cancel()
+      const previousData = utils.getRoutes.getData()
+
+      if (previousData) {
+        utils.getRoutes.setData(undefined, {
+          ...previousData,
+          routes: previousData.routes.map((r) =>
+            r.id === routeId ? { ...r, liked: !r.liked } : r
+          ),
+        })
+      }
+
+      return { previousData }
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousData) {
+        utils.getRoutes.setData(undefined, context.previousData)
+      }
+    },
+    onSettled: () => {
+      utils.getRoutes.invalidate()
+      utils.getProfileStats.invalidate()
+    },
+  })
+
   const toggleLike = (id: string) => {
-    setLikedRoutes((prev) => ({ ...prev, [id]: !prev[id] }))
+    toggleLikeMutation.mutate({ routeId: id })
   }
 
   if (isLoading) {
@@ -45,10 +72,7 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
 
   const { routes, mainRoute } = routesData
 
-  const displayedRoutes = (routes || []).map((route) => ({
-    ...(route as Route),
-    liked: likedRoutes[route.id] !== undefined ? likedRoutes[route.id] : route.liked,
-  }))
+  const displayedRoutes = (routes || []) as Route[]
 
   const filteredRoutes = displayedRoutes.filter((route) => {
     if (activeFilter === 'Избранные') {
@@ -152,6 +176,7 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
                   </div>
                   <button
                     onClick={(e) => {
+                      e.preventDefault()
                       e.stopPropagation()
                       toggleLike(route.id)
                     }}

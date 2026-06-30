@@ -57,6 +57,7 @@ export const createContext = async ({ req, res }: CreateExpressContextOptions) =
   return { req, res, prisma, userId }
 }
 
+
 type Context = Awaited<ReturnType<typeof createContext>>
 
 const trpc = initTRPC.context<Context>().create()
@@ -67,7 +68,8 @@ const protectedProcedure = trpc.procedure.use(async ({ ctx, next }) => {
   }
   return next({
     ctx: {
-      userId: ctx.userId,
+      ...ctx,           // сохраняем prisma, req, res
+      userId: ctx.userId, // userId точно не null (TypeScript знает это)
     },
   })
 })
@@ -430,6 +432,31 @@ export const trpcRouter = trpc.router({
       })),
     }
   }),
+
+  // ─── Взаимодействие с маршрутами ─────────────────────────────────
+  toggleRouteLike: protectedProcedure
+    .input(z.object({ routeId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      // Ищем, есть ли уже запись взаимодействия
+      const userRoute = await ctx.prisma.userRoute.findUnique({
+        where: { userId_routeId: { userId: ctx.userId, routeId: input.routeId } },
+      })
+
+      if (userRoute) {
+        // Запись есть — переключаем статус
+        const updated = await ctx.prisma.userRoute.update({
+          where: { userId_routeId: { userId: ctx.userId, routeId: input.routeId } },
+          data: { liked: !userRoute.liked },
+        })
+        return { liked: updated.liked }
+      } else {
+        // Записи нет — создаём и сразу лайкаем
+        const created = await ctx.prisma.userRoute.create({
+          data: { userId: ctx.userId, routeId: input.routeId, liked: true },
+        })
+        return { liked: created.liked }
+      }
+    }),
 
   // --- Геймификация ---
   completeWaypoint: protectedProcedure.input(z.object({ waypointId: z.string() })).mutation(async ({ input, ctx }) => {
