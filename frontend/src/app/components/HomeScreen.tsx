@@ -88,12 +88,12 @@ export default function HomeScreen({
         <div className="px-5 pt-6 pb-8 bg-[#F5F2EB]">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl mb-1">Привет, {user.name || 'Исследователь'}!</h1>
-              <p className="text-[#6B6B6B]">Исследуй Орёл</p>
+              <h1 className="text-[22px] font-bold text-[#1C1C1E] mb-1 tracking-tight">Привет, {user.name || 'Исследователь'}!</h1>
+              <p className="text-[#6B6B6B] font-medium">Готов исследовать Орёл?</p>
             </div>
             <button
               onClick={onNavigate}
-              className="w-12 h-12 rounded-full bg-[#1A3D2B] flex items-center justify-center overflow-hidden transition-transform active:scale-95"
+              className="w-14 h-14 rounded-full bg-[#1A3D2B] flex items-center justify-center overflow-hidden transition-transform active:scale-90 shadow-md border-[3px] border-white"
             >
               {user.avatarUrl ? (
                 <img src={user.avatarUrl} alt="Аватар" className="w-full h-full object-cover" />
@@ -103,7 +103,7 @@ export default function HomeScreen({
             </button>
           </div>
 
-          <div className="bg-white rounded-3xl overflow-hidden shadow-sm mb-6">
+          <div className="bg-white rounded-[32px] overflow-hidden shadow-[0_12px_30px_rgba(26,61,43,0.08)] mb-8">
             <div className="h-48 relative overflow-hidden flex items-end p-5">
               <img
                 src="/images/Tour-Zubriki-1.png"
@@ -136,7 +136,7 @@ export default function HomeScreen({
               </div>
               <button
                 onClick={() => setShowMainRoute(true)}
-                className="w-full bg-[#E8922A] text-white rounded-2xl py-3.5 flex items-center justify-center gap-2"
+                className="w-full bg-[#E8922A] text-white rounded-full py-4 mt-2 font-bold shadow-md active:scale-95 transition-transform flex items-center justify-center gap-2"
               >
                 <span>Начать путешествие</span>
                 <ChevronRight size={20} />
@@ -145,10 +145,10 @@ export default function HomeScreen({
           </div>
         </div>
 
-        <div className="px-5 py-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl">Зубрики рядом</h2>
-            <MapPin size={20} className="text-[#E8922A]" />
+        <div className="px-5 pb-8">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-[20px] font-bold text-[#1C1C1E] tracking-tight">Зубрики рядом</h2>
+            <MapPin size={22} className="text-[#E8922A]" />
           </div>
 
           {zubriksLoading && <span className="text-[#6B6B6B]">Загрузка...</span>}
@@ -160,11 +160,11 @@ export default function HomeScreen({
                 <button
                   key={zubrik.id}
                   onClick={() => setSelectedZubrik(zubrik as Zubrik)}
-                  className="flex-shrink-0 w-40 bg-white rounded-2xl p-4 shadow-sm"
+                  className="flex-shrink-0 w-40 bg-white rounded-[24px] p-4 shadow-[0_8px_20px_rgba(0,0,0,0.05)] active:scale-95 transition-all"
                 >
                   <div
-                    className="w-20 h-20 rounded-2xl mx-auto mb-3 flex items-center justify-center overflow-hidden"
-                    style={{ backgroundColor: zubrik.imageColor + '20' }}
+                    className="w-20 h-20 rounded-full mx-auto mb-3 flex items-center justify-center overflow-hidden shadow-inner"
+                    style={{ backgroundColor: zubrik.imageColor + '15' }}
                   >
                     {/* 3. Рендерим изображение. Если ссылки нет, оставляем эмодзи как фолбек */}
                     {zubrik.imageUrl ? (
@@ -173,7 +173,7 @@ export default function HomeScreen({
                       <span className="text-3xl">🦬</span>
                     )}
                   </div>
-                  <h3 className="text-sm mb-1 line-clamp-2 min-h-[2.5rem]">{zubrik.name}</h3>
+                  <h3 className="text-[15px] font-bold text-[#1C1C1E] mb-1.5 line-clamp-2 min-h-[2.5rem] leading-tight">{zubrik.name}</h3>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-[#6B6B6B]">{zubrik.distance}</span>
                     {zubrik.unlocked ? (
@@ -188,10 +188,10 @@ export default function HomeScreen({
           )}
         </div>
 
-        <div className="px-5 pb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl">События сегодня</h2>
-            <Calendar size={20} className="text-[#E8922A]" />
+        <div className="px-5 pb-8">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-[20px] font-bold text-[#1C1C1E] tracking-tight">События сегодня</h2>
+            <Calendar size={22} className="text-[#E8922A]" />
           </div>
 
           {eventsLoading && <span className="text-[#6B6B6B]">Загрузка...</span>}
@@ -200,7 +200,7 @@ export default function HomeScreen({
           {eventsData && (
             <div className="space-y-3">
               {eventsData.events.map((event) => (
-                <div key={event.id} className="bg-white rounded-2xl overflow-hidden shadow-sm">
+                <div key={event.id} className="bg-white rounded-[24px] overflow-hidden shadow-[0_8px_20px_rgba(0,0,0,0.05)] active:scale-[0.98] transition-transform">
                   <div className="h-24 flex items-center justify-center" style={{ background: 'linear-gradient(to right, #1A3D2B, #E8922A)' }}>
                     <span className="text-4xl">🎭</span>
                   </div>
@@ -208,7 +208,7 @@ export default function HomeScreen({
                     <div className="inline-block bg-[#F5F2EB] px-2.5 py-1 rounded-full text-xs text-[#6B6B6B] mb-2">
                       {event.category}
                     </div>
-                    <h3 className="text-sm mb-2 line-clamp-2">{event.title}</h3>
+                    <h3 className="text-[15px] font-bold text-[#1C1C1E] mb-2 line-clamp-2 leading-tight">{event.title}</h3>
                     <div className="flex items-center gap-3 text-xs text-[#6B6B6B]">
                       <span>{event.time}</span>
                       <span>•</span>

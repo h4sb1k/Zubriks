@@ -52,7 +52,10 @@ export default function ZubrikDetail({
   return (
     <div className="fixed inset-0 z-50 bg-[#FAFAF7] overflow-y-auto">
       <div className="relative">
-        <div className="h-72 bg-gradient-to-br from-[#1A3D2B] to-[#E8922A] relative">
+        <div 
+          className="h-72 relative"
+          style={{ background: 'linear-gradient(135deg, #1A3D2B, #E8922A)' }}
+        >
           <button
             type="button"
             onClick={(e) => {
@@ -91,8 +94,8 @@ export default function ZubrikDetail({
         <div className="px-5 py-6">
           <div className="flex items-start justify-between mb-6">
             <div>
-              <h1 className="text-3xl mb-2">{name}</h1>
-              <p className="text-[#6B6B6B]">Коллекционный персонаж</p>
+              <h1 className="text-3xl font-black text-[#1C1C1E] mb-2 tracking-tight">{name}</h1>
+              <p className="text-[#6B6B6B] font-medium">Коллекционный персонаж</p>
             </div>
           </div>
 
@@ -137,9 +140,9 @@ export default function ZubrikDetail({
 
           {activeTab === 'Где найти' && (
             <div className="space-y-4">
-              <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+              <div className="bg-white rounded-[24px] overflow-hidden shadow-[0_8px_20px_rgba(0,0,0,0.05)]">
                 {coordinates ? (
-                  <div className="h-48 rounded-2xl overflow-hidden shadow-sm z-0 relative">
+                  <div className="h-48 rounded-[24px] overflow-hidden shadow-inner z-0 relative">
                     <MapContainer
                       center={[coordinates[0], coordinates[1]]}
                       zoom={15}
@@ -176,7 +179,7 @@ export default function ZubrikDetail({
                   </div>
                   <button
                     onClick={handleOpenInMaps}
-                    className="w-full bg-[#E8922A] text-white rounded-2xl py-3 flex items-center justify-center gap-2"
+                    className="w-full bg-[#E8922A] text-white rounded-full py-3.5 flex items-center justify-center gap-2 font-bold shadow-md active:scale-95 transition-transform"
                   >
                     <Navigation size={20} />
                     <span>Построить маршрут</span>
@@ -202,7 +205,7 @@ export default function ZubrikDetail({
           {!unlocked && (
             <button
               onClick={handleOpenInMaps}
-              className="w-full bg-[#1A3D2B] text-white rounded-2xl py-4 text-lg mt-6 active:scale-95 transition-transform"
+              className="w-full bg-[#1A3D2B] text-white rounded-full py-4 text-lg mt-6 font-bold shadow-lg active:scale-95 transition-transform"
             >
               Найти меня!
             </button>
