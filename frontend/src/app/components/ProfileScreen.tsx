@@ -36,7 +36,7 @@ function RouteCard({ route }: { route: RouteInfo }) {
 }
 
 export default function ProfileScreen() {
-  const [activeTab, setActiveTab] = useState('Ачивки')
+  const [activeTab, setActiveTab] = useState('Награды')
 
   const { data: user } = trpc.me.useQuery()
   const { data: statsData, isLoading: isStatsLoading } = trpc.getProfileStats.useQuery()
@@ -152,7 +152,7 @@ export default function ProfileScreen() {
         )}
 
         <div className="flex gap-2 mb-6 border-b border-[#E5E3DD]">
-          {['Ачивки', 'Маршруты', 'Избранное'].map((tab) => (
+          {['Награды', 'Маршруты', 'Избранное'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -168,7 +168,7 @@ export default function ProfileScreen() {
           ))}
         </div>
 
-        {activeTab === 'Ачивки' && (
+        {activeTab === 'Награды' && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="flex items-center justify-between mb-4 mt-2">
               <h3 className="text-lg font-semibold text-[#1A3D2B]">Все достижения</h3>
