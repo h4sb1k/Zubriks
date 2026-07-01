@@ -116,11 +116,11 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
               alt="Тур Зубрики"
               className="absolute inset-0 w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0.2), transparent)' }} />
             <div className="absolute top-4 right-4 bg-[#E8922A] text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-sm z-10">
               Главный маршрут
             </div>
-            <div className="relative z-10">
+            <div className="relative z-10 w-full text-center">
               <h2 className="text-white text-2xl font-bold mb-1 drop-shadow-sm">{mainRoute?.name}</h2>
             </div>
           </div>

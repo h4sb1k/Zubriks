@@ -121,9 +121,9 @@ export default function AchievementUnlock({ name, description, emoji, image, onC
           <img src={image} alt={name} className="w-full h-full object-contain" style={{ background: 'transparent' }} />
         )
       }
-      return <div className="w-24 h-24 flex items-center justify-center">{image}</div>
+      return <div className="w-32 h-32 flex items-center justify-center">{image}</div>
     }
-    return <span className="text-6xl">{emoji}</span>
+    return <span className="text-[5rem]">{emoji}</span>
   }
 
   return (
@@ -133,41 +133,61 @@ export default function AchievementUnlock({ name, description, emoji, image, onC
 
       {/* Card */}
       <div
-        className={`relative z-10 transition-all duration-500 ${
+        className={`relative z-10 w-full max-w-[340px] sm:max-w-sm transition-all duration-500 ease-out ${
           isVisible ? 'scale-100 opacity-100' : 'scale-50 opacity-0'
         }`}
       >
         <div className="relative" ref={cardRef}>
-          {/* Glow */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#D4A017] to-[#E8922A] rounded-3xl blur-2xl opacity-50 animate-pulse" />
+          {/* Soft outer glow */}
+          <div className="absolute inset-0 rounded-[32px] blur-2xl opacity-60" style={{ background: 'linear-gradient(135deg, #D4A017, #E8922A)' }} />
 
-          <div className="relative bg-gradient-to-br from-[#D4A017] to-[#E8922A] rounded-3xl p-8 text-center shadow-2xl">
-            {/* Border glow */}
-            <div className="absolute -inset-1">
-              <div className="w-full h-full bg-gradient-to-r from-[#D4A017] via-[#E8922A] to-[#D4A017] rounded-3xl opacity-75 blur-sm animate-pulse" />
-            </div>
-
-            <div className="relative">
-              {/* Icon */}
-              <div className="inline-flex items-center justify-center w-24 h-24 bg-white rounded-full mb-4 shadow-lg">
+          {/* Claymorphism Card */}
+          <div 
+            className="relative rounded-[32px] p-6 sm:p-8 text-center w-full" 
+            style={{ 
+              background: 'linear-gradient(135deg, #D4A017, #E8922A)',
+              boxShadow: '0 25px 50px -12px rgba(212,160,23,0.5), inset 0 6px 15px rgba(255,255,255,0.4), inset 0 -6px 15px rgba(0,0,0,0.15)'
+            }}
+          >
+            <div className="relative w-full">
+              {/* Clay Icon Base */}
+              <div 
+                className="inline-flex items-center justify-center w-28 h-28 sm:w-32 sm:h-32 bg-white mb-5 sm:mb-6 border-[6px] border-white/20 mx-auto"
+                style={{ 
+                  borderRadius: '50%', 
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.15), inset 0 -4px 10px rgba(0,0,0,0.08), inset 0 4px 10px rgba(255,255,255,0.8)'
+                }}
+              >
                 {renderIcon()}
               </div>
 
-              <h2 className="text-3xl text-white mb-2">Достижение!</h2>
-              <h3 className="text-2xl text-white mb-3">{name}</h3>
-              <p className="text-white/90 mb-6">{description}</p>
+              <div className="uppercase tracking-widest text-white/90 text-[10px] sm:text-xs font-extrabold mb-3 drop-shadow-sm">Новое достижение</div>
+              
+              {/* Clay Title Badge */}
+              <div 
+                className="inline-flex items-center justify-center bg-white px-4 py-2 sm:px-6 sm:py-3.5 mb-5 w-full max-w-full"
+                style={{ 
+                  borderRadius: '20px',
+                  boxShadow: '0 8px 20px rgba(0,0,0,0.15), inset 0 -4px 8px rgba(0,0,0,0.06), inset 0 4px 8px rgba(255,255,255,0.9)'
+                }}
+              >
+                <h3 className="text-2xl sm:text-3xl font-black text-[#1A3D2B] leading-tight drop-shadow-sm text-center break-words w-full">{name}</h3>
+              </div>
+              <p className="text-white/95 mb-6 font-medium leading-relaxed px-1 text-sm sm:text-base">{description}</p>
 
               <div className="flex gap-3">
                 <button
                   onClick={onClose}
-                  className="flex-1 bg-white/20 text-white rounded-2xl py-3 backdrop-blur-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                  className="flex-1 bg-white/20 text-white rounded-full py-3.5 font-bold flex items-center justify-center gap-2 active:scale-90 transition-transform"
+                  style={{ boxShadow: 'inset 0 2px 5px rgba(255,255,255,0.2), inset 0 -2px 5px rgba(0,0,0,0.1)' }}
                 >
                   <Share2 size={18} />
                   <span>Поделиться</span>
                 </button>
                 <button
                   onClick={onClose}
-                  className="flex-1 bg-white text-[#E8922A] rounded-2xl py-3 active:scale-95 transition-transform"
+                  className="flex-1 bg-white text-[#E8922A] rounded-full py-3.5 font-bold active:scale-90 transition-transform"
+                  style={{ boxShadow: '0 8px 16px rgba(0,0,0,0.1), inset 0 -3px 6px rgba(0,0,0,0.05), inset 0 3px 6px rgba(255,255,255,0.8)' }}
                 >
                   Продолжить
                 </button>

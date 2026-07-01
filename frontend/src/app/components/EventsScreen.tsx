@@ -80,7 +80,7 @@ export default function EventsScreen() {
         {filteredEvents.length > 0 ? (
           filteredEvents.map((event) => (
             <div key={event.id} className="bg-white rounded-2xl overflow-hidden shadow-sm">
-              <div className="h-40 bg-gradient-to-br from-[#1A3D2B] to-[#E8922A] flex items-center justify-center relative overflow-hidden">
+              <div className="h-40 flex items-center justify-center relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1A3D2B, #E8922A)' }}>
                 {event.imageUrl ? (
                   <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover" />
                 ) : (

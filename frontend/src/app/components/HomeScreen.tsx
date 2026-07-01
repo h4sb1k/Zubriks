@@ -110,11 +110,11 @@ export default function HomeScreen({
                 alt="Тур Зубрики"
                 className="absolute inset-0 w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0.2), transparent)' }} />
               <div className="absolute top-4 right-4 bg-[#E8922A] text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-sm z-10">
                 Главный маршрут
               </div>
-              <div className="relative z-10">
+              <div className="relative z-10 w-full text-center">
                 <h2 className="text-white text-2xl font-bold mb-1 drop-shadow-sm">{mainRouteData?.mainRoute?.name}</h2>
               </div>
             </div>
@@ -201,7 +201,7 @@ export default function HomeScreen({
             <div className="space-y-3">
               {eventsData.events.map((event) => (
                 <div key={event.id} className="bg-white rounded-2xl overflow-hidden shadow-sm">
-                  <div className="h-24 bg-gradient-to-r from-[#1A3D2B] to-[#E8922A] flex items-center justify-center">
+                  <div className="h-24 flex items-center justify-center" style={{ background: 'linear-gradient(to right, #1A3D2B, #E8922A)' }}>
                     <span className="text-4xl">🎭</span>
                   </div>
                   <div className="p-4">

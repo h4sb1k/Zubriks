@@ -159,8 +159,23 @@ export const trpcRouter = trpc.router({
         data: { token: refreshToken, userId: user.id, expiresAt: getRefreshTokenExpiry() },
       })
 
+      let newAchievement = null
+      const achievement = await ctx.prisma.achievement.findFirst({ where: { name: 'Начало пути' } })
+      if (achievement) {
+        await ctx.prisma.userAchievement.create({
+          data: { userId: user.id, achievementId: achievement.id, earned: true, earnedAt: new Date(), progress: 100 },
+        })
+        newAchievement = {
+          id: achievement.id,
+          name: achievement.name,
+          description: achievement.description ?? '',
+          emoji: achievement.emoji ?? '🏆',
+          imageUrl: achievement.imageUrl ?? '',
+        }
+      }
+
       setAuthCookies(ctx.res, accessToken, refreshToken)
-      return { user: { id: user.id, email: user.email, name: user.name } }
+      return { user: { id: user.id, email: user.email, name: user.name }, newAchievement }
     }),
 
   login: trpc.procedure
@@ -200,32 +215,6 @@ export const trpcRouter = trpc.router({
     return { success: true }
   }),
 
-  completeOnboarding: protectedProcedure.mutation(async ({ ctx }) => {
-    const achievement = await ctx.prisma.achievement.findFirst({ where: { name: 'Начало пути' } })
-    if (!achievement) return { success: false }
-
-    const existing = await ctx.prisma.userAchievement.findUnique({
-      where: { userId_achievementId: { userId: ctx.userId, achievementId: achievement.id } },
-    })
-
-    if (!existing) {
-      await ctx.prisma.userAchievement.create({
-        data: { userId: ctx.userId, achievementId: achievement.id, earned: true, earnedAt: new Date(), progress: 100 },
-      })
-      return {
-        success: true,
-        newAchievement: {
-          id: achievement.id,
-          name: achievement.name,
-          description: achievement.description ?? '',
-          emoji: achievement.emoji ?? '🏆',
-          imageUrl: achievement.imageUrl ?? '',
-        },
-      }
-    }
-    return { success: false }
-  }),
-
   me: protectedProcedure.query(async ({ ctx }) => {
     const user = await ctx.prisma.user.findUnique({ where: { id: ctx.userId } })
     if (!user) throw new TRPCError({ code: 'UNAUTHORIZED' })
@@ -254,6 +243,7 @@ export const trpcRouter = trpc.router({
 
     const daysInApp = Math.floor((Date.now() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24)) + 1
     const completedRoutesCount = user.routeInteractions.filter((r) => r.completedAt !== null).length
+    const totalZubriks = await ctx.prisma.zubrik.count()
 
     const mapRoute = (r: {
       id: string
@@ -276,6 +266,7 @@ export const trpcRouter = trpc.router({
     return {
       stats: {
         zubriksCount: user._count.unlockedZubriks,
+        totalZubriks,
         routesCount: completedRoutesCount,
         daysCount: daysInApp,
       },
@@ -300,6 +291,7 @@ export const trpcRouter = trpc.router({
     const daysInApp = Math.floor((Date.now() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24)) + 1
     
     const allAchievements = await ctx.prisma.achievement.findMany()
+    const totalZubriks = await ctx.prisma.zubrik.count()
     const earnedMap = new Map(user.achievements.map(ua => [ua.achievementId, { earned: ua.earned, progress: ua.progress, isPinned: ua.isPinned, pinnedAt: ua.pinnedAt }]))
     
     return {
@@ -308,6 +300,7 @@ export const trpcRouter = trpc.router({
       avatarUrl: user.avatarUrl,
       stats: {
         zubriksCount: user._count.unlockedZubriks,
+        totalZubriks,
         routesCount: user.routeInteractions.length,
         daysCount: daysInApp
       },

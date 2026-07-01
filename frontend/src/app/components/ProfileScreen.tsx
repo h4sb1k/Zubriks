@@ -67,7 +67,7 @@ export default function ProfileScreen() {
     })
   const topAchievements = pinnedAchievements.length > 0 ? pinnedAchievements.slice(0, 3) : earnedAchievements.slice(0, 3)
 
-  const stats = statsData?.stats ?? { zubriksCount: 0, routesCount: 0, daysCount: 0 }
+  const stats = statsData?.stats ?? { zubriksCount: 0, totalZubriks: 0, routesCount: 0, daysCount: 0 }
   const createdRoutes = statsData?.createdRoutes ?? []
   const likedRoutes = statsData?.likedRoutes ?? []
 
@@ -95,7 +95,7 @@ export default function ProfileScreen() {
 
           <div className="flex gap-6 w-full max-w-xs">
             <div className="flex-1 text-center">
-              <div className="text-2xl mb-1">{isStatsLoading ? '—' : stats.zubriksCount}</div>
+              <div className="text-2xl mb-1">{isStatsLoading ? '—' : `${stats.zubriksCount}/${stats.totalZubriks}`}</div>
               <div className="text-xs text-[#6B6B6B]">Зубриков</div>
             </div>
             <div className="flex-1 text-center">
@@ -122,7 +122,8 @@ export default function ProfileScreen() {
             {topAchievements.map((achievement) => (
               <div
                 key={achievement.id}
-                className="aspect-[4/5] bg-gradient-to-br from-[#1A3D2B] to-[#2E5A41] rounded-[24px] p-2 flex flex-col items-center justify-end text-center shadow-lg shadow-[#1A3D2B]/10 relative overflow-hidden transition-transform active:scale-95"
+                className="aspect-[4/5] rounded-[24px] p-2 flex flex-col items-center justify-end text-center shadow-lg shadow-[#1A3D2B]/10 relative overflow-hidden transition-transform active:scale-95"
+                style={{ background: 'linear-gradient(135deg, #1A3D2B, #2E5A41)' }}
               >
                 {/* Декоративный блик */}
                 <div className="absolute top-0 right-0 w-20 h-20 bg-[#E8922A]/20 rounded-full blur-xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
@@ -184,9 +185,10 @@ export default function ProfileScreen() {
                     key={achievement.id}
                     className={`aspect-[4/5] relative overflow-hidden rounded-[24px] p-3 flex flex-col justify-end transition-all duration-300 active:scale-[0.98] ${
                       achievement.earned
-                        ? 'bg-gradient-to-br from-[#1A3D2B] to-[#2E5A41] shadow-lg shadow-[#1A3D2B]/20 text-white'
+                        ? 'shadow-lg shadow-[#1A3D2B]/20 text-white'
                         : 'bg-white border border-[#E5E3DD] text-[#1C1C1E] shadow-sm'
                     }`}
+                    style={achievement.earned ? { background: 'linear-gradient(135deg, #1A3D2B, #2E5A41)' } : undefined}
                   >
                     {achievement.earned && (
                       <div className="absolute top-0 right-0 w-32 h-32 bg-[#E8922A]/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/4 pointer-events-none" />

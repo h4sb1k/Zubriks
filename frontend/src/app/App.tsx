@@ -42,15 +42,7 @@ function MainApp() {
     retry: false,
   })
 
-  const completeOnboardingMutation = trpc.completeOnboarding.useMutation({
-    onSuccess: (data) => {
-      utils.getAchievements.invalidate()
-      utils.getProfileStats.invalidate()
-      if (data.success && data.newAchievement) {
-        setAchievementQueue((prev) => [...prev, data.newAchievement!])
-      }
-    },
-  })
+
 
   // Global user location state, initialized from cache if available
   const [userLocation, setUserLocation] = useState<[number, number] | null>(() => {
@@ -95,9 +87,6 @@ function MainApp() {
   const handleOnboardingComplete = () => {
     localStorage.setItem(ONBOARDING_KEY, 'true')
     setShowOnboarding(false)
-    setTimeout(() => {
-      completeOnboardingMutation.mutate()
-    }, 1000)
   }
 
   // Получаем зубриков для отслеживания на глобальном уровне
@@ -134,9 +123,7 @@ function MainApp() {
       <OnboardingScreen
         initialStep={showOnboarding ? 0 : 2}
         onComplete={() => {
-          if (showOnboarding) {
-            handleOnboardingComplete()
-          }
+          handleOnboardingComplete()
           refetch()
         }}
       />
