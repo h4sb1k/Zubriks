@@ -1,7 +1,9 @@
-import { LogOut } from 'lucide-react'
+import { AnimatePresence } from 'framer-motion'
+import { LogOut, Settings } from 'lucide-react'
 import { useState } from 'react'
 
 import { trpc } from '../lib/trpc'
+import AdminScreen from './AdminScreen'
 
 type RouteInfo = {
   id: string
@@ -37,6 +39,7 @@ function RouteCard({ route }: { route: RouteInfo }) {
 
 export default function ProfileScreen() {
   const [activeTab, setActiveTab] = useState('Награды')
+  const [showAdmin, setShowAdmin] = useState(false)
 
   const { data: user } = trpc.me.useQuery()
   const { data: statsData, isLoading: isStatsLoading } = trpc.getProfileStats.useQuery()
@@ -82,6 +85,17 @@ export default function ProfileScreen() {
           <LogOut size={18} />
           <span>Выйти</span>
         </button>
+
+        {user?.role === 'ADMIN' && (
+          <button
+            onClick={() => setShowAdmin(true)}
+            className="absolute top-6 left-5 bg-[#1A3D2B] text-white px-3.5 py-2 rounded-full text-sm font-bold shadow-md active:scale-95 transition-transform flex items-center gap-1.5"
+          >
+            <Settings size={16} />
+            <span>Админка</span>
+          </button>
+        )}
+
         <div className="flex flex-col items-center">
           <div className="w-24 h-24 rounded-full bg-[#1A3D2B] flex items-center justify-center mb-4 shadow-lg overflow-hidden">
             {user?.avatarUrl ? (
@@ -289,6 +303,10 @@ export default function ProfileScreen() {
           </div>
         )}
       </div>
+      
+      <AnimatePresence>
+        {showAdmin && <AdminScreen onClose={() => setShowAdmin(false)} />}
+      </AnimatePresence>
     </div>
   )
 }

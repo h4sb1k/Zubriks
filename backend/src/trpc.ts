@@ -74,6 +74,19 @@ const protectedProcedure = trpc.procedure.use(async ({ ctx, next }) => {
   })
 })
 
+const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  const user = await ctx.prisma.user.findUnique({ where: { id: ctx.userId }, select: { role: true } })
+  if (!user || user.role !== 'ADMIN') {
+    throw new TRPCError({ code: 'FORBIDDEN', message: 'Requires admin role' })
+  }
+  return next({
+    ctx: {
+      ...ctx,
+      userRole: user.role,
+    },
+  })
+})
+
 async function checkAndAwardAchievements(prisma: PrismaClient, userId: string) {
   const [unlockedZubriks, totalZubriks, completedRoutes, createdRoutes] = await Promise.all([
     prisma.userZubrik.findMany({ where: { userId }, include: { zubrik: true } }),
@@ -218,7 +231,7 @@ export const trpcRouter = trpc.router({
   me: protectedProcedure.query(async ({ ctx }) => {
     const user = await ctx.prisma.user.findUnique({ where: { id: ctx.userId } })
     if (!user) throw new TRPCError({ code: 'UNAUTHORIZED' })
-    return { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl }
+    return { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl, role: user.role }
   }),
 
   getProfileStats: protectedProcedure.query(async ({ ctx }) => {
@@ -298,6 +311,7 @@ export const trpcRouter = trpc.router({
       id: user.id,
       name: user.name || 'Исследователь',
       avatarUrl: user.avatarUrl,
+      role: user.role,
       stats: {
         zubriksCount: user._count.unlockedZubriks,
         totalZubriks,
@@ -582,6 +596,122 @@ export const trpcRouter = trpc.router({
       }
     }),
 
+  deleteRoute: protectedProcedure
+    .input(z.object({ routeId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const route = await ctx.prisma.route.findUnique({
+        where: { id: input.routeId },
+        select: { authorId: true, isMain: true }
+      })
+      if (!route) throw new TRPCError({ code: 'NOT_FOUND', message: 'Route not found' })
+
+      const user = await ctx.prisma.user.findUnique({ where: { id: ctx.userId }, select: { role: true } })
+      const isAdmin = user?.role === 'ADMIN'
+
+      // Only ADMIN can delete main routes. Author or ADMIN can delete custom routes.
+      if (route.isMain && !isAdmin) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Only admins can delete main routes' })
+      }
+      if (!isAdmin && route.authorId !== ctx.userId) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'You can only delete your own routes' })
+      }
+
+      await ctx.prisma.route.delete({ where: { id: input.routeId } })
+      return { success: true }
+    }),
+
+  getRouteById: protectedProcedure
+    .input(z.object({ routeId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const route = await ctx.prisma.route.findUnique({
+        where: { id: input.routeId },
+        include: { waypoints: { orderBy: { orderIndex: 'asc' } } }
+      })
+      if (!route) throw new TRPCError({ code: 'NOT_FOUND' })
+      return { route }
+    }),
+
+  updateRoute: protectedProcedure
+    .input(
+      z.object({
+        routeId: z.string(),
+        name: z.string().min(1).max(100),
+        description: z.string().max(500).optional(),
+        emoji: z.string().optional(),
+        waypoints: z
+          .array(
+            z.object({
+              name: z.string().min(1),
+              description: z.string().optional(),
+              emoji: z.string().optional(),
+              latitude: z.number(),
+              longitude: z.number(),
+            }),
+          )
+          .min(2, 'Маршрут должен содержать минимум 2 точки'),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const route = await ctx.prisma.route.findUnique({ where: { id: input.routeId } })
+      if (!route) throw new TRPCError({ code: 'NOT_FOUND' })
+
+      const user = await ctx.prisma.user.findUnique({ where: { id: ctx.userId }, select: { role: true } })
+      const isAdmin = user?.role === 'ADMIN'
+
+      if (!isAdmin && route.authorId !== ctx.userId) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'You can only edit your own routes' })
+      }
+
+      // Calculate new distance and duration
+      let totalKm = 0
+      for (let i = 0; i < input.waypoints.length - 1; i++) {
+        const p1 = input.waypoints[i]
+        const p2 = input.waypoints[i+1]
+        const R = 6371
+        const dLat = (p2.latitude - p1.latitude) * (Math.PI/180)
+        const dLon = (p2.longitude - p1.longitude) * (Math.PI/180)
+        const a = 
+          Math.sin(dLat/2) * Math.sin(dLat/2) +
+          Math.cos(p1.latitude * (Math.PI/180)) * Math.cos(p2.latitude * (Math.PI/180)) * 
+          Math.sin(dLon/2) * Math.sin(dLon/2)
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+        totalKm += R * c
+      }
+
+      const distanceStr = totalKm < 0.1 ? '0.1' : totalKm.toFixed(1)
+      const estimatedMin = Math.max(1, Math.round((totalKm / 5) * 60))
+      const duration =
+        estimatedMin < 60
+          ? `${estimatedMin} мин`
+          : `${Math.floor(estimatedMin / 60)} ч ${estimatedMin % 60 > 0 ? (estimatedMin % 60) + ' мин' : ''}`.trim()
+
+      // Delete existing waypoints and replace them
+      await ctx.prisma.waypoint.deleteMany({ where: { routeId: input.routeId } })
+
+      const updatedRoute = await ctx.prisma.route.update({
+        where: { id: input.routeId },
+        data: {
+          name: input.name,
+          description: input.description,
+          emoji: input.emoji ?? '📍',
+          distance: `${distanceStr} км`,
+          duration,
+          waypoints: {
+            create: input.waypoints.map((wp, idx) => ({
+              name: wp.name,
+              description: wp.description,
+              emoji: wp.emoji ?? '📍',
+              latitude: wp.latitude,
+              longitude: wp.longitude,
+              orderIndex: idx,
+            })),
+          },
+        },
+      })
+      
+      return { success: true }
+    }),
+
   // --- Геймификация ---
   completeWaypoint: protectedProcedure.input(z.object({ waypointId: z.string() })).mutation(async ({ input, ctx }) => {
     // 1. Проверяем, что waypoint существует
@@ -692,6 +822,94 @@ export const trpcRouter = trpc.router({
 
     return { isPinned: updated.isPinned, pinnedAt: updated.pinnedAt ? updated.pinnedAt.toISOString() : null }
   }),
+
+  // --- ADMIN PROCEDURES ---
+  adminGetStats: adminProcedure.query(async ({ ctx }) => {
+    const [users, zubriks, routes, events] = await Promise.all([
+      ctx.prisma.user.count(),
+      ctx.prisma.zubrik.count(),
+      ctx.prisma.route.count(),
+      ctx.prisma.event.count(),
+    ])
+    return { users, zubriks, routes, events }
+  }),
+
+  adminGetUsers: adminProcedure.query(async ({ ctx }) => {
+    const users = await ctx.prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+      }
+    })
+    return { users }
+  }),
+
+  adminGetZubriks: adminProcedure.query(async ({ ctx }) => {
+    const zubriks = await ctx.prisma.zubrik.findMany({
+      orderBy: { createdAt: 'desc' },
+    })
+    return { zubriks }
+  }),
+
+  adminCreateZubrik: adminProcedure
+    .input(z.object({
+      name: z.string().min(1).max(100),
+      description: z.string().max(500),
+      latitude: z.number(),
+      longitude: z.number(),
+      imageColor: z.string().optional(),
+      imageUrl: z.string().optional()
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const zubrik = await ctx.prisma.zubrik.create({
+        data: {
+          name: input.name,
+          description: input.description,
+          latitude: input.latitude,
+          longitude: input.longitude,
+          locationName: 'Неизвестно',
+          imageColor: input.imageColor ?? '#E8922A',
+          imageUrl: input.imageUrl
+        }
+      })
+      return { zubrik }
+    }),
+
+  adminUpdateZubrik: adminProcedure
+    .input(z.object({
+      id: z.string(),
+      name: z.string().min(1).max(100),
+      description: z.string().max(500),
+      latitude: z.number(),
+      longitude: z.number(),
+      imageColor: z.string().optional(),
+      imageUrl: z.string().optional()
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const zubrik = await ctx.prisma.zubrik.update({
+        where: { id: input.id },
+        data: {
+          name: input.name,
+          description: input.description,
+          latitude: input.latitude,
+          longitude: input.longitude,
+          imageColor: input.imageColor ?? '#E8922A',
+          imageUrl: input.imageUrl
+        }
+      })
+      return { zubrik }
+    }),
+
+  adminDeleteZubrik: adminProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      await ctx.prisma.zubrik.delete({ where: { id: input.id } })
+      return { success: true }
+    }),
 })
 
 export type TrpcRouter = typeof trpcRouter

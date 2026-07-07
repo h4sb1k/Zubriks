@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 
 import { trpc } from '../lib/trpc'
+import ConfirmModal from './ConfirmModal'
 
 const customIcon = L.divIcon({
   className: 'custom-icon',
@@ -90,7 +91,7 @@ type WaypointDraft = {
   longitude: number | null
 }
 
-export default function RouteBuilder({ onClose }: { onClose: () => void }) {
+export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: string, onClose: () => void }) {
   const [routeEmoji, setRouteEmoji] = useState('📍')
   const [routeEmojiPickerOpen, setRouteEmojiPickerOpen] = useState(false)
   const [name, setName] = useState('')
@@ -99,6 +100,31 @@ export default function RouteBuilder({ onClose }: { onClose: () => void }) {
 
   const [pickerIndex, setPickerIndex] = useState<number | null>(null)
   const [emojiPickerIndex, setEmojiPickerIndex] = useState<number | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  
+  const utils = trpc.useUtils()
+  
+  const { data: routeData } = trpc.getRouteById.useQuery(
+    { routeId: editRouteId! },
+    { enabled: !!editRouteId }
+  )
+
+  useEffect(() => {
+    if (routeData?.route) {
+      const route = routeData.route
+      setName(route.name)
+      setDescription(route.description || '')
+      setRouteEmoji(route.emoji || '📍')
+      setWaypoints(route.waypoints.map(wp => ({
+        id: wp.id,
+        name: wp.name,
+        description: wp.description || '',
+        emoji: wp.emoji || '📍',
+        latitude: wp.latitude,
+        longitude: wp.longitude,
+      })))
+    }
+  }, [routeData])
   
   const moveWaypoint = (index: number, direction: 'up' | 'down') => {
     if (direction === 'up' && index === 0) return
@@ -112,15 +138,33 @@ export default function RouteBuilder({ onClose }: { onClose: () => void }) {
     setWaypoints(newWp)
   }
 
-  const utils = trpc.useUtils()
   const createRoute = trpc.createRoute.useMutation({
     onSuccess: () => {
       utils.getRoutes.invalidate()
       onClose()
     },
-    onError: (err) => {
-      alert('Ошибка при создании маршрута: ' + err.message)
+    onError: (err) => alert('Ошибка при создании маршрута: ' + err.message),
+  })
+
+  const updateRoute = trpc.updateRoute.useMutation({
+    onSuccess: () => {
+      utils.getRoutes.invalidate()
+      utils.getRouteWaypoints.invalidate()
+      onClose()
     },
+    onError: (err) => alert('Ошибка при обновлении маршрута: ' + err.message),
+  })
+
+  const deleteRoute = trpc.deleteRoute.useMutation({
+    onSuccess: () => {
+      utils.getRoutes.invalidate()
+      utils.getRouteWaypoints.invalidate()
+      onClose() // also closes RouteActive if it's nested
+      // To close RouteActive fully, we might need a signal, but reloading routes or just closing this modal will trigger state cleanup.
+      // Wait, we need to dispatch an event to completely close RouteActive.
+      window.dispatchEvent(new CustomEvent('close-route-active'))
+    },
+    onError: (err) => alert('Ошибка при удалении маршрута: ' + err.message),
   })
 
   const addWaypoint = () => {
@@ -154,25 +198,42 @@ export default function RouteBuilder({ onClose }: { onClose: () => void }) {
     waypoints.length >= 2 &&
     waypoints.every((w) => w.name.trim() && w.latitude && w.longitude)
 
+  const validWaypoints = waypoints.filter((w) => w.latitude && w.longitude)
+
   const handleSubmit = () => {
     if (!isValid) return
-    createRoute.mutate({
-      name,
-      description,
-      emoji: routeEmoji,
-      waypoints: waypoints.map((w) => ({
-        name: w.name,
-        description: w.description,
-        emoji: w.emoji || '📍',
-        latitude: w.latitude!,
-        longitude: w.longitude!,
-      })),
-    })
+    if (editRouteId) {
+      updateRoute.mutate({
+        routeId: editRouteId,
+        name,
+        description,
+        emoji: routeEmoji,
+        waypoints: validWaypoints.map((w) => ({
+          name: w.name,
+          description: w.description,
+          emoji: w.emoji,
+          latitude: w.latitude!,
+          longitude: w.longitude!,
+        })),
+      })
+    } else {
+      createRoute.mutate({
+        name,
+        description,
+        emoji: routeEmoji,
+        waypoints: validWaypoints.map((w) => ({
+          name: w.name,
+          description: w.description,
+          emoji: w.emoji,
+          latitude: w.latitude!,
+          longitude: w.longitude!,
+        })),
+      })
+    }
   }
 
   // Calculate stats dynamically
   let totalKm = 0
-  const validWaypoints = waypoints.filter((w) => w.latitude && w.longitude)
   for (let i = 0; i < validWaypoints.length - 1; i++) {
     const p1 = validWaypoints[i]
     const p2 = validWaypoints[i + 1]
@@ -210,7 +271,7 @@ export default function RouteBuilder({ onClose }: { onClose: () => void }) {
         <button onClick={onClose} className="p-2 -ml-2 mr-2">
           <ArrowLeft size={24} />
         </button>
-        <h2 className="text-xl font-medium">Создать маршрут</h2>
+        <h1 className="text-xl font-bold">{editRouteId ? 'Редактировать' : 'Новый маршрут'}</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto p-5 pb-24">
@@ -420,16 +481,42 @@ export default function RouteBuilder({ onClose }: { onClose: () => void }) {
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={!isValid || createRoute.isPending}
+          disabled={!isValid || createRoute.isPending || updateRoute.isPending}
           className="w-full bg-[#E8922A] text-white rounded-2xl py-4 font-medium disabled:opacity-50 shadow-lg active:scale-95 transition-transform"
         >
-          {createRoute.isPending
+          {createRoute.isPending || updateRoute.isPending
             ? 'Сохранение...'
             : !isValid
               ? 'Заполните все поля'
-              : 'Сохранить маршрут'}
+              : (editRouteId ? 'Применить' : 'Сохранить маршрут')}
         </button>
+
+        {editRouteId && (
+          <button
+            type="button"
+            onClick={() => setShowDeleteConfirm(true)}
+            disabled={deleteRoute.isPending}
+            className="w-full mt-3 bg-red-500 text-white rounded-2xl py-4 flex justify-center items-center gap-2 font-medium shadow-lg active:scale-95 transition-transform disabled:opacity-50"
+          >
+            <Trash2 size={20} />
+            {deleteRoute.isPending ? 'Удаление...' : 'Удалить маршрут'}
+          </button>
+        )}
       </div>
+
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        title="Удалить маршрут?"
+        message="Вы уверены, что хотите удалить этот маршрут?"
+        confirmText={deleteRoute.isPending ? "Удаление..." : "Удалить"}
+        onConfirm={() => {
+          if (editRouteId) {
+            deleteRoute.mutate({ routeId: editRouteId })
+          }
+          setShowDeleteConfirm(false)
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   )
 }

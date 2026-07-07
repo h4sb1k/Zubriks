@@ -192,38 +192,6 @@ async function main() {
     },
   })
 
-  // Обычные маршруты (пока без waypoints — будут добавлены позже)
-  await prisma.route.createMany({
-    data: [
-      {
-        name: 'Исторический центр',
-        distance: '3.5 км',
-        duration: '1.5 ч',
-        imageColor: '#1A3D2B',
-      },
-      {
-        name: 'Парки и скверы',
-        distance: '4.2 км',
-        duration: '2 ч',
-        imageColor: '#34C759',
-      },
-      {
-        name: 'Музеи Орла',
-        distance: '2.8 км',
-        duration: '3 ч',
-        imageColor: '#E8922A',
-      },
-      {
-        name: 'Архитектура модерна',
-        distance: '3.0 км',
-        duration: '1 ч',
-        imageColor: '#D4A017',
-      },
-    ],
-    skipDuplicates: true,
-  })
-  console.info('  ✅ Routes & Waypoints seeded')
-
   // ──────────────────────────────────────────────────────────────────
   // 4. Ачивки
   // ──────────────────────────────────────────────────────────────────

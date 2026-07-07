@@ -7,6 +7,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
 // ─── User ────────────────────────────────────────────────────────────
 // Авторизация: пока email + пароль, позже — OAuth (VK / Yandex).
 model User {
@@ -15,6 +20,7 @@ model User {
   passwordHash String?
   name         String?
   avatarUrl    String?
+  role         Role     @default(USER)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

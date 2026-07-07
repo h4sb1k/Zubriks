@@ -22,7 +22,7 @@ type Route = {
 
 export default function RoutesScreen({ userLocation }: { userLocation: [number, number] | null }) {
   const [activeFilter, setActiveFilter] = useState('Все')
-  const [activeRoute, setActiveRoute] = useState<{ id: string; name: string } | null>(null)
+  const [activeRoute, setActiveRoute] = useState<{ id: string; name: string; authorId?: string | null; isMain?: boolean } | null>(null)
   const [viewProfileId, setViewProfileId] = useState<string | null>(null)
   const [isBuilding, setIsBuilding] = useState(false)
 
@@ -141,7 +141,7 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
               </div>
             </div>
             <button
-              onClick={() => setActiveRoute({ id: mainRoute?.id, name: mainRoute?.name })}
+              onClick={() => setActiveRoute({ id: mainRoute?.id as string, name: mainRoute?.name as string, isMain: true })}
               className="w-full bg-[#E8922A] text-white rounded-full py-4 mt-2 font-bold shadow-md active:scale-95 transition-transform flex items-center justify-center gap-2"
             >
               <span>В путь</span>
@@ -157,7 +157,7 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
           {filteredRoutes.map((route) => (
             <div
               key={route.id}
-              onClick={() => setActiveRoute({ id: route.id, name: route.name })}
+              onClick={() => setActiveRoute({ id: route.id, name: route.name, authorId: route.authorId })}
               className="bg-white rounded-[24px] overflow-hidden shadow-[0_8px_20px_rgba(0,0,0,0.05)] cursor-pointer active:scale-[0.98] transition-all border border-transparent hover:border-[#E5E3DD]/50"
             >
               <div
@@ -219,6 +219,8 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
         <RouteActive
           routeId={activeRoute.id}
           routeName={activeRoute.name}
+          authorId={activeRoute.authorId}
+          isMain={activeRoute.isMain}
           userLocation={userLocation}
           onClose={() => setActiveRoute(null)}
         />

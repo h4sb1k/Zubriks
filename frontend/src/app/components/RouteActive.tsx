@@ -1,5 +1,5 @@
-import { ArrowLeft, CheckCircle2, MapPin, Navigation } from 'lucide-react'
-import { useMemo } from 'react'
+import { ArrowLeft, CheckCircle2, MapPin, Navigation, Settings } from 'lucide-react'
+import { useMemo, useState } from 'react'
 
 import type { NewAchievement } from '../hooks/useProximityCheck'
 import { useProximityCheck } from '../hooks/useProximityCheck'
@@ -7,16 +7,47 @@ import { trpc } from '../lib/trpc'
 import { calculateDistance } from '../utils/distance'
 import type { MapPoint } from '../utils/openInMaps'
 import { openPointInMaps, openRouteInMaps } from '../utils/openInMaps'
+import ConfirmModal from './ConfirmModal'
+import RouteBuilder from './RouteBuilder'
 
 type RouteActiveProps = {
   routeId: string
   routeName: string
+  authorId?: string | null
+  isMain?: boolean
   userLocation: [number, number] | null
   onClose: () => void
 }
 
-export default function RouteActive({ routeId, routeName, userLocation, onClose }: RouteActiveProps) {
+export default function RouteActive({ routeId, routeName: initialRouteName, authorId, isMain, userLocation, onClose }: RouteActiveProps) {
+  const { data: routeData } = trpc.getRouteById.useQuery({ routeId })
+  const routeName = routeData?.route?.name || initialRouteName
   const { data: waypointsData, isLoading, isError, error } = trpc.getRouteWaypoints.useQuery({ routeId })
+  const { data: user } = trpc.me.useQuery()
+  const utils = trpc.useUtils()
+  const [showSettings, setShowSettings] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  const deleteMutation = trpc.deleteRoute.useMutation({
+    onSuccess: () => {
+      utils.getRoutes.invalidate()
+      utils.getProfileStats.invalidate()
+      onClose()
+    }
+  })
+
+  const canEdit = user?.role === 'ADMIN' || (user && authorId === user.id)
+
+  const handleDelete = () => {
+    setShowSettings(false)
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = () => {
+    deleteMutation.mutate({ routeId })
+    setShowDeleteConfirm(false)
+  }
 
   // Трансформируем данные API в формат для рендеринга
   const waypoints = useMemo(() => {
@@ -140,7 +171,41 @@ export default function RouteActive({ routeId, routeName, userLocation, onClose 
               {isCompleted ? 'Маршрут пройден!' : `Шаг ${Math.max(currentStep + 1, 1)} из ${waypoints.length}`}
             </div>
           </div>
-          <div className="w-10" />
+          <div className="w-10 flex justify-end relative">
+            {canEdit && (
+              <>
+                <button 
+                  onClick={() => setShowSettings(!showSettings)} 
+                  className="p-2 -mr-2"
+                >
+                  <Settings size={20} />
+                </button>
+                
+                {showSettings && (
+                  <div className="absolute top-12 right-5 bg-white/90 backdrop-blur-md rounded-[20px] shadow-[0_12px_40px_rgba(0,0,0,0.15)] border border-white/50 overflow-hidden w-56 z-50 text-[#1C1C1E] animate-in fade-in slide-in-from-top-2">
+                    <button 
+                      onClick={() => {
+                        setShowSettings(false)
+                        setIsEditing(true)
+                      }}
+                      className="w-full text-left px-5 py-4 hover:bg-[#F5F2EB]/80 text-[15px] font-bold border-b border-black/5 active:bg-[#E5E3DD]/50 transition-colors"
+                    >
+                      Редактировать маршрут
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setShowSettings(false)
+                        handleDelete()
+                      }}
+                      className="w-full text-left px-5 py-4 text-red-500 hover:bg-red-50/80 text-[15px] font-bold active:bg-red-100/50 transition-colors"
+                    >
+                      Удалить маршрут
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         <div className="h-2 bg-white/20 rounded-full overflow-hidden">
@@ -243,6 +308,26 @@ export default function RouteActive({ routeId, routeName, userLocation, onClose 
           )
         )}
       </div>
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        title="Удалить маршрут?"
+        message="Вы уверены, что хотите удалить этот маршрут? Это действие нельзя отменить."
+        confirmText={deleteMutation.isPending ? "Удаление..." : "Удалить"}
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+
+      {isEditing && (
+        <RouteBuilder 
+          editRouteId={routeId} 
+          onClose={() => {
+            setIsEditing(false)
+            utils.getRouteById.invalidate({ routeId })
+            utils.getRouteWaypoints.invalidate({ routeId })
+            utils.getRoutes.invalidate()
+          }} 
+        />
+      )}
     </div>
   )
 }
