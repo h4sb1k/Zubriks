@@ -981,9 +981,64 @@ export const trpcRouter = trpc.router({
   adminDeleteZubrik: adminProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input, ctx }) => {
+      // Must delete UserZubrik references first
+      await ctx.prisma.userZubrik.deleteMany({ where: { zubrikId: input.id } })
       await ctx.prisma.zubrik.delete({ where: { id: input.id } })
       return { success: true }
     }),
+
+  adminGetAchievements: adminProcedure.query(async ({ ctx }) => {
+    const achievements = await ctx.prisma.achievement.findMany()
+    return { achievements }
+  }),
+
+  adminCreateAchievement: adminProcedure
+    .input(z.object({
+      name: z.string().min(1).max(100),
+      description: z.string().max(500),
+      imageUrl: z.string().min(1),
+      emoji: z.string().optional()
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const achievement = await ctx.prisma.achievement.create({
+        data: {
+          name: input.name,
+          description: input.description,
+          imageUrl: input.imageUrl,
+          emoji: input.emoji
+        }
+      })
+      return { achievement }
+    }),
+
+  adminUpdateAchievement: adminProcedure
+    .input(z.object({
+      id: z.string(),
+      name: z.string().min(1).max(100),
+      description: z.string().max(500),
+      imageUrl: z.string().min(1),
+      emoji: z.string().optional()
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const achievement = await ctx.prisma.achievement.update({
+        where: { id: input.id },
+        data: {
+          name: input.name,
+          description: input.description,
+          imageUrl: input.imageUrl,
+          emoji: input.emoji
+        }
+      })
+      return { achievement }
+    }),
+
+  adminDeleteAchievement: adminProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      await ctx.prisma.userAchievement.deleteMany({ where: { achievementId: input.id } })
+      await ctx.prisma.achievement.delete({ where: { id: input.id } })
+      return { success: true }
+    })
 })
 
 export type TrpcRouter = typeof trpcRouter

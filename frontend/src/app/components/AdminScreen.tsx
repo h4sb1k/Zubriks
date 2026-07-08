@@ -1,23 +1,27 @@
 import { AnimatePresence,motion } from 'framer-motion'
-import { ArrowLeft, Calendar, MapPin, Route, Search,Settings, Users } from 'lucide-react'
+import { ArrowLeft, Calendar, MapPin, Route, Search, Settings, Trophy,Users } from 'lucide-react'
 import { useMemo,useState } from 'react'
 
 import { trpc } from '../lib/trpc'
+import AchievementBuilder, { type AchievementEditData } from './AchievementBuilder'
 import UserBuilder, { type UserEditData } from './UserBuilder'
 import ZubrikBuilder, { type ZubrikEditData } from './ZubrikBuilder'
 
-type AdminTab = 'stats' | 'users' | 'zubriks'
+type AdminTab = 'stats' | 'users' | 'zubriks' | 'achievements'
 
 export default function AdminScreen({ onClose }: { onClose: () => void }) {
   const [activeTab, setActiveTab] = useState<AdminTab>('stats')
   const [editingZubrik, setEditingZubrik] = useState<ZubrikEditData | null>(null)
   const [editingUser, setEditingUser] = useState<UserEditData | null>(null)
+  const [editingAchievement, setEditingAchievement] = useState<AchievementEditData | null>(null)
   const [isBuildingZubrik, setIsBuildingZubrik] = useState(false)
+  const [isBuildingAchievement, setIsBuildingAchievement] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   
   const { data: stats, isLoading: isStatsLoading } = trpc.adminGetStats.useQuery()
   const { data: usersData, isLoading: isUsersLoading } = trpc.adminGetUsers.useQuery(undefined, { enabled: activeTab === 'users' })
   const { data: zubriksData, isLoading: isZubriksLoading } = trpc.adminGetZubriks.useQuery(undefined, { enabled: activeTab === 'zubriks' })
+  const { data: achievementsData, isLoading: isAchievementsLoading } = trpc.adminGetAchievements.useQuery(undefined, { enabled: activeTab === 'achievements' })
 
   const filteredUsers = useMemo(() => {
     if (!usersData?.users) return []
@@ -36,6 +40,15 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
       z.description?.toLowerCase().includes(lowerQ)
     )
   }, [zubriksData, searchQuery])
+
+  const filteredAchievements = useMemo(() => {
+    if (!achievementsData?.achievements) return []
+    const lowerQ = searchQuery.toLowerCase()
+    return achievementsData.achievements.filter(a => 
+      a.name.toLowerCase().includes(lowerQ) || 
+      a.description.toLowerCase().includes(lowerQ)
+    )
+  }, [achievementsData, searchQuery])
 
   return (
     <motion.div 
@@ -63,6 +76,7 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
           { id: 'stats', label: 'Обзор', icon: Settings },
           { id: 'users', label: 'Пользователи', icon: Users },
           { id: 'zubriks', label: 'Зубрики', icon: MapPin },
+          { id: 'achievements', label: 'Достижения', icon: Trophy },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -124,7 +138,7 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
           </motion.div>
         )}
 
-        {(activeTab === 'users' || activeTab === 'zubriks') && (
+        {(activeTab === 'users' || activeTab === 'zubriks' || activeTab === 'achievements') && (
           <div className="mb-4 relative">
              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B6B6B]" size={20} />
              <input 
@@ -212,6 +226,50 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
             </button>
           </motion.div>
         )}
+
+        {activeTab === 'achievements' && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-3"
+          >
+            {isAchievementsLoading ? (
+              <div className="text-center text-[#6B6B6B] mt-10">Загрузка...</div>
+            ) : (
+              filteredAchievements.map(a => (
+                <div 
+                  key={a.id} 
+                  onClick={() => setEditingAchievement(a)}
+                  className="bg-white rounded-[24px] p-4 shadow-[0_4px_16px_rgba(0,0,0,0.04)] border border-[#E5E3DD]/60 flex items-center gap-5 active:scale-[0.97] transition-all cursor-pointer hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)]"
+                >
+                  <div
+                    className="w-[84px] h-[84px] rounded-full flex items-center justify-center bg-gradient-to-br from-yellow-300 via-amber-400 to-orange-500 shadow-inner shrink-0 overflow-hidden border-[3px] border-white p-[2px]"
+                  >
+                    {a.imageUrl ? (
+                      <img src={a.imageUrl} alt={a.name} className="w-full h-full object-cover rounded-full bg-white" />
+                    ) : (
+                      <span className="text-[40px] drop-shadow-sm">{a.emoji || '🏆'}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 py-1">
+                    <div className="font-bold text-[17px] text-[#1C1C1E] mb-1 tracking-tight truncate flex items-center gap-2">
+                      {a.name}
+                      <span className="text-lg">{a.emoji}</span>
+                    </div>
+                    <div className="text-[14px] text-[#6B6B6B] leading-snug line-clamp-2">{a.description}</div>
+                  </div>
+                </div>
+              ))
+            )}
+            
+            <button 
+              onClick={() => setIsBuildingAchievement(true)}
+              className="w-full bg-[#E8922A] text-white rounded-[20px] py-4 font-bold shadow-lg active:scale-95 transition-transform mt-4"
+            >
+              Новое достижение
+            </button>
+          </motion.div>
+        )}
       </div>
 
       {isBuildingZubrik && (
@@ -230,6 +288,18 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
           <UserBuilder 
             initialData={editingUser as UserEditData}
             onClose={() => setEditingUser(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isBuildingAchievement && (
+          <AchievementBuilder onClose={() => setIsBuildingAchievement(false)} />
+        )}
+        {editingAchievement && (
+          <AchievementBuilder 
+            initialData={editingAchievement}
+            onClose={() => setEditingAchievement(null)}
           />
         )}
       </AnimatePresence>

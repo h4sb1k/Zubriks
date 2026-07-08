@@ -195,26 +195,30 @@ export default function ProfileScreen() {
         </div>
 
         {activeTab === 'Награды' && (
-          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="pb-6"
+          >
             <div className="flex items-center justify-between mb-4 mt-2">
               <h3 className="text-lg font-semibold text-[#1A3D2B]">Все достижения</h3>
               <div className="bg-[#E8922A]/10 text-[#E8922A] px-3 py-1 rounded-full text-xs font-semibold">
                 {earnedAchievements.length} / {totalAchievements}
               </div>
             </div>
-            <motion.div 
-              initial="hidden"
-              animate="visible"
-              variants={{
-                visible: { transition: { staggerChildren: 0.05 } },
-                hidden: {}
-              }}
-              className="grid grid-cols-2 gap-3 pb-6"
-            >
-              {isAchievementsLoading ? (
-                <div className="col-span-2 text-center text-[#6B6B6B] py-8">Загрузка достижений...</div>
-              ) : (
-                achievements.map((achievement) => (
+            {isAchievementsLoading ? (
+              <div className="text-center text-[#6B6B6B] py-8">Загрузка достижений...</div>
+            ) : (
+              <motion.div 
+                initial="hidden"
+                animate="visible"
+                variants={{
+                  visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
+                  hidden: { opacity: 0 }
+                }}
+                className="grid grid-cols-2 gap-3 pb-6"
+              >
+                {achievements.map((achievement) => (
                   <motion.div
                     variants={{
                       hidden: { opacity: 0, scale: 0.9 },
@@ -295,14 +299,18 @@ export default function ProfileScreen() {
                     )}
                     {!achievement.earned && <div className="absolute top-3 right-3 text-lg opacity-20">🔒</div>}
                   </motion.div>
-                ))
-              )}
-            </motion.div>
-          </div>
+                ))}
+              </motion.div>
+            )}
+          </motion.div>
         )}
 
         {activeTab === 'Маршруты' && (
-          <div className="pb-6">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="pb-6"
+          >
             <h3 className="text-lg mb-4">Мои маршруты</h3>
             {isStatsLoading ? (
               <div className="text-center text-[#6B6B6B] py-8">Загрузка...</div>
@@ -311,11 +319,15 @@ export default function ProfileScreen() {
             ) : (
               <p className="text-center text-[#6B6B6B] py-12">Вы пока не создали ни одного маршрута</p>
             )}
-          </div>
+          </motion.div>
         )}
 
         {activeTab === 'Избранное' && (
-          <div className="pb-6">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="pb-6"
+          >
             <h3 className="text-lg mb-4">Избранные маршруты</h3>
             {isStatsLoading ? (
               <div className="text-center text-[#6B6B6B] py-8">Загрузка...</div>
@@ -324,7 +336,7 @@ export default function ProfileScreen() {
             ) : (
               <p className="text-center text-[#6B6B6B] py-12">Здесь будут ваши избранные маршруты</p>
             )}
-          </div>
+          </motion.div>
         )}
       </div>
       
