@@ -1,8 +1,9 @@
-import { motion } from 'framer-motion'
-import { ArrowLeft, Calendar, MapPin, Route, Settings,Users } from 'lucide-react'
-import { useState } from 'react'
+import { AnimatePresence,motion } from 'framer-motion'
+import { ArrowLeft, Calendar, MapPin, Route, Search,Settings, Users } from 'lucide-react'
+import { useMemo,useState } from 'react'
 
 import { trpc } from '../lib/trpc'
+import UserBuilder, { type UserEditData } from './UserBuilder'
 import ZubrikBuilder, { type ZubrikEditData } from './ZubrikBuilder'
 
 type AdminTab = 'stats' | 'users' | 'zubriks'
@@ -10,11 +11,31 @@ type AdminTab = 'stats' | 'users' | 'zubriks'
 export default function AdminScreen({ onClose }: { onClose: () => void }) {
   const [activeTab, setActiveTab] = useState<AdminTab>('stats')
   const [editingZubrik, setEditingZubrik] = useState<ZubrikEditData | null>(null)
+  const [editingUser, setEditingUser] = useState<UserEditData | null>(null)
   const [isBuildingZubrik, setIsBuildingZubrik] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   
   const { data: stats, isLoading: isStatsLoading } = trpc.adminGetStats.useQuery()
   const { data: usersData, isLoading: isUsersLoading } = trpc.adminGetUsers.useQuery(undefined, { enabled: activeTab === 'users' })
   const { data: zubriksData, isLoading: isZubriksLoading } = trpc.adminGetZubriks.useQuery(undefined, { enabled: activeTab === 'zubriks' })
+
+  const filteredUsers = useMemo(() => {
+    if (!usersData?.users) return []
+    const lowerQ = searchQuery.toLowerCase()
+    return usersData.users.filter(u => 
+      (u.name?.toLowerCase().includes(lowerQ)) || 
+      u.email.toLowerCase().includes(lowerQ)
+    )
+  }, [usersData, searchQuery])
+
+  const filteredZubriks = useMemo(() => {
+    if (!zubriksData?.zubriks) return []
+    const lowerQ = searchQuery.toLowerCase()
+    return zubriksData.zubriks.filter(z => 
+      z.name.toLowerCase().includes(lowerQ) || 
+      z.description?.toLowerCase().includes(lowerQ)
+    )
+  }, [zubriksData, searchQuery])
 
   return (
     <motion.div 
@@ -45,7 +66,10 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
         ].map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as AdminTab)}
+            onClick={() => {
+              setActiveTab(tab.id as AdminTab)
+              setSearchQuery('')
+            }}
             className={`flex items-center gap-2 flex-shrink-0 px-4 py-2.5 rounded-full text-sm font-bold transition-all ${
               activeTab === tab.id 
                 ? 'bg-[#1A3D2B] text-white shadow-md' 
@@ -100,6 +124,19 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
           </motion.div>
         )}
 
+        {(activeTab === 'users' || activeTab === 'zubriks') && (
+          <div className="mb-4 relative">
+             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B6B6B]" size={20} />
+             <input 
+               type="text" 
+               placeholder="Поиск..." 
+               value={searchQuery}
+               onChange={e => setSearchQuery(e.target.value)}
+               className="w-full bg-white border-2 border-[#E5E3DD] rounded-full py-3 pl-12 pr-4 font-medium text-[#1C1C1E] focus:border-[#E8922A] focus:outline-none transition-colors shadow-[0_4px_16px_rgba(0,0,0,0.02)]"
+             />
+          </div>
+        )}
+
         {activeTab === 'users' && (
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
@@ -109,8 +146,12 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
             {isUsersLoading ? (
               <div className="text-center text-[#6B6B6B] mt-10">Загрузка...</div>
             ) : (
-              usersData?.users.map(u => (
-                <div key={u.id} className="bg-white rounded-[20px] p-4 shadow-sm flex items-center justify-between">
+              filteredUsers.map(u => (
+                <div 
+                  key={u.id} 
+                  onClick={() => setEditingUser(u as any)}
+                  className="bg-white rounded-[20px] p-4 shadow-[0_4px_16px_rgba(0,0,0,0.04)] border border-[#E5E3DD]/60 flex items-center justify-between active:scale-[0.97] transition-all cursor-pointer hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)]"
+                >
                   <div>
                     <div className="font-bold text-[#1C1C1E] mb-1">{u.name || 'Аноним'}</div>
                     <div className="text-sm text-[#6B6B6B] mb-1">{u.email}</div>
@@ -133,7 +174,7 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
             {isZubriksLoading ? (
               <div className="text-center text-[#6B6B6B] mt-10">Загрузка...</div>
             ) : (
-              zubriksData?.zubriks.map(z => (
+              filteredZubriks.map(z => (
                 <div 
                   key={z.id} 
                   onClick={() => setEditingZubrik({
@@ -183,6 +224,15 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
           onClose={() => setEditingZubrik(null)} 
         />
       )}
+
+      <AnimatePresence>
+        {editingUser && (
+          <UserBuilder 
+            initialData={editingUser as UserEditData}
+            onClose={() => setEditingUser(null)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }

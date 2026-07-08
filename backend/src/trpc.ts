@@ -878,6 +878,54 @@ export const trpcRouter = trpc.router({
     return { users }
   }),
 
+  adminUpdateUser: adminProcedure
+    .input(z.object({
+      id: z.string(),
+      name: z.string().optional(),
+      role: z.enum(['USER', 'ADMIN'])
+    }))
+    .mutation(async ({ input, ctx }) => {
+      // Prevent removing the last admin
+      if (input.role === 'USER') {
+        const userToUpdate = await ctx.prisma.user.findUnique({ where: { id: input.id } })
+        if (userToUpdate?.role === 'ADMIN') {
+          const adminCount = await ctx.prisma.user.count({ where: { role: 'ADMIN' } })
+          if (adminCount <= 1) {
+            throw new TRPCError({ code: 'BAD_REQUEST', message: 'Нельзя удалить последнего администратора' })
+          }
+        }
+      }
+
+      const user = await ctx.prisma.user.update({
+        where: { id: input.id },
+        data: {
+          name: input.name,
+          role: input.role
+        }
+      })
+      return { user }
+    }),
+
+  adminDeleteUser: adminProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      // Prevent deleting yourself
+      if (input.id === ctx.userId) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Нельзя удалить свой собственный аккаунт' })
+      }
+      
+      const userToDelete = await ctx.prisma.user.findUnique({ where: { id: input.id } })
+      if (userToDelete?.role === 'ADMIN') {
+        const adminCount = await ctx.prisma.user.count({ where: { role: 'ADMIN' } })
+        if (adminCount <= 1) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Нельзя удалить последнего администратора' })
+        }
+      }
+
+      await ctx.prisma.user.delete({ where: { id: input.id } })
+      return { success: true }
+    }),
+
   adminGetZubriks: adminProcedure.query(async ({ ctx }) => {
     const zubriks = await ctx.prisma.zubrik.findMany({
       orderBy: { createdAt: 'desc' },
