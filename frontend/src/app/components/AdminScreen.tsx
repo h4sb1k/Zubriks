@@ -142,24 +142,22 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
                     description: z.description,
                     latitude: z.latitude,
                     longitude: z.longitude,
-                    imageColor: z.imageColor || undefined,
-                    imageUrl: z.imageUrl || undefined
+                    imageUrl: z.imageUrl || undefined,
                   })}
-                  className="bg-white rounded-[20px] p-4 shadow-sm flex items-center gap-4 active:scale-[0.98] transition-transform cursor-pointer"
+                  className="bg-white rounded-[24px] p-4 shadow-[0_4px_16px_rgba(0,0,0,0.04)] border border-[#E5E3DD]/60 flex items-center gap-5 active:scale-[0.97] transition-all cursor-pointer hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)]"
                 >
-                  <div 
-                    className="w-16 h-16 rounded-full shrink-0 flex items-center justify-center shadow-inner"
-                    style={{ backgroundColor: z.imageColor + '20' }}
+                  <div
+                    className="w-[84px] h-[84px] rounded-full flex items-center justify-center bg-[#F5F2EB] shadow-inner shrink-0 overflow-hidden border-[3px] border-white"
                   >
                     {z.imageUrl ? (
-                      <img src={z.imageUrl} alt={z.name} className="w-12 h-12 object-contain" />
+                      <img src={z.imageUrl} alt={z.name} className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-2xl">🦬</span>
+                      <span className="text-[40px] drop-shadow-sm">🦬</span>
                     )}
                   </div>
-                  <div>
-                    <div className="font-bold text-[#1C1C1E] mb-1">{z.name}</div>
-                    <div className="text-sm text-[#6B6B6B] line-clamp-2">{z.description}</div>
+                  <div className="flex-1 min-w-0 py-1">
+                    <div className="font-bold text-[17px] text-[#1C1C1E] mb-1 tracking-tight truncate">{z.name}</div>
+                    <div className="text-[14px] text-[#6B6B6B] leading-snug line-clamp-2">{z.description}</div>
                   </div>
                 </div>
               ))

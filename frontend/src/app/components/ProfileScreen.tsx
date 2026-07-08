@@ -1,4 +1,4 @@
-import { AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { LogOut, Settings } from 'lucide-react'
 import { useState } from 'react'
 
@@ -132,9 +132,21 @@ export default function ProfileScreen() {
             <p className="text-[#6B6B6B] text-sm">Здесь появятся ваши лучшие достижения. Начните исследовать город!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-3 mb-6">
+          <motion.div 
+            initial="hidden"
+            animate="visible"
+            variants={{
+              visible: { transition: { staggerChildren: 0.1 } },
+              hidden: {}
+            }}
+            className="grid grid-cols-3 gap-3 mb-6"
+          >
             {topAchievements.map((achievement) => (
-              <div
+              <motion.div
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { opacity: 1, y: 0, transition: { ease: [0.16, 1, 0.3, 1], duration: 0.6 } }
+                }}
                 key={achievement.id}
                 className="aspect-[4/5] rounded-[24px] p-2 flex flex-col items-center justify-end text-center shadow-lg shadow-[#1A3D2B]/10 relative overflow-hidden transition-transform active:scale-95"
                 style={{ background: 'linear-gradient(135deg, #1A3D2B, #2E5A41)' }}
@@ -160,9 +172,9 @@ export default function ProfileScreen() {
                     {achievement.name}
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
 
         <div className="flex gap-2 mb-6 border-b border-[#E5E3DD]">
@@ -190,12 +202,24 @@ export default function ProfileScreen() {
                 {earnedAchievements.length} / {totalAchievements}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 pb-6">
+            <motion.div 
+              initial="hidden"
+              animate="visible"
+              variants={{
+                visible: { transition: { staggerChildren: 0.05 } },
+                hidden: {}
+              }}
+              className="grid grid-cols-2 gap-3 pb-6"
+            >
               {isAchievementsLoading ? (
                 <div className="col-span-2 text-center text-[#6B6B6B] py-8">Загрузка достижений...</div>
               ) : (
                 achievements.map((achievement) => (
-                  <div
+                  <motion.div
+                    variants={{
+                      hidden: { opacity: 0, scale: 0.9 },
+                      visible: { opacity: 1, scale: 1, transition: { ease: [0.16, 1, 0.3, 1], duration: 0.5 } }
+                    }}
                     key={achievement.id}
                     className={`aspect-[4/5] relative overflow-hidden rounded-[24px] p-3 flex flex-col justify-end transition-all duration-300 active:scale-[0.98] ${
                       achievement.earned
@@ -270,10 +294,10 @@ export default function ProfileScreen() {
                       </button>
                     )}
                     {!achievement.earned && <div className="absolute top-3 right-3 text-lg opacity-20">🔒</div>}
-                  </div>
+                  </motion.div>
                 ))
               )}
-            </div>
+            </motion.div>
           </div>
         )}
 

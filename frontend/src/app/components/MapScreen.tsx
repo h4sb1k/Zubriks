@@ -14,7 +14,6 @@ type Zubrik = {
   description: string
   distance: string
   unlocked: boolean
-  imageColor: string
   imageUrl: string
   coordinates?: [number, number, string]
 }

@@ -68,7 +68,6 @@ model Zubrik {
   id           String   @id @default(cuid())
   name         String
   description  String
-  imageColor   String
   imageUrl     String?
   latitude     Float
   longitude    Float

@@ -1,5 +1,5 @@
 import * as L from 'leaflet'
-import { ArrowLeft, MapPin, Trash2 } from 'lucide-react'
+import { ArrowLeft, ImagePlus, MapPin, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet'
 
@@ -83,7 +83,6 @@ export type ZubrikEditData = {
   description: string
   latitude: number
   longitude: number
-  imageColor?: string
   imageUrl?: string
 }
 
@@ -99,7 +98,6 @@ export default function ZubrikBuilder({
   const [position, setPosition] = useState<[number, number] | null>(
     initialData ? [initialData.latitude, initialData.longitude] : null
   )
-  const [imageColor, setImageColor] = useState(initialData?.imageColor || '#E8922A')
   const [imageUrl, setImageUrl] = useState(initialData?.imageUrl || '')
 
   const [isPickingMap, setIsPickingMap] = useState(false)
@@ -131,6 +129,7 @@ export default function ZubrikBuilder({
     onError: (err) => alert('Ошибка при удалении Зубрика: ' + err.message),
   })
 
+  // imageUrl is checked separately in handleSubmit to show a specific error
   const isValid = name.trim() && description.trim() && position
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,6 +146,11 @@ export default function ZubrikBuilder({
 
   const handleSubmit = () => {
     if (!isValid) return
+    if (!imageUrl.trim()) {
+      alert('Ошибка: необходимо загрузить изображение Зубрика!')
+      return
+    }
+
     if (initialData) {
       updateZubrik.mutate({
         id: initialData.id,
@@ -154,8 +158,7 @@ export default function ZubrikBuilder({
         description,
         latitude: position![0],
         longitude: position![1],
-        imageColor,
-        imageUrl: imageUrl || undefined,
+        imageUrl,
       })
     } else {
       createZubrik.mutate({
@@ -163,8 +166,7 @@ export default function ZubrikBuilder({
         description,
         latitude: position![0],
         longitude: position![1],
-        imageColor,
-        imageUrl: imageUrl || undefined,
+        imageUrl,
       })
     }
   }
@@ -231,49 +233,48 @@ export default function ZubrikBuilder({
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-[#6B6B6B] uppercase tracking-wider mb-2">Цвет карточки (HEX)</label>
-          <label className="flex gap-3 cursor-pointer items-center relative">
-            <input
-              type="color"
-              value={imageColor}
-              onChange={(e) => setImageColor(e.target.value)}
-              className="opacity-0 absolute inset-0 w-14 h-14 cursor-pointer"
-            />
-            <div 
-              className="w-14 h-14 rounded-full border-[3px] border-white shadow-md flex-shrink-0"
-              style={{ backgroundColor: imageColor }}
-            />
-            <input
-              type="text"
-              value={imageColor}
-              onChange={(e) => setImageColor(e.target.value)}
-              className="flex-1 bg-white rounded-[20px] px-5 py-4 outline-none text-[16px] focus:ring-2 focus:ring-[#E8922A]/50 transition-shadow shadow-sm font-mono"
-              placeholder="#E8922A"
-            />
-          </label>
-        </div>
-
-        <div>
           <label className="block text-sm font-bold text-[#6B6B6B] uppercase tracking-wider mb-2">Изображение</label>
-          {imageUrl && (
-            <div className="w-full h-40 rounded-[20px] overflow-hidden relative border border-[#E5E3DD] shadow-inner mb-3">
-              <img src={imageUrl} alt="preview" className="w-full h-full object-cover" />
-              <button 
-                onClick={() => setImageUrl('')}
-                className="absolute top-2 right-2 bg-white/90 p-2 rounded-full shadow-md text-red-500"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-          )}
-          <label className="w-full bg-white rounded-[20px] px-5 py-4 text-[16px] focus-within:ring-2 focus-within:ring-[#E8922A]/50 transition-shadow shadow-sm flex items-center justify-center font-bold text-[#E8922A] cursor-pointer border border-dashed border-[#E8922A]">
-            <span>{imageUrl ? 'Изменить изображение' : 'Выбрать изображение'}</span>
+          
+          <label className={`relative flex items-center justify-center cursor-pointer transition-all overflow-hidden ${
+            imageUrl 
+              ? 'w-full min-h-[220px] bg-[#F5F2EB] rounded-[24px] p-6 border border-[#E5E3DD] shadow-inner group'
+              : 'w-full bg-white rounded-[24px] p-8 flex-col shadow-sm border-2 border-dashed border-[#E5E3DD] hover:border-[#E8922A] hover:bg-[#FFF9E6]/30 active:scale-[0.99] group'
+          }`}>
             <input
               type="file"
               accept="image/*"
               className="hidden"
               onChange={handleImageUpload}
             />
+
+            {imageUrl ? (
+              <>
+                <img src={imageUrl} alt="preview" className="max-w-full max-h-[260px] object-contain drop-shadow-lg rounded-[12px] transition-transform group-hover:scale-[1.02]" />
+                <div className="absolute inset-0 bg-[#1C1C1E]/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                  <div className="bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-[20px] font-bold text-[15px] text-[#1C1C1E] shadow-xl flex items-center gap-2 transform translate-y-2 group-hover:translate-y-0 transition-transform">
+                    <ImagePlus size={18} className="text-[#E8922A]" />
+                    Изменить фото
+                  </div>
+                </div>
+                <button 
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setImageUrl('')
+                  }}
+                  className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm p-2.5 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.1)] text-red-500 hover:text-red-600 hover:bg-white hover:scale-105 active:scale-95 transition-all z-10"
+                  title="Удалить"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="w-14 h-14 bg-[#F5F2EB] group-hover:bg-[#FFF9E6] rounded-full flex items-center justify-center transition-colors mb-3">
+                  <ImagePlus size={28} className="text-[#6B6B6B] group-hover:text-[#E8922A] transition-colors" />
+                </div>
+                <span className="font-bold text-[#6B6B6B] group-hover:text-[#E8922A] transition-colors">Загрузить фото Зубрика</span>
+              </>
+            )}
           </label>
         </div>
       </div>

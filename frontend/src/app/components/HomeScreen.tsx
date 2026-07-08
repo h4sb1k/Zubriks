@@ -1,8 +1,10 @@
-import { Calendar, ChevronRight, MapPin } from 'lucide-react'
+import { AnimatePresence,motion } from 'framer-motion'
+import { Calendar, ChevronRight, MapPin, Trophy } from 'lucide-react'
 import { useState } from 'react'
 
 import { trpc } from '../lib/trpc'
 import { calculateDistance } from '../utils/distance'
+import LeaderboardScreen from './LeaderboardScreen'
 import RouteActive from './RouteActive'
 import ZubrikDetail from './ZubrikDetail'
 
@@ -12,7 +14,6 @@ type Zubrik = {
   description: string
   distance: string
   unlocked: boolean
-  imageColor: string
   imageUrl: string
   coordinates?: [number, number, string]
 }
@@ -35,6 +36,7 @@ export default function HomeScreen({
 }) {
   const [selectedZubrik, setSelectedZubrik] = useState<Zubrik | null>(null)
   const [showMainRoute, setShowMainRoute] = useState(false)
+  const [showLeaderboard, setShowLeaderboard] = useState(false)
 
   const {
     data: zubriksData,
@@ -91,24 +93,37 @@ export default function HomeScreen({
               <h1 className="text-[22px] font-bold text-[#1C1C1E] mb-1 tracking-tight">Привет, {user.name || 'Исследователь'}!</h1>
               <p className="text-[#6B6B6B] font-medium">Готов исследовать Орёл?</p>
             </div>
-            <button
-              onClick={onNavigate}
-              className="w-14 h-14 rounded-full bg-[#1A3D2B] flex items-center justify-center overflow-hidden transition-transform active:scale-90 shadow-md border-[3px] border-white"
-            >
-              {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt="Аватар" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-white text-lg">🦬</span>
-              )}
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowLeaderboard(true)}
+                className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-[0_4px_12px_rgba(232,146,42,0.15)] active:scale-95 transition-transform border border-[#F5F2EB]"
+              >
+                <Trophy size={22} className="text-[#E8922A]" />
+              </button>
+              <button
+                onClick={onNavigate}
+                className="w-14 h-14 rounded-full bg-[#1A3D2B] flex items-center justify-center overflow-hidden transition-transform active:scale-90 shadow-md border-[3px] border-white"
+              >
+                {user.avatarUrl ? (
+                  <img src={user.avatarUrl} alt="Аватар" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-white text-lg">🦬</span>
+                )}
+              </button>
+            </div>
           </div>
 
-          <div className="bg-white rounded-[32px] overflow-hidden shadow-[0_12px_30px_rgba(26,61,43,0.08)] mb-8">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            className="bg-white rounded-[32px] overflow-hidden shadow-[0_12px_30px_rgba(26,61,43,0.08)] mb-8"
+          >
             <div className="h-48 relative overflow-hidden flex items-end p-5">
               <img
                 src="/images/Tour-Zubriki-1.png"
                 alt="Тур Зубрики"
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover transform hover:scale-105 transition-transform duration-700"
               />
               <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0.2), transparent)' }} />
               <div className="absolute top-4 right-4 bg-[#E8922A] text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-sm z-10">
@@ -142,7 +157,7 @@ export default function HomeScreen({
                 <ChevronRight size={20} />
               </button>
             </div>
-          </div>
+          </motion.div>
         </div>
 
         <div className="px-5 pb-8">
@@ -155,18 +170,28 @@ export default function HomeScreen({
           {zubriksIsError && <span className="text-red-500">Ошибка: {zubriksError.message}</span>}
 
           {zubriksData && (
-            <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5 scrollbar-hide">
+            <motion.div 
+              initial="hidden"
+              animate="visible"
+              variants={{
+                visible: { transition: { staggerChildren: 0.08 } },
+                hidden: {}
+              }}
+              className="flex gap-3 overflow-x-auto pb-4 pt-1 -mx-5 px-5 scrollbar-hide"
+            >
               {zubriks.map((zubrik) => (
-                <button
+                <motion.button
+                  variants={{
+                    hidden: { opacity: 0, scale: 0.9 },
+                    visible: { opacity: 1, scale: 1, transition: { ease: [0.16, 1, 0.3, 1], duration: 0.5 } }
+                  }}
                   key={zubrik.id}
                   onClick={() => setSelectedZubrik(zubrik as Zubrik)}
-                  className="flex-shrink-0 w-40 bg-white rounded-[24px] p-4 shadow-[0_8px_20px_rgba(0,0,0,0.05)] active:scale-95 transition-all"
+                  className="flex-shrink-0 w-40 bg-white rounded-[24px] p-4 shadow-[0_8px_20px_rgba(0,0,0,0.05)] active:scale-95 transition-transform"
                 >
                   <div
-                    className="w-20 h-20 rounded-full mx-auto mb-3 flex items-center justify-center overflow-hidden shadow-inner"
-                    style={{ backgroundColor: zubrik.imageColor + '15' }}
+                    className="w-20 h-20 rounded-full mx-auto mb-3 flex items-center justify-center overflow-hidden shadow-inner bg-[#E8922A]/15"
                   >
-                    {/* 3. Рендерим изображение. Если ссылки нет, оставляем эмодзи как фолбек */}
                     {zubrik.imageUrl ? (
                       <img src={zubrik.imageUrl} alt={zubrik.name} className="w-full h-full object-cover" />
                     ) : (
@@ -182,9 +207,9 @@ export default function HomeScreen({
                       <span className="text-[#6B6B6B]">🔒</span>
                     )}
                   </div>
-                </button>
+                </motion.button>
               ))}
-            </div>
+            </motion.div>
           )}
         </div>
 
@@ -198,26 +223,47 @@ export default function HomeScreen({
           {eventsIsError && <span className="text-red-500">Ошибка: {eventsError.message}</span>}
 
           {eventsData && (
-            <div className="space-y-3">
+            <motion.div 
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.1 }}
+              variants={{
+                visible: { transition: { staggerChildren: 0.1 } },
+                hidden: {}
+              }}
+              className="space-y-4"
+            >
               {eventsData.events.map((event) => (
-                <div key={event.id} className="bg-white rounded-[24px] overflow-hidden shadow-[0_8px_20px_rgba(0,0,0,0.05)] active:scale-[0.98] transition-transform">
-                  <div className="h-24 flex items-center justify-center" style={{ background: 'linear-gradient(to right, #1A3D2B, #E8922A)' }}>
-                    <span className="text-4xl">🎭</span>
+                <motion.div 
+                  variants={{
+                    hidden: { opacity: 0, y: 24 },
+                    visible: { opacity: 1, y: 0, transition: { ease: [0.16, 1, 0.3, 1], duration: 0.6 } }
+                  }}
+                  key={event.id} 
+                  className="bg-white rounded-[24px] overflow-hidden shadow-[0_8px_20px_rgba(0,0,0,0.05)] active:scale-[0.98] transition-transform"
+                >
+                  <div className="h-32 flex items-center justify-center relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1A3D2B, #2A5D43)' }}>
+                    {event.imageUrl ? (
+                      <img src={event.imageUrl} alt={event.title} className="absolute inset-0 w-full h-full object-cover opacity-80" />
+                    ) : (
+                      <span className="text-5xl z-10 drop-shadow-md">🎭</span>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                   </div>
-                  <div className="p-4">
-                    <div className="inline-block bg-[#F5F2EB] px-2.5 py-1 rounded-full text-xs text-[#6B6B6B] mb-2">
+                  <div className="p-5">
+                    <div className="inline-block bg-[#F5F2EB] px-3 py-1.5 rounded-full text-xs font-bold text-[#6B6B6B] mb-2 shadow-sm">
                       {event.category}
                     </div>
-                    <h3 className="text-[15px] font-bold text-[#1C1C1E] mb-2 line-clamp-2 leading-tight">{event.title}</h3>
-                    <div className="flex items-center gap-3 text-xs text-[#6B6B6B]">
-                      <span>{event.time}</span>
+                    <h3 className="text-[16px] font-bold text-[#1C1C1E] mb-2 leading-tight">{event.title}</h3>
+                    <div className="flex items-center gap-3 text-[13px] font-medium text-[#6B6B6B]">
+                      <span className="flex items-center gap-1"><Calendar size={14} />{event.time}</span>
                       <span>•</span>
-                      <span>{event.venue}</span>
+                      <span className="flex items-center gap-1"><MapPin size={14} />{event.venue}</span>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           )}
         </div>
       </div>
@@ -241,6 +287,10 @@ export default function HomeScreen({
           onClose={() => setShowMainRoute(false)}
         />
       )}
+
+      <AnimatePresence>
+        {showLeaderboard && <LeaderboardScreen onClose={() => setShowLeaderboard(false)} />}
+      </AnimatePresence>
     </>
   )
 }

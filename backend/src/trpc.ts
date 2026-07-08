@@ -330,6 +330,37 @@ export const trpcRouter = trpc.router({
     }
   }),
 
+  getLeaderboard: trpc.procedure.query(async ({ ctx }) => {
+    const users = await ctx.prisma.user.findMany({
+      include: {
+        _count: {
+          select: { unlockedZubriks: true },
+        },
+        routeInteractions: {
+          where: { completedAt: { not: null } },
+        },
+      },
+    })
+
+    const leaderboard = users.map(user => ({
+      id: user.id,
+      name: user.name || 'Исследователь',
+      avatarUrl: user.avatarUrl,
+      zubriksCount: user._count.unlockedZubriks,
+      routesCount: user.routeInteractions.length,
+    }))
+
+    // Сортировка: сначала по зубрикам (по убыванию), затем по пройденным маршрутам
+    leaderboard.sort((a, b) => {
+      if (b.zubriksCount !== a.zubriksCount) {
+        return b.zubriksCount - a.zubriksCount
+      }
+      return b.routesCount - a.routesCount
+    })
+
+    return { leaderboard: leaderboard.slice(0, 50) } // Топ-50
+  }),
+
   getZubriks: trpc.procedure.query(async ({ ctx }) => {
     const zubriks = await ctx.prisma.zubrik.findMany({
       orderBy: { createdAt: 'asc' },
@@ -348,7 +379,6 @@ export const trpcRouter = trpc.router({
         description: z.description,
         distance: '', // вычисляется на клиенте из координат
         unlocked: unlockedIds.has(z.id),
-        imageColor: z.imageColor,
         imageUrl: z.imageUrl ?? '',
         coordinates: [z.latitude, z.longitude, z.locationName] as [number, number, string],
       })),
@@ -861,8 +891,7 @@ export const trpcRouter = trpc.router({
       description: z.string().max(500),
       latitude: z.number(),
       longitude: z.number(),
-      imageColor: z.string().optional(),
-      imageUrl: z.string().optional()
+      imageUrl: z.string().min(1)
     }))
     .mutation(async ({ input, ctx }) => {
       const zubrik = await ctx.prisma.zubrik.create({
@@ -872,7 +901,6 @@ export const trpcRouter = trpc.router({
           latitude: input.latitude,
           longitude: input.longitude,
           locationName: 'Неизвестно',
-          imageColor: input.imageColor ?? '#E8922A',
           imageUrl: input.imageUrl
         }
       })
@@ -886,8 +914,7 @@ export const trpcRouter = trpc.router({
       description: z.string().max(500),
       latitude: z.number(),
       longitude: z.number(),
-      imageColor: z.string().optional(),
-      imageUrl: z.string().optional()
+      imageUrl: z.string().min(1)
     }))
     .mutation(async ({ input, ctx }) => {
       const zubrik = await ctx.prisma.zubrik.update({
@@ -897,7 +924,6 @@ export const trpcRouter = trpc.router({
           description: input.description,
           latitude: input.latitude,
           longitude: input.longitude,
-          imageColor: input.imageColor ?? '#E8922A',
           imageUrl: input.imageUrl
         }
       })
