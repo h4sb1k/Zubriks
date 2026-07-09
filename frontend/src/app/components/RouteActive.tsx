@@ -8,6 +8,7 @@ import { calculateDistance } from '../utils/distance'
 import type { MapPoint } from '../utils/openInMaps'
 import { openPointInMaps, openRouteInMaps } from '../utils/openInMaps'
 import ConfirmModal from './ConfirmModal'
+import LoadingZubrik from './LoadingZubrik'
 import RouteBuilder from './RouteBuilder'
 
 type RouteActiveProps = {
@@ -105,7 +106,7 @@ export default function RouteActive({ routeId, routeName: initialRouteName, auth
           </div>
         </div>
         <div className="flex-1 flex items-center justify-center">
-          <span className="text-[#6B6B6B]">Загрузка маршрута...</span>
+          <LoadingZubrik text="Загрузка маршрута..." />
         </div>
       </div>
     )

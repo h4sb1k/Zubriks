@@ -12,6 +12,9 @@ export type AchievementEditData = {
   description: string
   emoji: string | null
   imageUrl: string
+  conditionType: string
+  conditionTarget: string | null
+  conditionCount: number
 }
 
 export default function AchievementBuilder({ 
@@ -27,8 +30,18 @@ export default function AchievementBuilder({
   const [description, setDescription] = useState(initialData?.description || '')
   const [emoji, setEmoji] = useState(initialData?.emoji || '🏆')
   const [imageUrl, setImageUrl] = useState(initialData?.imageUrl || '')
+  
+  const [conditionType, setConditionType] = useState(initialData?.conditionType || 'MANUAL')
+  const [conditionTarget, setConditionTarget] = useState<string | null>(initialData?.conditionTarget || null)
+  const [conditionCount, setConditionCount] = useState(initialData?.conditionCount || 1)
+  
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+
+  // Получаем список зубриков для дропдауна SPECIFIC_ZUBRIK
+  const { data: zubriksData } = trpc.adminGetZubriksList.useQuery(undefined, {
+    enabled: conditionType === 'SPECIFIC_ZUBRIK'
+  })
 
   const createAchievement = trpc.adminCreateAchievement.useMutation({
     onSuccess: () => {
@@ -83,6 +96,9 @@ export default function AchievementBuilder({
         description,
         emoji,
         imageUrl,
+        conditionType,
+        conditionTarget,
+        conditionCount,
       })
     } else {
       createAchievement.mutate({
@@ -90,6 +106,9 @@ export default function AchievementBuilder({
         description,
         emoji,
         imageUrl,
+        conditionType,
+        conditionTarget,
+        conditionCount,
       })
     }
   }
@@ -220,6 +239,94 @@ export default function AchievementBuilder({
               </>
             )}
           </label>
+        </div>
+
+        {/* УСЛОВИЯ ПОЛУЧЕНИЯ */}
+        <div className="bg-[#F5F2EB] -mx-5 px-5 py-6 space-y-5 border-y border-[#E5E3DD]">
+          <h2 className="text-[18px] font-bold text-[#1C1C1E] flex items-center gap-2">
+            <Trophy size={20} className="text-[#E8922A]" /> Условие получения
+          </h2>
+          
+          <div>
+            <label className="block text-sm font-bold text-[#6B6B6B] uppercase tracking-wider mb-2">Тип условия</label>
+            <div className="relative">
+              <select
+                value={conditionType}
+                onChange={e => {
+                  setConditionType(e.target.value)
+                  // Сбрасываем значения при смене типа
+                  if (e.target.value !== 'SPECIFIC_ZUBRIK') setConditionTarget(null)
+                  if (['MANUAL', 'ZUBRIK_ALL', 'MAIN_ROUTE_COMPLETE'].includes(e.target.value)) setConditionCount(1)
+                }}
+                className="w-full bg-white border-2 border-[#E5E3DD] rounded-[20px] px-5 py-4 text-[16px] focus:border-[#E8922A] focus:outline-none transition-colors text-[#1C1C1E] font-medium appearance-none"
+              >
+                <option value="MANUAL">Выдаётся вручную (без автоматики)</option>
+                <option value="ZUBRIK_COUNT">Найти определённое количество зубриков</option>
+                <option value="ZUBRIK_ALL">Найти всех зубриков в городе</option>
+                <option value="SPECIFIC_ZUBRIK">Найти конкретного зубрика</option>
+                <option value="ROUTE_COMPLETE">Пройти определённое количество маршрутов</option>
+                <option value="ROUTE_CREATE">Создать определённое количество маршрутов</option>
+                <option value="MAIN_ROUTE_COMPLETE">Завершить главный тур "Зубрики"</option>
+              </select>
+              <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none">
+                <svg className="w-5 h-5 text-[#6B6B6B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <AnimatePresence mode="wait">
+            {['ZUBRIK_COUNT', 'ROUTE_COMPLETE', 'ROUTE_CREATE'].includes(conditionType) && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <label className="block text-sm font-bold text-[#6B6B6B] uppercase tracking-wider mb-2 mt-1">
+                  Необходимое количество
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={conditionCount}
+                  onChange={e => setConditionCount(parseInt(e.target.value) || 1)}
+                  className="w-full bg-white border-2 border-[#E5E3DD] rounded-[20px] px-5 py-4 text-[16px] focus:border-[#E8922A] focus:outline-none transition-colors text-[#1C1C1E] font-bold"
+                />
+              </motion.div>
+            )}
+
+            {conditionType === 'SPECIFIC_ZUBRIK' && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <label className="block text-sm font-bold text-[#6B6B6B] uppercase tracking-wider mb-2 mt-1">
+                  Выберите зубрика
+                </label>
+                <div className="relative">
+                  <select
+                    value={conditionTarget || ''}
+                    onChange={e => setConditionTarget(e.target.value || null)}
+                    className="w-full bg-white border-2 border-[#E5E3DD] rounded-[20px] px-5 py-4 text-[16px] focus:border-[#E8922A] focus:outline-none transition-colors text-[#1C1C1E] font-medium appearance-none"
+                  >
+                    <option value="" disabled>-- Не выбран --</option>
+                    {zubriksData?.zubriks.map(z => (
+                      <option key={z.id} value={z.id}>{z.name}</option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none">
+                    <svg className="w-5 h-5 text-[#6B6B6B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 

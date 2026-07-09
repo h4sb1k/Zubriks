@@ -11,6 +11,7 @@ export type UserEditData = {
   email: string
   role: 'USER' | 'ADMIN'
   createdAt: Date | string
+  avatarUrl: string | null
 }
 
 export default function UserBuilder({ 
@@ -85,20 +86,19 @@ export default function UserBuilder({
           <ArrowLeft size={24} />
         </button>
         <h1 className="text-[20px] font-bold text-[#1C1C1E] tracking-tight">Редактирование</h1>
-        <button 
-          onClick={() => setShowDeleteConfirm(true)}
-          className="w-10 h-10 rounded-full flex items-center justify-center text-red-500 hover:bg-red-50 active:scale-95 transition-all"
-        >
-          <Trash2 size={20} />
-        </button>
+        <div className="w-10 h-10" />
       </div>
 
       <div className="flex-1 overflow-y-auto p-5 space-y-6">
         {/* Info Card */}
         <div className="bg-white rounded-[24px] p-6 shadow-sm border border-[#E5E3DD]">
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 bg-[#F5F2EB] rounded-full flex items-center justify-center">
-              <User size={32} className="text-[#6B6B6B]" />
+            <div className="w-16 h-16 bg-[#F5F2EB] rounded-full flex items-center justify-center overflow-hidden shrink-0 border-2 border-white shadow-sm">
+              {initialData.avatarUrl ? (
+                <img src={initialData.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <User size={32} className="text-[#6B6B6B]" />
+              )}
             </div>
             <div>
               <div className="text-sm text-[#6B6B6B] mb-1">ID пользователя</div>
@@ -173,32 +173,38 @@ export default function UserBuilder({
         >
           {updateUser.isPending ? 'Сохранение...' : 'Сохранить изменения'}
         </button>
+
+        <button
+          type="button"
+          onClick={() => setShowDeleteConfirm(true)}
+          disabled={deleteUser.isPending}
+          className="w-full mt-3 bg-red-500 text-white rounded-[24px] py-4 flex justify-center items-center gap-2 font-bold shadow-lg active:scale-95 transition-transform disabled:opacity-50 text-[16px]"
+        >
+          <Trash2 size={20} />
+          {deleteUser.isPending ? 'Удаление...' : 'Удалить пользователя'}
+        </button>
       </div>
 
-      {showDeleteConfirm && (
-        <ConfirmModal
-          title="Удалить пользователя?"
-          message={`Вы уверены, что хотите удалить ${initialData.email}? Это действие необратимо.`}
-          confirmText="Удалить"
-          isDestructive={true}
-          onConfirm={() => {
-            setShowDeleteConfirm(false)
-            deleteUser.mutate({ id: initialData.id })
-          }}
-          onCancel={() => setShowDeleteConfirm(false)}
-        />
-      )}
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        title="Удалить пользователя?"
+        message={`Вы уверены, что хотите удалить ${initialData.email}? Это действие необратимо.`}
+        confirmText={deleteUser.isPending ? "Удаление..." : "Удалить"}
+        onConfirm={() => {
+          deleteUser.mutate({ id: initialData.id })
+          setShowDeleteConfirm(false)
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
 
-      {showRoleConfirm && (
-        <ConfirmModal
-          title="Снять права администратора?"
-          message="Вы уверены, что хотите забрать права администратора у этого пользователя? Он потеряет доступ к панели управления."
-          confirmText="Да, понизить"
-          isDestructive={true}
-          onConfirm={confirmRoleChange}
-          onCancel={() => setShowRoleConfirm(false)}
-        />
-      )}
+      <ConfirmModal
+        isOpen={showRoleConfirm}
+        title="Снять права администратора?"
+        message="Вы уверены, что хотите забрать права администратора у этого пользователя? Он потеряет доступ к панели управления."
+        confirmText="Да, понизить"
+        onConfirm={confirmRoleChange}
+        onCancel={() => setShowRoleConfirm(false)}
+      />
     </motion.div>
   )
 }

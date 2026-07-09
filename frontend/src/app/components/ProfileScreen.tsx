@@ -4,6 +4,8 @@ import { useState } from 'react'
 
 import { trpc } from '../lib/trpc'
 import AdminScreen from './AdminScreen'
+import ConfirmModal from './ConfirmModal'
+import LoadingZubrik from './LoadingZubrik'
 
 type RouteInfo = {
   id: string
@@ -40,6 +42,7 @@ function RouteCard({ route }: { route: RouteInfo }) {
 export default function ProfileScreen() {
   const [activeTab, setActiveTab] = useState('Награды')
   const [showAdmin, setShowAdmin] = useState(false)
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   const { data: user } = trpc.me.useQuery()
   const { data: statsData, isLoading: isStatsLoading } = trpc.getProfileStats.useQuery()
@@ -78,7 +81,7 @@ export default function ProfileScreen() {
     <div className="flex-1 overflow-y-auto pb-20">
       <div className="px-5 pt-6 pb-6 bg-[#F5F2EB] relative">
         <button
-          onClick={() => logoutMutation.mutate()}
+          onClick={() => setShowLogoutConfirm(true)}
           className="absolute top-6 right-5 flex items-center gap-1.5 text-[#6B6B6B] hover:text-red-500 transition-colors text-sm"
           disabled={logoutMutation.isPending}
         >
@@ -148,7 +151,8 @@ export default function ProfileScreen() {
                   visible: { opacity: 1, y: 0, transition: { ease: [0.16, 1, 0.3, 1], duration: 0.6 } }
                 }}
                 key={achievement.id}
-                className="aspect-[4/5] rounded-[24px] p-2 flex flex-col items-center justify-end text-center shadow-lg shadow-[#1A3D2B]/10 relative overflow-hidden transition-transform active:scale-95"
+                whileTap={{ scale: 0.95 }}
+                className="aspect-[4/5] rounded-[24px] p-2 flex flex-col items-center justify-end text-center shadow-lg shadow-[#1A3D2B]/10 relative overflow-hidden"
                 style={{ background: 'linear-gradient(135deg, #1A3D2B, #2E5A41)' }}
               >
                 {/* Декоративный блик */}
@@ -207,7 +211,7 @@ export default function ProfileScreen() {
               </div>
             </div>
             {isAchievementsLoading ? (
-              <div className="text-center text-[#6B6B6B] py-8">Загрузка достижений...</div>
+              <LoadingZubrik text="Загрузка достижений..." />
             ) : (
               <motion.div 
                 initial="hidden"
@@ -225,10 +229,11 @@ export default function ProfileScreen() {
                       visible: { opacity: 1, scale: 1, transition: { ease: [0.16, 1, 0.3, 1], duration: 0.5 } }
                     }}
                     key={achievement.id}
-                    className={`aspect-[4/5] relative overflow-hidden rounded-[24px] p-3 flex flex-col justify-end transition-all duration-300 active:scale-[0.98] ${
+                    whileTap={{ scale: 0.98 }}
+                    className={`aspect-[4/5] relative overflow-hidden rounded-[24px] p-3 flex flex-col justify-end ${
                       achievement.earned
-                        ? 'shadow-lg shadow-[#1A3D2B]/20 text-white'
-                        : 'bg-white border border-[#E5E3DD] text-[#1C1C1E] shadow-sm'
+                        ? 'shadow-lg shadow-[#1A3D2B]/20 text-white transition-shadow'
+                        : 'bg-white border border-[#E5E3DD] text-[#1C1C1E] shadow-sm transition-shadow'
                     }`}
                     style={achievement.earned ? { background: 'linear-gradient(135deg, #1A3D2B, #2E5A41)' } : undefined}
                   >
@@ -313,7 +318,7 @@ export default function ProfileScreen() {
           >
             <h3 className="text-lg mb-4">Мои маршруты</h3>
             {isStatsLoading ? (
-              <div className="text-center text-[#6B6B6B] py-8">Загрузка...</div>
+              <LoadingZubrik text="Загрузка..." />
             ) : createdRoutes.length > 0 ? (
               createdRoutes.map((r) => <RouteCard key={r.id} route={r} />)
             ) : (
@@ -330,7 +335,7 @@ export default function ProfileScreen() {
           >
             <h3 className="text-lg mb-4">Избранные маршруты</h3>
             {isStatsLoading ? (
-              <div className="text-center text-[#6B6B6B] py-8">Загрузка...</div>
+              <LoadingZubrik text="Загрузка..." />
             ) : likedRoutes.length > 0 ? (
               likedRoutes.map((r) => <RouteCard key={r.id} route={r} />)
             ) : (
@@ -343,6 +348,18 @@ export default function ProfileScreen() {
       <AnimatePresence>
         {showAdmin && <AdminScreen onClose={() => setShowAdmin(false)} />}
       </AnimatePresence>
+
+      <ConfirmModal
+        isOpen={showLogoutConfirm}
+        title="Выйти из аккаунта?"
+        message="Вам потребуется заново ввести логин и пароль для входа."
+        confirmText={logoutMutation.isPending ? "Выход..." : "Выйти"}
+        onConfirm={() => {
+          logoutMutation.mutate()
+          setShowLogoutConfirm(false)
+        }}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
     </div>
   )
 }

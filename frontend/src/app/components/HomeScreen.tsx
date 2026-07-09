@@ -1,10 +1,11 @@
-import { AnimatePresence,motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Calendar, ChevronRight, MapPin, Trophy } from 'lucide-react'
 import { useState } from 'react'
 
 import { trpc } from '../lib/trpc'
 import { calculateDistance } from '../utils/distance'
 import LeaderboardScreen from './LeaderboardScreen'
+import LoadingZubrik from './LoadingZubrik'
 import RouteActive from './RouteActive'
 import ZubrikDetail from './ZubrikDetail'
 
@@ -71,7 +72,7 @@ export default function HomeScreen({
   if (isMainRouteLoading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-[#FAFAF7]">
-        <span className="text-[#6B6B6B]">Загрузка маршрутов...</span>
+        <LoadingZubrik text="Загрузка маршрутов..." />
       </div>
     )
   }
@@ -121,7 +122,7 @@ export default function HomeScreen({
           >
             <div className="h-48 relative overflow-hidden flex items-end p-5">
               <img
-                src="/images/Tour-Zubriki-1.png"
+                src="/images/Tour-Zubriki-1.webp"
                 alt="Тур Зубрики"
                 className="absolute inset-0 w-full h-full object-cover transform hover:scale-105 transition-transform duration-700"
               />
@@ -166,7 +167,7 @@ export default function HomeScreen({
             <MapPin size={22} className="text-[#E8922A]" />
           </div>
 
-          {zubriksLoading && <span className="text-[#6B6B6B]">Загрузка...</span>}
+          {zubriksLoading && <LoadingZubrik text="Загрузка..." />}
           {zubriksIsError && <span className="text-red-500">Ошибка: {zubriksError.message}</span>}
 
           {zubriksData && (
@@ -187,7 +188,8 @@ export default function HomeScreen({
                   }}
                   key={zubrik.id}
                   onClick={() => setSelectedZubrik(zubrik as Zubrik)}
-                  className="flex-shrink-0 w-40 bg-white rounded-[24px] p-4 shadow-[0_8px_20px_rgba(0,0,0,0.05)] active:scale-95 transition-transform"
+                  whileTap={{ scale: 0.95 }}
+                  className="flex-shrink-0 w-40 bg-white rounded-[24px] p-4 shadow-[0_8px_20px_rgba(0,0,0,0.05)]"
                 >
                   <div
                     className="w-20 h-20 rounded-full mx-auto mb-3 flex items-center justify-center overflow-hidden shadow-inner bg-[#E8922A]/15"
@@ -219,7 +221,7 @@ export default function HomeScreen({
             <Calendar size={22} className="text-[#E8922A]" />
           </div>
 
-          {eventsLoading && <span className="text-[#6B6B6B]">Загрузка...</span>}
+          {eventsLoading && <LoadingZubrik text="Загрузка..." />}
           {eventsIsError && <span className="text-red-500">Ошибка: {eventsError.message}</span>}
 
           {eventsData && (
@@ -240,7 +242,8 @@ export default function HomeScreen({
                     visible: { opacity: 1, y: 0, transition: { ease: [0.16, 1, 0.3, 1], duration: 0.6 } }
                   }}
                   key={event.id} 
-                  className="bg-white rounded-[24px] overflow-hidden shadow-[0_8px_20px_rgba(0,0,0,0.05)] active:scale-[0.98] transition-transform"
+                  whileTap={{ scale: 0.98 }}
+                  className="bg-white rounded-[24px] overflow-hidden shadow-[0_8px_20px_rgba(0,0,0,0.05)]"
                 >
                   <div className="h-32 flex items-center justify-center relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1A3D2B, #2A5D43)' }}>
                     {event.imageUrl ? (

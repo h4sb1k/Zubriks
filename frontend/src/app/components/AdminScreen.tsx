@@ -4,6 +4,7 @@ import { useMemo,useState } from 'react'
 
 import { trpc } from '../lib/trpc'
 import AchievementBuilder, { type AchievementEditData } from './AchievementBuilder'
+import LoadingZubrik from './LoadingZubrik'
 import UserBuilder, { type UserEditData } from './UserBuilder'
 import ZubrikBuilder, { type ZubrikEditData } from './ZubrikBuilder'
 
@@ -158,7 +159,7 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
             className="space-y-3"
           >
             {isUsersLoading ? (
-              <div className="text-center text-[#6B6B6B] mt-10">Загрузка...</div>
+              <LoadingZubrik text="Загрузка..." />
             ) : (
               filteredUsers.map(u => (
                 <div 
@@ -186,7 +187,7 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
             className="space-y-3"
           >
             {isZubriksLoading ? (
-              <div className="text-center text-[#6B6B6B] mt-10">Загрузка...</div>
+              <LoadingZubrik text="Загрузка..." />
             ) : (
               filteredZubriks.map(z => (
                 <div 
@@ -234,7 +235,7 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
             className="space-y-3"
           >
             {isAchievementsLoading ? (
-              <div className="text-center text-[#6B6B6B] mt-10">Загрузка...</div>
+              <LoadingZubrik text="Загрузка..." />
             ) : (
               filteredAchievements.map(a => (
                 <div 

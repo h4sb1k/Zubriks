@@ -2,6 +2,7 @@ import { ChevronRight, Clock, Heart, MapPin, Plus } from 'lucide-react'
 import { useState } from 'react'
 
 import { trpc } from '../lib/trpc'
+import LoadingZubrik from './LoadingZubrik'
 import PublicProfileScreen from './PublicProfileScreen'
 import RouteActive from './RouteActive'
 import RouteBuilder from './RouteBuilder'
@@ -63,7 +64,7 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-[#FAFAF7]">
-        <span className="text-[#6B6B6B]">Загрузка маршрутов...</span>
+        <LoadingZubrik text="Загрузка маршрутов..." />
       </div>
     )
   }
@@ -112,7 +113,7 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
         <div className="bg-white rounded-[32px] overflow-hidden shadow-[0_12px_30px_rgba(26,61,43,0.08)] mb-8">
           <div className="h-48 relative overflow-hidden flex items-end p-5">
             <img
-              src="/images/Tour-Zubriki-1.png"
+              src="/images/Tour-Zubriki-1.webp"
               alt="Тур Зубрики"
               className="absolute inset-0 w-full h-full object-cover"
             />

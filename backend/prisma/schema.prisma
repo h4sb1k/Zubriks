@@ -171,13 +171,18 @@ model UserWaypoint {
 }
 
 model Achievement {
-  id          String   @id @default(cuid())
-  name        String
-  description String
-  imageUrl    String
-  emoji       String?
+  id              String  @id @default(cuid())
+  name            String
+  description     String
+  imageUrl        String
+  emoji           String?
 
-  users       UserAchievement[]
+  // Условие получения: ZUBRIK_COUNT, ZUBRIK_ALL, SPECIFIC_ZUBRIK, ROUTE_COMPLETE, ROUTE_CREATE, MANUAL
+  conditionType   String  @default("MANUAL")
+  conditionTarget String? // ID зубрика для SPECIFIC_ZUBRIK
+  conditionCount  Int     @default(1)
+
+  users           UserAchievement[]
 }
 
 // Связь «какой пользователь какую ачивку получил»

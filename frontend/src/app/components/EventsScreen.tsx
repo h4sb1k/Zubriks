@@ -2,6 +2,7 @@ import { Calendar, MapPin, Tag } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { trpc } from '../lib/trpc'
+import LoadingZubrik from './LoadingZubrik'
 
 // Дефолтные эмодзи по категориям — используются, если у события нет imageUrl
 const categoryEmoji: Record<string, string> = {
@@ -42,7 +43,7 @@ export default function EventsScreen() {
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-[#FAFAF7]">
-        <span className="text-[#6B6B6B]">Загрузка событий...</span>
+        <LoadingZubrik text="Загрузка событий..." />
       </div>
     )
   }

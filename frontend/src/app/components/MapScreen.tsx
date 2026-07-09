@@ -6,6 +6,7 @@ import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet'
 import { trpc } from '../lib/trpc'
 import { calculateDistance } from '../utils/distance'
 import { openPointInMaps } from '../utils/openInMaps'
+import LoadingZubrik from './LoadingZubrik'
 import ZubrikDetail from './ZubrikDetail'
 
 type Zubrik = {
@@ -306,7 +307,7 @@ export default function MapScreen({
         {/* Loading Overlay */}
         {zubriksLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-xs">
-            <span className="text-sm text-[#6B6B6B]">Загрузка карты...</span>
+            <LoadingZubrik text="Загрузка карты..." />
           </div>
         )}
 

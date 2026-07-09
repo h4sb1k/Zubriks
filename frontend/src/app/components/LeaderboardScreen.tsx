@@ -72,7 +72,8 @@ export default function LeaderboardScreen({ onClose }: { onClose: () => void }) 
                     }}
                     key={user.id}
                     onClick={() => setSelectedUserId(user.id)}
-                    className={`relative w-full rounded-[24px] p-4 flex items-center gap-4 transition-transform active:scale-95 text-left
+                    whileTap={{ scale: 0.95 }}
+                    className={`relative w-full rounded-[24px] p-4 flex items-center gap-4 text-left
                       ${
                         isTop1
                           ? 'bg-gradient-to-r from-[#FFF9E6] to-[#FFE082] shadow-[0_8px_20px_rgba(232,146,42,0.15)] border border-[#FFE082]'
