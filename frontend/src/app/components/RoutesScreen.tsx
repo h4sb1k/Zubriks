@@ -97,7 +97,7 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
         <h1 className="text-[24px] font-bold text-[#1C1C1E] mb-5 tracking-tight">Маршруты</h1>
 
         <div className="flex gap-2 overflow-x-auto pb-2 -mx-5 px-5 scrollbar-hide mb-6">
-          {['Все', 'Зубрики', 'Мои', 'Избранные'].map((filter) => (
+          {['Все', 'Мои', 'Избранные'].map((filter) => (
             <button
               key={filter}
               onClick={() => setActiveFilter(filter)}
