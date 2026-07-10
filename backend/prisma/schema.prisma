@@ -91,7 +91,7 @@ model Route {
   duration         String
   description      String?
   imageColor       String?
-  emoji            String?
+  icon String?
   isMain           Boolean     @default(false)
   authorId         String?
   createdAt        DateTime    @default(now())
@@ -105,7 +105,7 @@ model Waypoint {
   routeId     String
   name        String
   description String?
-  emoji       String?
+  icon String?
   latitude    Float
   longitude   Float
   orderIndex  Int
@@ -143,7 +143,7 @@ model Achievement {
   name            String
   description     String
   imageUrl        String
-  emoji           String?
+  icon String?
   conditionType   String            @default("MANUAL")
   conditionTarget String?
   conditionCount  Int               @default(1)

@@ -115,27 +115,33 @@ export default function OnboardingScreen({ onComplete, initialStep = 0 }: Onboar
       title: 'Зубрики',
       subtitle: 'Открой Орёл по-новому',
       image: bisonSVG,
-      emoji: '🦬',
+      icon: 'Cat',
       description: 'Исследуй город через коллекционных персонажей',
-      background: 'linear-gradient(135deg, #1A3D2B, #2A5D3B)',
+      background: '#1A3D2B',
+      blob1: 'bg-[#34C759]',
+      blob2: 'bg-[#E8922A]',
       buttonColor: '#1A3D2B',
     },
     {
       title: 'Найди зубриков',
       subtitle: 'в городе',
       image: mapSVG,
-      emoji: '🗺️',
+      icon: 'MapPin',
       description: 'Используй карту, чтобы найти всех зубриков в Орле',
-      background: 'linear-gradient(135deg, #E8922A, #D4A017)',
+      background: '#E8922A',
+      blob1: 'bg-[#FFD60A]',
+      blob2: 'bg-[#FFFFFF]',
       buttonColor: '#E8922A',
     },
     {
       title: 'Собери коллекцию',
       subtitle: 'достижений',
-      emoji: '🏆',
+      icon: 'Trophy',
       image: goalSVG,
       description: 'Зарабатывай достижения и делись успехами с друзьями',
-      background: 'linear-gradient(135deg, #2A5D3B, #E8922A)',
+      background: '#2E5A41',
+      blob1: 'bg-[#E8922A]',
+      blob2: 'bg-[#34C759]',
     },
   ]
 
@@ -165,13 +171,14 @@ export default function OnboardingScreen({ onComplete, initialStep = 0 }: Onboar
     <div className="size-full flex flex-col bg-[#FAFAF7]">
       {/* ── Hero ── */}
       <div
-        className="flex-1 flex flex-col items-center justify-center px-8 text-center relative overflow-hidden transition-colors duration-500"
-        style={{ background: currentScreen.background }}
+        className="flex-1 flex flex-col items-center justify-center px-8 text-center relative overflow-hidden transition-colors duration-1000"
+        style={{ backgroundColor: currentScreen.background }}
       >
-        {/* decorative blobs */}
-        <div className="absolute inset-0 opacity-10 pointer-events-none">
-          <div className="absolute top-10 left-10 w-32 h-32 bg-white rounded-full blur-3xl" />
-          <div className="absolute bottom-20 right-10 w-40 h-40 bg-white rounded-full blur-3xl" />
+        {/* Aurora blobs */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className={`absolute -top-[20%] -left-[10%] w-[70%] h-[70%] rounded-full mix-blend-normal blur-[80px] opacity-40 animate-blob transition-colors duration-1000 ${currentScreen.blob1}`} />
+          <div className={`absolute top-[40%] -right-[10%] w-[70%] h-[70%] rounded-full mix-blend-normal blur-[80px] opacity-40 animate-blob animation-delay-2000 transition-colors duration-1000 ${currentScreen.blob2}`} />
+          <div className="absolute -bottom-[20%] left-[20%] w-[60%] h-[60%] rounded-full bg-white mix-blend-normal blur-[60px] opacity-10 animate-blob animation-delay-4000" />
         </div>
 
         {/* Back button — hidden on first step */}
@@ -197,10 +204,10 @@ export default function OnboardingScreen({ onComplete, initialStep = 0 }: Onboar
 
         <div className="relative z-10 flex flex-col items-center mt-10">
           <div className="mb-6 animate-bounce-slow drop-shadow-2xl">
-            <img src={currentScreen.image} alt={currentScreen.emoji} className="w-64 h-64 sm:w-80 sm:h-80 object-contain drop-shadow-lg" />
+            <img src={currentScreen.image} alt={currentScreen.icon} className="w-64 h-64 sm:w-80 sm:h-80 object-contain drop-shadow-lg" />
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-white mb-3 drop-shadow-sm">{currentScreen.title}</h1>
-          <p className="text-lg sm:text-xl font-medium text-white/95 mb-8 drop-shadow-sm">{currentScreen.subtitle}</p>
+          <h1 className="text-3xl sm:text-4xl font-black text-white mb-3 drop-shadow-md">{currentScreen.title}</h1>
+          <p className="text-lg sm:text-xl font-medium text-white/95 mb-8 drop-shadow-md">{currentScreen.subtitle}</p>
         </div>
       </div>
 

@@ -1,7 +1,8 @@
-import { ChevronRight, Clock, Heart, MapPin, Plus } from 'lucide-react'
+import { ChevronRight, Clock, Heart, MapPin, Plus, Route } from 'lucide-react'
 import { useState } from 'react'
 
 import { trpc } from '../lib/trpc'
+import { DynamicIcon } from './DynamicIcon'
 import LoadingZubrik from './LoadingZubrik'
 import PublicProfileScreen from './PublicProfileScreen'
 import RouteActive from './RouteActive'
@@ -18,7 +19,7 @@ type Route = {
   description?: string
   liked: boolean
   imageColor: string
-  emoji: string
+  icon: string
 }
 
 export default function RoutesScreen({ userLocation }: { userLocation: [number, number] | null }) {
@@ -129,15 +130,15 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
             <p className="text-[#6B6B6B] mb-4">{mainRoute?.description}</p>
             <div className="flex items-center gap-4 mb-4 text-sm text-[#6B6B6B] font-medium">
               <div className="flex items-center gap-1.5">
-                <img src="/images/icons/Way.svg" alt="Distance" className="w-5 h-5 object-contain" />
+                <Route size={18} className="text-[#E8922A]" />
                 <span>{mainRoute?.distance}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <img src="/images/icons/Time.svg" alt="Duration" className="w-5 h-5 object-contain" />
+                <Clock size={18} className="text-[#E8922A]" />
                 <span>{mainRoute?.duration}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <img src="/images/icons/PinBW.svg" alt="Stops" className="w-5 h-5 object-contain" />
+                <MapPin size={18} className="text-[#E8922A]" />
                 <span>{mainRoute?.stops} остановок</span>
               </div>
             </div>
@@ -162,17 +163,24 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
               className="bg-white rounded-[24px] overflow-hidden shadow-[0_8px_20px_rgba(0,0,0,0.05)] cursor-pointer active:scale-[0.98] transition-all border border-transparent hover:border-[#E5E3DD]/50"
             >
               <div
-                className="w-full h-28 flex items-center justify-center shrink-0 shadow-inner"
+                className="w-full h-28 flex items-center justify-center relative overflow-hidden shrink-0 shadow-inner"
                 style={{ backgroundColor: route.imageColor }}
               >
-                <span className="text-[3.5rem] drop-shadow-md">{route.emoji}</span>
+                <div className="flex-1 w-full h-full flex items-center justify-center bg-black/20 backdrop-blur-md">
+                  <DynamicIcon name={route.icon || 'MapPin'} size={48} className="text-white drop-shadow-md" />
+                </div>
               </div>
               <div className="p-4">
                 <h3 className="text-[15px] font-bold text-[#1C1C1E] mb-2 line-clamp-2 min-h-[2.5rem] leading-tight">{route.name}</h3>
-                <div className="flex items-center gap-2 text-xs text-[#6B6B6B] mb-2">
-                  <span>{route.distance}</span>
-                  <span>•</span>
-                  <span>{route.duration}</span>
+                <div className="flex items-center gap-3 text-xs text-[#6B6B6B] mb-3 font-medium">
+                  <div className="flex items-center gap-1">
+                    <Route size={14} className="text-[#E8922A]" />
+                    <span>{route.distance}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Clock size={14} className="text-[#E8922A]" />
+                    <span>{route.duration}</span>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <div 

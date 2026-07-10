@@ -1,11 +1,12 @@
 import { AnimatePresence, motion, Reorder } from 'framer-motion'
-import { LogOut, Settings } from 'lucide-react'
+import { Clock, Lock, LogOut, MapPin,Pin, Route, Settings } from 'lucide-react'
 import { useEffect,useState } from 'react'
 
 import { trpc } from '../lib/trpc'
 import AchievementModal from './AchievementModal'
 import AdminScreen from './AdminScreen'
 import ConfirmModal from './ConfirmModal'
+import { DynamicIcon } from './DynamicIcon'
 import LoadingZubrik from './LoadingZubrik'
 
 type RouteInfo = {
@@ -16,6 +17,7 @@ type RouteInfo = {
   stops: number
   description: string | null
   imageColor: string
+  icon: string
 }
 
 function RouteCard({ route }: { route: RouteInfo }) {
@@ -27,14 +29,23 @@ function RouteCard({ route }: { route: RouteInfo }) {
           className="w-8 h-8 rounded-full flex items-center justify-center text-white"
           style={{ backgroundColor: route.imageColor }}
         >
-          📍
+          <DynamicIcon name={route.icon || 'MapPin'} size={18} />
         </div>
       </div>
       <p className="text-sm text-[#6B6B6B] mb-3 line-clamp-2">{route.description}</p>
-      <div className="flex items-center gap-4 text-xs text-[#6B6B6B]">
-        <span>{route.distance}</span>
-        <span>{route.duration}</span>
-        <span>{route.stops} точек</span>
+      <div className="flex items-center gap-4 text-xs text-[#6B6B6B] font-medium">
+        <div className="flex items-center gap-1">
+          <Route size={14} className="text-[#E8922A]" />
+          <span>{route.distance}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Clock size={14} className="text-[#E8922A]" />
+          <span>{route.duration}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <MapPin size={14} className="text-[#E8922A]" />
+          <span>{route.stops} точек</span>
+        </div>
       </div>
     </div>
   )
@@ -115,7 +126,7 @@ export default function ProfileScreen() {
             {user?.avatarUrl ? (
               <img src={user.avatarUrl} alt="Аватар" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-5xl">🦬</span>
+              <DynamicIcon name="User" size={48} className="text-white/50" />
             )}
           </div>
           <h1 className="text-2xl mb-1">{user?.name || 'Исследователь'}</h1>
@@ -142,7 +153,9 @@ export default function ProfileScreen() {
         <h2 className="text-xl font-semibold text-[#1A3D2B] mb-4">Главные достижения</h2>
         {earnedAchievements.length === 0 ? (
           <div className="bg-white rounded-3xl p-6 text-center shadow-sm border border-[#E5E3DD] mb-6">
-            <div className="text-4xl mb-3 opacity-50">🌱</div>
+            <div className="bg-orange-50 text-[#E8922A] w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center shadow-inner">
+              <DynamicIcon name="Trophy" size={32} />
+            </div>
             <p className="text-[#6B6B6B] text-sm">Здесь появятся ваши лучшие достижения. Начните исследовать город!</p>
           </div>
         ) : pinnedAchievements.length > 0 ? (
@@ -193,7 +206,9 @@ export default function ProfileScreen() {
                       className="w-full h-full object-contain drop-shadow-lg"
                     />
                   ) : (
-                    <div className="text-5xl drop-shadow-md">{achievement.emoji}</div>
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center ${achievement.earned ? 'bg-white/20 text-white' : 'bg-gray-100 text-[#1C1C1E]'}`}>
+                      <DynamicIcon name={achievement.icon || 'Trophy'} size={32} />
+                    </div>
                   )}
                 </div>
 
@@ -232,7 +247,9 @@ export default function ProfileScreen() {
                   {achievement.imageUrl && achievement.imageUrl !== '' ? (
                     <img src={achievement.imageUrl} alt={achievement.name} className="w-full h-full object-contain drop-shadow-lg" />
                   ) : (
-                    <div className="text-5xl drop-shadow-md">{achievement.emoji}</div>
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center ${achievement.earned ? 'bg-white/20 text-white' : 'bg-gray-100 text-[#1C1C1E]'}`}>
+                      <DynamicIcon name={achievement.icon || 'Trophy'} size={32} />
+                    </div>
                   )}
                 </div>
                 <div className="w-full bg-black/30 backdrop-blur-md rounded-[16px] py-1.5 px-1 relative z-10">
@@ -316,9 +333,9 @@ export default function ProfileScreen() {
                         />
                       ) : (
                         <div
-                          className={`text-6xl ${!achievement.earned ? 'grayscale opacity-30 scale-90' : 'drop-shadow-md'}`}
+                          className={`w-20 h-20 rounded-full flex items-center justify-center ${!achievement.earned ? 'bg-gray-100/80 text-gray-400 scale-90 shadow-inner' : 'bg-white/20 text-white shadow-lg'}`}
                         >
-                          {achievement.emoji}
+                          <DynamicIcon name={achievement.icon || 'Trophy'} size={40} />
                         </div>
                       )}
                     </div>
@@ -365,16 +382,12 @@ export default function ProfileScreen() {
                           achievement.isPinned ? 'bg-[#E8922A] text-white shadow-md' : 'bg-black/20 text-white/50 hover:text-white hover:bg-black/40'
                         }`}
                       >
-                        <img 
-                          src={achievement.isPinned ? '/images/icons/Pinned.svg' : '/images/icons/Pin.svg'} 
-                          alt="Pin" 
-                          className={`object-contain ${achievement.isPinned ? 'w-5 h-5' : 'h-5 w-auto'}`} 
-                        />
+                        <Pin size={16} strokeWidth={2.5} className={achievement.isPinned ? 'fill-current' : ''} />
                       </button>
                     )}
                     {!achievement.earned && (
-                      <div className="absolute top-3 right-3 opacity-40">
-                        <img src="/images/icons/Lock.svg" alt="Lock" className="w-5 h-5" />
+                      <div className="absolute top-2 right-2 z-20 w-8 h-8 rounded-full flex items-center justify-center bg-gray-100/80 text-gray-400 shadow-sm">
+                        <Lock size={14} strokeWidth={2.5} />
                       </div>
                     )}
                   </motion.div>

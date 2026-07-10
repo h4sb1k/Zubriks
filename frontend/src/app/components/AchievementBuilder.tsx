@@ -1,16 +1,17 @@
-import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react'
 import { AnimatePresence,motion } from 'framer-motion'
 import { ArrowLeft, ImagePlus, SmilePlus,Trash2, Trophy } from 'lucide-react'
 import { useState } from 'react'
 
 import { trpc } from '../lib/trpc'
 import ConfirmModal from './ConfirmModal'
+import { DynamicIcon } from './DynamicIcon'
+import { IconPicker } from './IconPicker'
 
 export type AchievementEditData = {
   id: string
   name: string
   description: string
-  emoji: string | null
+  icon: string | null
   imageUrl: string
   conditionType: string
   conditionTarget: string | null
@@ -28,7 +29,7 @@ export default function AchievementBuilder({
   
   const [name, setName] = useState(initialData?.name || '')
   const [description, setDescription] = useState(initialData?.description || '')
-  const [emoji, setEmoji] = useState(initialData?.emoji || '🏆')
+  const [icon, setIcon] = useState(initialData?.icon || 'Trophy')
   const [imageUrl, setImageUrl] = useState(initialData?.imageUrl || '')
   
   const [conditionType, setConditionType] = useState(initialData?.conditionType || 'MANUAL')
@@ -36,7 +37,7 @@ export default function AchievementBuilder({
   const [conditionCount, setConditionCount] = useState(initialData?.conditionCount || 1)
   
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [showIconPicker, setShowIconPicker] = useState(false)
 
   // Получаем список зубриков для дропдауна SPECIFIC_ZUBRIK
   const { data: zubriksData } = trpc.adminGetZubriksList.useQuery(undefined, {
@@ -94,7 +95,7 @@ export default function AchievementBuilder({
         id: initialData.id,
         name,
         description,
-        emoji,
+        icon,
         imageUrl,
         conditionType,
         conditionTarget,
@@ -104,7 +105,7 @@ export default function AchievementBuilder({
       createAchievement.mutate({
         name,
         description,
-        emoji,
+        icon,
         imageUrl,
         conditionType,
         conditionTarget,
@@ -158,20 +159,20 @@ export default function AchievementBuilder({
         </div>
 
         <div className="relative">
-          <label className="block text-sm font-bold text-[#6B6B6B] uppercase tracking-wider mb-2">Эмодзи (для карточек)</label>
+          <label className="block text-sm font-bold text-[#6B6B6B] uppercase tracking-wider mb-2">Иконка (для карточек)</label>
           <button
-            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            onClick={() => setShowIconPicker(!showIconPicker)}
             className="w-20 bg-white border-2 border-[#E5E3DD] rounded-[20px] px-5 py-4 text-2xl focus:border-[#E8922A] focus:outline-none transition-colors flex items-center justify-center hover:bg-[#F5F2EB] active:scale-95"
           >
-            {emoji}
+            <DynamicIcon name={icon || 'Trophy'} size={32} />
           </button>
           
           <AnimatePresence>
-            {showEmojiPicker && (
+            {showIconPicker && (
               <>
                 <div 
                   className="fixed inset-0 z-40" 
-                  onClick={() => setShowEmojiPicker(false)}
+                  onClick={() => setShowIconPicker(false)}
                 />
                 <motion.div 
                   initial={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -179,13 +180,11 @@ export default function AchievementBuilder({
                   exit={{ opacity: 0, y: -10, scale: 0.95 }}
                   className="absolute z-50 top-full mt-2 left-0 shadow-2xl rounded-2xl overflow-hidden"
                 >
-                  <EmojiPicker 
-                    onEmojiClick={(emojiData: EmojiClickData) => {
-                      setEmoji(emojiData.emoji)
-                      setShowEmojiPicker(false)
+                  <IconPicker 
+                    onIconSelect={(iconName) => {
+                      setIcon(iconName)
+                      setShowIconPicker(false)
                     }}
-                    autoFocusSearch={false}
-                    theme={Theme.LIGHT}
                   />
                 </motion.div>
               </>

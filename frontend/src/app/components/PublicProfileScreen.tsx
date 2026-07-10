@@ -2,6 +2,7 @@ import { ArrowLeft } from 'lucide-react'
 import { useState } from 'react'
 
 import { trpc } from '../lib/trpc'
+import { DynamicIcon } from './DynamicIcon'
 
 type RouteInfo = {
   id: string
@@ -11,7 +12,7 @@ type RouteInfo = {
   stops: number
   description: string | null
   imageColor: string
-  emoji: string
+  icon: string
 }
 
 function RouteCard({ route }: { route: RouteInfo }) {
@@ -23,7 +24,7 @@ function RouteCard({ route }: { route: RouteInfo }) {
           className="w-8 h-8 rounded-full flex items-center justify-center text-white text-lg"
           style={{ backgroundColor: route.imageColor }}
         >
-          {route.emoji}
+          <DynamicIcon name={route.icon || 'MapPin'} size={20} />
         </div>
       </div>
       <p className="text-sm text-[#6B6B6B] mb-3 line-clamp-2">{route.description}</p>
@@ -139,7 +140,7 @@ export default function PublicProfileScreen({ userId, onClose }: { userId: strin
                         className="w-full h-full object-contain drop-shadow-lg"
                       />
                     ) : (
-                      <div className="text-5xl drop-shadow-md">{achievement.emoji}</div>
+                      <div className="text-5xl drop-shadow-md flex items-center justify-center"><DynamicIcon name={achievement.icon || 'Trophy'} size={48} /></div>
                     )}
                   </div>
 
@@ -204,9 +205,9 @@ export default function PublicProfileScreen({ userId, onClose }: { userId: strin
                         />
                       ) : (
                         <div
-                          className={`text-6xl ${!achievement.earned ? 'grayscale opacity-30 scale-90' : 'drop-shadow-md'}`}
+                          className={`flex items-center justify-center ${!achievement.earned ? 'grayscale opacity-30 scale-90' : 'drop-shadow-md'}`}
                         >
-                          {achievement.emoji}
+                          <DynamicIcon name={achievement.icon || 'Trophy'} size={60} />
                         </div>
                       )}
                     </div>

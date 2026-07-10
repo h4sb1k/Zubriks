@@ -8,6 +8,7 @@ import { calculateDistance } from '../utils/distance'
 import type { MapPoint } from '../utils/openInMaps'
 import { openPointInMaps, openRouteInMaps } from '../utils/openInMaps'
 import ConfirmModal from './ConfirmModal'
+import { DynamicIcon } from './DynamicIcon'
 import LoadingZubrik from './LoadingZubrik'
 import RouteBuilder from './RouteBuilder'
 
@@ -57,7 +58,7 @@ export default function RouteActive({ routeId, routeName: initialRouteName, auth
       id: w.id,
       name: w.name,
       description: w.description,
-      emoji: w.emoji,
+      icon: w.icon,
       completed: w.completed,
       coords: { lat: w.latitude, lon: w.longitude, name: w.name } as MapPoint,
       distance: userLocation ? calculateDistance(userLocation[0], userLocation[1], w.latitude, w.longitude) : '...',
@@ -149,8 +150,10 @@ export default function RouteActive({ routeId, routeName: initialRouteName, auth
           </div>
         </div>
         <div className="flex-1 flex items-center justify-center p-5">
-          <div className="text-center text-[#6B6B6B]">
-            <span className="text-4xl block mb-3">🗺️</span>
+          <div className="text-center text-[#6B6B6B] flex flex-col items-center">
+            <div className="bg-gray-100 rounded-full w-20 h-20 flex items-center justify-center mb-3 shadow-inner">
+              <DynamicIcon name="Map" size={40} className="text-gray-400" />
+            </div>
             <p>У этого маршрута пока нет точек</p>
           </div>
         </div>
@@ -218,8 +221,8 @@ export default function RouteActive({ routeId, routeName: initialRouteName, auth
       <div className="flex-1 overflow-y-auto">
         {isCompleted ? (
           <div className="p-5 flex flex-col items-center justify-center min-h-full text-center py-20">
-            <div className="w-32 h-32 bg-gradient-to-br from-[#1A3D2B] to-[#E8922A] rounded-full flex items-center justify-center text-6xl mb-6 shadow-xl animate-bounce">
-              🏆
+            <div className="w-32 h-32 bg-gradient-to-br from-[#1A3D2B] to-[#E8922A] rounded-full flex items-center justify-center mb-6 shadow-xl animate-bounce">
+              <DynamicIcon name="Trophy" size={64} className="text-white drop-shadow-lg" />
             </div>
             <h2 className="text-3xl font-bold text-[#1A3D2B] mb-3">Поздравляем!</h2>
             <p className="text-[#6B6B6B] mb-8 text-lg">
@@ -244,7 +247,7 @@ export default function RouteActive({ routeId, routeName: initialRouteName, auth
 
                 <div className="flex items-start gap-4 mb-4">
                   <div className="w-16 h-16 bg-gradient-to-br from-[#1A3D2B] to-[#E8922A] rounded-2xl flex items-center justify-center text-3xl flex-shrink-0">
-                    {nextWaypoint.emoji}
+                    <DynamicIcon name={nextWaypoint.icon || 'MapPin'} size={32} className="text-white drop-shadow-sm" />
                   </div>
                   <div className="flex-1">
                     <h2 className="text-xl mb-1">{nextWaypoint.name}</h2>
@@ -299,7 +302,7 @@ export default function RouteActive({ routeId, routeName: initialRouteName, auth
                           <h4 className={waypoint.completed ? 'text-[#6B6B6B]' : ''}>{waypoint.name}</h4>
                           <p className="text-sm text-[#6B6B6B] mt-0.5">{waypoint.description}</p>
                         </div>
-                        <span className="text-2xl flex-shrink-0">{waypoint.emoji}</span>
+                        <span className="flex-shrink-0 flex items-center justify-center"><DynamicIcon name={waypoint.icon || 'MapPin'} size={24} /></span>
                       </div>
                     </div>
                   </div>

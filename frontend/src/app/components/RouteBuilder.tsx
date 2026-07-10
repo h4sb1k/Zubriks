@@ -1,4 +1,3 @@
-import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import * as L from 'leaflet'
 import { ArrowLeft, ChevronDown, ChevronUp, MapPin, Plus, Trash2 } from 'lucide-react'
@@ -7,6 +6,8 @@ import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-lea
 
 import { trpc } from '../lib/trpc'
 import ConfirmModal from './ConfirmModal'
+import { DynamicIcon } from './DynamicIcon'
+import { IconPicker } from './IconPicker'
 
 const customIcon = L.divIcon({
   className: 'custom-icon',
@@ -88,20 +89,20 @@ type WaypointDraft = {
   id: string
   name: string
   description: string
-  emoji: string
+  icon: string
   latitude: number | null
   longitude: number | null
 }
 
 export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: string, onClose: () => void }) {
-  const [routeEmoji, setRouteEmoji] = useState('📍')
-  const [routeEmojiPickerOpen, setRouteEmojiPickerOpen] = useState(false)
+  const [routeIcon, setRouteIcon] = useState('MapPin')
+  const [routeIconPickerOpen, setRouteIconPickerOpen] = useState(false)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [waypoints, setWaypoints] = useState<WaypointDraft[]>([])
 
   const [pickerIndex, setPickerIndex] = useState<number | null>(null)
-  const [emojiPickerIndex, setEmojiPickerIndex] = useState<number | null>(null)
+  const [iconPickerIndex, setIconPickerIndex] = useState<number | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   
   const utils = trpc.useUtils()
@@ -116,12 +117,12 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
       const route = routeData.route
       setName(route.name)
       setDescription(route.description || '')
-      setRouteEmoji(route.emoji || '📍')
+      setRouteIcon(route.icon || 'MapPin')
       setWaypoints(route.waypoints.map(wp => ({
         id: wp.id,
         name: wp.name,
         description: wp.description || '',
-        emoji: wp.emoji || '📍',
+        icon: wp.icon || 'MapPin',
         latitude: wp.latitude,
         longitude: wp.longitude,
       })))
@@ -176,7 +177,7 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
         id: Math.random().toString(),
         name: '',
         description: '',
-        emoji: '📍',
+        icon: 'MapPin',
         latitude: null,
         longitude: null,
       },
@@ -209,11 +210,11 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
         routeId: editRouteId,
         name,
         description,
-        emoji: routeEmoji,
+        icon: routeIcon,
         waypoints: validWaypoints.map((w) => ({
           name: w.name,
           description: w.description,
-          emoji: w.emoji,
+          icon: w.icon,
           latitude: w.latitude!,
           longitude: w.longitude!,
         })),
@@ -222,11 +223,11 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
       createRoute.mutate({
         name,
         description,
-        emoji: routeEmoji,
+        icon: routeIcon,
         waypoints: validWaypoints.map((w) => ({
           name: w.name,
           description: w.description,
-          emoji: w.emoji,
+          icon: w.icon,
           latitude: w.latitude!,
           longitude: w.longitude!,
         })),
@@ -283,10 +284,10 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => setRouteEmojiPickerOpen(!routeEmojiPickerOpen)}
-                className="h-12 w-14 bg-[#F5F2EB] rounded-2xl flex items-center justify-center outline-none focus:ring-2 focus:ring-[#E8922A]/50 shrink-0 transition-shadow"
+                onClick={() => setRouteIconPickerOpen(!routeIconPickerOpen)}
+                className="h-12 w-14 bg-[#F5F2EB] rounded-2xl flex items-center justify-center outline-none focus:ring-2 focus:ring-[#E8922A]/50 shrink-0 transition-shadow text-[#1C1C1E]"
               >
-                <span className="text-2xl leading-none">{routeEmoji}</span>
+                <DynamicIcon name={routeIcon} size={24} />
               </button>
               <input
                 type="text"
@@ -298,11 +299,11 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
             </div>
             
             <AnimatePresence>
-              {routeEmojiPickerOpen && (
+              {routeIconPickerOpen && (
                 <>
                   <div 
                     className="fixed inset-0 z-[110]" 
-                    onClick={() => setRouteEmojiPickerOpen(false)}
+                    onClick={() => setRouteIconPickerOpen(false)}
                   />
                   <motion.div 
                     initial={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -310,16 +311,11 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
                     exit={{ opacity: 0, y: -10, scale: 0.95 }}
                     className="absolute z-[120] mt-1 left-5 shadow-2xl rounded-2xl overflow-hidden"
                   >
-                    <EmojiPicker 
-                      onEmojiClick={(emojiData: EmojiClickData) => {
-                        setRouteEmoji(emojiData.emoji)
-                        setRouteEmojiPickerOpen(false)
+                    <IconPicker 
+                      onIconSelect={(iconName) => {
+                        setRouteIcon(iconName)
+                        setRouteIconPickerOpen(false)
                       }}
-                      autoFocusSearch={false}
-                      theme={Theme.LIGHT}
-                      searchPlaceHolder="Поиск эмодзи..."
-                      width={320}
-                      height={400}
                     />
                   </motion.div>
                 </>
@@ -383,18 +379,18 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
                 <div className="flex gap-3 relative">
                   <button
                     type="button"
-                    onClick={() => setEmojiPickerIndex(emojiPickerIndex === i ? null : i)}
-                    className="h-12 w-14 bg-[#F5F2EB] rounded-2xl flex items-center justify-center outline-none focus:ring-2 focus:ring-[#E8922A]/50 shrink-0 transition-shadow"
+                    onClick={() => setIconPickerIndex(iconPickerIndex === i ? null : i)}
+                    className="h-12 w-14 bg-[#F5F2EB] rounded-2xl flex items-center justify-center outline-none focus:ring-2 focus:ring-[#E8922A]/50 shrink-0 transition-shadow text-[#1C1C1E]"
                   >
-                    <span className="text-2xl leading-none">{wp.emoji}</span>
+                    <DynamicIcon name={wp.icon} size={24} />
                   </button>
                   
                   <AnimatePresence>
-                    {emojiPickerIndex === i && (
+                    {iconPickerIndex === i && (
                       <>
                         <div 
                           className="fixed inset-0 z-[110]" 
-                          onClick={() => setEmojiPickerIndex(null)}
+                          onClick={() => setIconPickerIndex(null)}
                         />
                         <motion.div 
                           initial={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -402,16 +398,11 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
                           exit={{ opacity: 0, y: -10, scale: 0.95 }}
                           className="absolute z-[120] top-full mt-2 left-0 shadow-2xl rounded-2xl overflow-hidden"
                         >
-                          <EmojiPicker 
-                            onEmojiClick={(emojiData: EmojiClickData) => {
-                              updateWaypoint(i, { emoji: emojiData.emoji })
-                              setEmojiPickerIndex(null)
+                          <IconPicker 
+                            onIconSelect={(iconName) => {
+                              updateWaypoint(i, { icon: iconName })
+                              setIconPickerIndex(null)
                             }}
-                            autoFocusSearch={false}
-                            theme={Theme.LIGHT}
-                            searchPlaceHolder="Поиск эмодзи..."
-                            width={300}
-                            height={350}
                           />
                         </motion.div>
                       </>

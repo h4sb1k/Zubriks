@@ -14,7 +14,7 @@ export type NewAchievement = {
   id: string
   name: string
   description: string
-  emoji: string
+  icon: string
   imageUrl: string
 }
 

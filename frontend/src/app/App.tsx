@@ -196,7 +196,7 @@ function MainApp() {
           name={achievementQueue[0].name}
           description={achievementQueue[0].description}
           image={achievementQueue[0].imageUrl}
-          emoji={achievementQueue[0].emoji}
+          icon={achievementQueue[0].icon}
           onClose={() => setAchievementQueue((prev) => prev.slice(1))}
         />
       )}

@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { Calendar, ChevronRight, MapPin, Trophy } from 'lucide-react'
+import { Calendar, Check, ChevronRight, Clock,Lock, MapPin, Route, Trophy } from 'lucide-react'
 import { useState } from 'react'
 
 import { trpc } from '../lib/trpc'
 import { calculateDistance } from '../utils/distance'
+import { DynamicIcon } from './DynamicIcon'
 import LeaderboardScreen from './LeaderboardScreen'
 import LoadingZubrik from './LoadingZubrik'
 import RouteActive from './RouteActive'
@@ -139,15 +140,15 @@ export default function HomeScreen({
               <p className="text-[#6B6B6B] mb-4">{mainRouteData?.mainRoute?.description}</p>
               <div className="flex items-center gap-4 mb-4 text-sm text-[#6B6B6B] font-medium">
                 <div className="flex items-center gap-1.5">
-                  <img src="/images/icons/Way.svg" alt="Distance" className="w-5 h-5 object-contain" />
+                  <Route size={18} className="text-[#E8922A]" />
                   <span>{mainRouteData?.mainRoute?.distance}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <img src="/images/icons/Time.svg" alt="Duration" className="w-5 h-5 object-contain" />
+                  <Clock size={18} className="text-[#E8922A]" />
                   <span>{mainRouteData?.mainRoute?.duration}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <img src="/images/icons/PinBW.svg" alt="Stops" className="w-5 h-5 object-contain" />
+                  <MapPin size={18} className="text-[#E8922A]" />
                   <span>{mainRouteData?.mainRoute?.stops} остановок</span>
                 </div>
               </div>
@@ -195,15 +196,19 @@ export default function HomeScreen({
                   <div
                     className="w-20 h-20 rounded-full mx-auto mb-3 flex items-center justify-center overflow-hidden shadow-inner bg-[#E8922A]/15"
                   >
-                    <ZubrikImage src={zubrik.imageUrl} alt={zubrik.name} emojiSize="text-3xl" />
+                    <ZubrikImage src={zubrik.imageUrl} alt={zubrik.name} iconSize={32} />
                   </div>
                   <h3 className="text-[15px] font-bold text-[#1C1C1E] mb-1.5 line-clamp-2 min-h-[2.5rem] leading-tight">{zubrik.name}</h3>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-[#6B6B6B]">{zubrik.distance}</span>
                     {zubrik.unlocked ? (
-                      <span className="text-[#34C759]">✓</span>
+                      <div className="bg-emerald-100/80 text-emerald-600 p-1 rounded-full shadow-sm">
+                        <Check size={14} strokeWidth={3} />
+                      </div>
                     ) : (
-                      <span className="text-[#6B6B6B]">🔒</span>
+                      <div className="bg-gray-100/80 text-gray-400 p-1 rounded-full shadow-sm">
+                        <Lock size={14} strokeWidth={2.5} />
+                      </div>
                     )}
                   </div>
                 </motion.button>
@@ -246,7 +251,9 @@ export default function HomeScreen({
                     {event.imageUrl ? (
                       <img src={event.imageUrl} alt={event.title} className="absolute inset-0 w-full h-full object-cover opacity-80" />
                     ) : (
-                      <span className="text-5xl z-10 drop-shadow-md">🎭</span>
+                      <div className="z-10 bg-white/20 p-4 rounded-full backdrop-blur-sm shadow-lg">
+                        <DynamicIcon name="Tent" size={48} className="text-white drop-shadow-md" />
+                      </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                   </div>

@@ -4,6 +4,7 @@ import { useMemo,useState } from 'react'
 
 import { trpc } from '../lib/trpc'
 import AchievementBuilder, { type AchievementEditData } from './AchievementBuilder'
+import { DynamicIcon } from './DynamicIcon'
 import LoadingZubrik from './LoadingZubrik'
 import UserBuilder, { type UserEditData } from './UserBuilder'
 import ZubrikBuilder, { type ZubrikEditData } from './ZubrikBuilder'
@@ -249,13 +250,13 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
                     {a.imageUrl ? (
                       <img src={a.imageUrl} alt={a.name} className="w-full h-full object-cover rounded-full bg-white" />
                     ) : (
-                      <span className="text-[40px] drop-shadow-sm">{a.emoji || '🏆'}</span>
+                      <span className="text-[40px] drop-shadow-sm flex items-center justify-center"><DynamicIcon name={a.icon || 'Trophy'} size={40} /></span>
                     )}
                   </div>
                   <div className="flex-1 min-w-0 py-1">
                     <div className="font-bold text-[17px] text-[#1C1C1E] mb-1 tracking-tight truncate flex items-center gap-2">
                       {a.name}
-                      <span className="text-lg">{a.emoji}</span>
+                      <span className="text-lg"><DynamicIcon name={a.icon || 'Trophy'} size={20} /></span>
                     </div>
                     <div className="text-[14px] text-[#6B6B6B] leading-snug line-clamp-2">{a.description}</div>
                   </div>

@@ -4,12 +4,14 @@ import { Share2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { DynamicIcon } from './DynamicIcon'
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type AchievementUnlockProps = {
   name: string
   description: string
-  emoji?: string
+  icon?: string
   image?: ReactNode | string
   onClose: () => void
 }
@@ -81,7 +83,7 @@ function shootFromCard(cardEl: HTMLElement): void {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function AchievementUnlock({ name, description, emoji, image, onClose }: AchievementUnlockProps) {
+export default function AchievementUnlock({ name, description, icon, image, onClose }: AchievementUnlockProps) {
   const [isVisible, setIsVisible] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
 
@@ -123,7 +125,7 @@ export default function AchievementUnlock({ name, description, emoji, image, onC
       }
       return <div className="w-32 h-32 flex items-center justify-center">{image}</div>
     }
-    return <span className="text-[5rem]">{emoji}</span>
+    return <DynamicIcon name={icon || 'Trophy'} size={80} className="text-gray-800 drop-shadow-md mx-auto" />
   }
 
   return (

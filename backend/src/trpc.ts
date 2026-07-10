@@ -113,7 +113,7 @@ async function checkAndAwardAchievements(prisma: PrismaClient, userId: string) {
   })
   const earnedIds = new Set(existingUserAchievements.map((a) => a.achievementId))
 
-  const newlyEarned: { id: string; name: string; description: string; emoji: string; imageUrl: string }[] = []
+  const newlyEarned: { id: string; name: string; description: string; icon: string; imageUrl: string }[] = []
 
   for (const achievement of allAchievements) {
     if (earnedIds.has(achievement.id)) continue // уже получена
@@ -159,7 +159,7 @@ async function checkAndAwardAchievements(prisma: PrismaClient, userId: string) {
       id: achievement.id,
       name: achievement.name,
       description: achievement.description ?? '',
-      emoji: achievement.emoji ?? '🏆',
+      icon: achievement.icon ?? 'Trophy',
       imageUrl: achievement.imageUrl ?? '',
     })
   }
@@ -204,7 +204,7 @@ export const trpcRouter = trpc.router({
           id: achievement.id,
           name: achievement.name,
           description: achievement.description ?? '',
-          emoji: achievement.emoji ?? '🏆',
+          icon: achievement.icon ?? 'Trophy',
           imageUrl: achievement.imageUrl ?? '',
         }
       }
@@ -341,12 +341,12 @@ export const trpcRouter = trpc.router({
         daysCount: daysInApp
       },
       createdRoutes: user.createdRoutes.map(r => ({
-        id: r.id, name: r.name, distance: r.distance, duration: r.duration, stops: r._count.waypoints, description: r.description, imageColor: r.imageColor ?? '#1A3D2B', emoji: r.emoji ?? '📍'
+        id: r.id, name: r.name, distance: r.distance, duration: r.duration, stops: r._count.waypoints, description: r.description, imageColor: r.imageColor ?? '#1A3D2B', icon: r.icon ?? 'MapPin'
       })),
       achievements: allAchievements.map(a => {
         const userState = earnedMap.get(a.id) || { earned: false, progress: 0, isPinned: false, pinnedAt: null }
         return {
-          id: a.id, name: a.name, description: a.description, emoji: a.emoji ?? '🏆', imageUrl: a.imageUrl, earned: userState.earned, progress: userState.progress, isPinned: userState.isPinned, pinnedAt: userState.pinnedAt ? userState.pinnedAt.toISOString() : null
+          id: a.id, name: a.name, description: a.description, icon: a.icon ?? 'Trophy', imageUrl: a.imageUrl, earned: userState.earned, progress: userState.progress, isPinned: userState.isPinned, pinnedAt: userState.pinnedAt ? userState.pinnedAt.toISOString() : null
         }
       })
     }
@@ -466,7 +466,7 @@ export const trpcRouter = trpc.router({
         description: r.description,
         liked: likedRouteIds.has(r.id),
         imageColor: r.imageColor ?? '#1A3D2B',
-        emoji: r.emoji ?? '📍',
+        icon: r.icon ?? 'MapPin',
       })),
       mainRoute: mainRoute
         ? {
@@ -476,7 +476,7 @@ export const trpcRouter = trpc.router({
             duration: mainRoute.duration,
             stops: mainRoute._count.waypoints,
             description: mainRoute.description,
-            emoji: mainRoute.emoji ?? '👑',
+            icon: mainRoute.icon ?? 'Crown',
           }
         : null,
     }
@@ -500,7 +500,7 @@ export const trpcRouter = trpc.router({
         duration: mainRoute.duration,
         stops: mainRoute._count.waypoints,
         description: mainRoute.description,
-        emoji: mainRoute.emoji ?? '👑',
+        icon: mainRoute.icon ?? 'Crown',
       },
     }
   }),
@@ -526,7 +526,7 @@ export const trpcRouter = trpc.router({
         id: w.id,
         name: w.name,
         description: w.description ?? '',
-        emoji: w.emoji ?? '📍',
+        icon: w.icon ?? 'MapPin',
         latitude: w.latitude,
         longitude: w.longitude,
         orderIndex: w.orderIndex,
@@ -567,13 +567,13 @@ export const trpcRouter = trpc.router({
         name: z.string().min(1).max(100),
         description: z.string().max(500).optional(),
         imageColor: z.string().optional(),
-        emoji: z.string().optional(),
+        icon: z.string().optional(),
         waypoints: z
           .array(
             z.object({
               name: z.string().min(1),
               description: z.string().optional(),
-              emoji: z.string().optional(),
+              icon: z.string().optional(),
               latitude: z.number(),
               longitude: z.number(),
             }),
@@ -622,14 +622,14 @@ export const trpcRouter = trpc.router({
           distance: `${distanceStr} км`,
           duration,
           imageColor: input.imageColor ?? '#1A3D2B',
-          emoji: input.emoji ?? '📍',
+          icon: input.icon ?? 'MapPin',
           isMain: false,
           authorId: ctx.userId,
           waypoints: {
             create: input.waypoints.map((wp, idx) => ({
               name: wp.name,
               description: wp.description,
-              emoji: wp.emoji ?? '📍',
+              icon: wp.icon ?? 'MapPin',
               latitude: wp.latitude,
               longitude: wp.longitude,
               orderIndex: idx,
@@ -689,13 +689,13 @@ export const trpcRouter = trpc.router({
         routeId: z.string(),
         name: z.string().min(1).max(100),
         description: z.string().max(500).optional(),
-        emoji: z.string().optional(),
+        icon: z.string().optional(),
         waypoints: z
           .array(
             z.object({
               name: z.string().min(1),
               description: z.string().optional(),
-              emoji: z.string().optional(),
+              icon: z.string().optional(),
               latitude: z.number(),
               longitude: z.number(),
             }),
@@ -745,14 +745,14 @@ export const trpcRouter = trpc.router({
         data: {
           name: input.name,
           description: input.description,
-          emoji: input.emoji ?? '📍',
+          icon: input.icon ?? 'MapPin',
           distance: `${distanceStr} км`,
           duration,
           waypoints: {
             create: input.waypoints.map((wp, idx) => ({
               name: wp.name,
               description: wp.description,
-              emoji: wp.emoji ?? '📍',
+              icon: wp.icon ?? 'MapPin',
               latitude: wp.latitude,
               longitude: wp.longitude,
               orderIndex: idx,
@@ -914,7 +914,7 @@ export const trpcRouter = trpc.router({
           name: a.name,
           description: a.description,
           imageUrl: a.imageUrl,
-          emoji: a.emoji ?? '🏆',
+          icon: a.icon ?? 'Trophy',
           earned: userState.earned,
           progress: currentProgress,
           progressCurrent,
@@ -1127,7 +1127,7 @@ export const trpcRouter = trpc.router({
       name: z.string().min(1).max(100),
       description: z.string().max(500),
       imageUrl: z.string().min(1),
-      emoji: z.string().optional(),
+      icon: z.string().optional(),
       conditionType: z.string().default('MANUAL'),
       conditionTarget: z.string().nullable().optional(),
       conditionCount: z.number().int().min(1).default(1),
@@ -1138,7 +1138,7 @@ export const trpcRouter = trpc.router({
           name: input.name,
           description: input.description,
           imageUrl: input.imageUrl,
-          emoji: input.emoji,
+          icon: input.emoji,
           conditionType: input.conditionType,
           conditionTarget: input.conditionTarget ?? null,
           conditionCount: input.conditionCount,
@@ -1153,7 +1153,7 @@ export const trpcRouter = trpc.router({
       name: z.string().min(1).max(100),
       description: z.string().max(500),
       imageUrl: z.string().min(1),
-      emoji: z.string().optional(),
+      icon: z.string().optional(),
       conditionType: z.string().default('MANUAL'),
       conditionTarget: z.string().nullable().optional(),
       conditionCount: z.number().int().min(1).default(1),
@@ -1165,7 +1165,7 @@ export const trpcRouter = trpc.router({
           name: input.name,
           description: input.description,
           imageUrl: input.imageUrl,
-          emoji: input.emoji,
+          icon: input.emoji,
           conditionType: input.conditionType,
           conditionTarget: input.conditionTarget ?? null,
           conditionCount: input.conditionCount,

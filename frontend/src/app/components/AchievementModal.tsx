@@ -2,11 +2,13 @@ import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from
 import { X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 
+import { DynamicIcon } from './DynamicIcon'
+
 export type AchievementData = {
   id: string
   name: string
   description: string
-  emoji: string | null
+  icon: string | null
   imageUrl: string | null
   earned: boolean
   progress?: number
@@ -187,8 +189,8 @@ export default function AchievementModal({ achievement, onClose }: AchievementMo
                       }`}
                     />
                   ) : (
-                    <div className={`text-9xl drop-shadow-[0_15px_25px_rgba(0,0,0,0.3)] ${!achievement.earned ? 'grayscale opacity-30 drop-shadow-none' : ''}`}>
-                      {achievement.emoji}
+                    <div className={`text-9xl drop-shadow-[0_15px_25px_rgba(0,0,0,0.3)] flex justify-center ${!achievement.earned ? 'grayscale opacity-30 drop-shadow-none' : ''}`}>
+                      <DynamicIcon name={achievement.icon || 'Trophy'} size={128} />
                     </div>
                   )}
                 </div>
