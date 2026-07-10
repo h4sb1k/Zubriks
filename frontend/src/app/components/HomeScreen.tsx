@@ -122,42 +122,44 @@ export default function HomeScreen({
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             className="bg-white rounded-[32px] overflow-hidden shadow-[0_12px_30px_rgba(26,61,43,0.08)] mb-8"
           >
-            <div className="h-48 relative overflow-hidden flex items-end p-5">
+            <div className="h-56 relative overflow-hidden p-6 flex items-end">
               <img
                 src="/images/Tour-Zubriki-1.webp"
                 alt="Тур Зубрики"
                 className="absolute inset-0 w-full h-full object-cover transform hover:scale-105 transition-transform duration-700"
               />
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0.2), transparent)' }} />
-              <div className="absolute top-4 right-4 bg-[#E8922A] text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-sm z-10">
-                Главный маршрут
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(26,61,43,0.9), rgba(26,61,43,0.3) 60%, transparent)' }} />
+              <div className="absolute top-5 right-5 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full text-[11px] font-bold text-[#E8922A] uppercase tracking-wider shadow-sm z-10">
+                Главный тур
               </div>
               <div className="relative z-10 w-full text-center">
-                <h2 className="text-white text-2xl font-bold mb-1 drop-shadow-sm">{mainRouteData?.mainRoute?.name}</h2>
+                <h2 className="text-white text-[32px] font-black mb-1 drop-shadow-md leading-none tracking-tight">{mainRouteData?.mainRoute?.name}</h2>
               </div>
             </div>
-            <div className="p-5">
-              <p className="text-[#6B6B6B] mb-4">{mainRouteData?.mainRoute?.description}</p>
-              <div className="flex items-center gap-4 mb-4 text-sm text-[#6B6B6B] font-medium">
-                <div className="flex items-center gap-1.5">
-                  <Route size={18} className="text-[#E8922A]" />
+            <div className="p-6 pt-5">
+              <p className="text-[15px] text-[#6B6B6B] mb-6 font-medium leading-relaxed">{mainRouteData?.mainRoute?.description}</p>
+              
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-6 bg-[#F5F2EB] p-4 rounded-[20px]">
+                <div className="flex items-center gap-2 text-[14px] font-bold text-[#1C1C1E]">
+                  <Route size={18} className="text-[#E8922A] shrink-0" />
                   <span>{mainRouteData?.mainRoute?.distance}</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <Clock size={18} className="text-[#E8922A]" />
+                <div className="flex items-center gap-2 text-[14px] font-bold text-[#1C1C1E]">
+                  <Clock size={18} className="text-[#E8922A] shrink-0" />
                   <span>{mainRouteData?.mainRoute?.duration}</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <MapPin size={18} className="text-[#E8922A]" />
-                  <span>{mainRouteData?.mainRoute?.stops} остановок</span>
+                <div className="flex items-center gap-2 text-[14px] font-bold text-[#1C1C1E]">
+                  <MapPin size={18} className="text-[#E8922A] shrink-0" />
+                  <span>{mainRouteData?.mainRoute?.stops} ост.</span>
                 </div>
               </div>
+
               <button
                 onClick={() => setShowMainRoute(true)}
-                className="w-full bg-[#E8922A] text-white rounded-full py-4 mt-2 font-bold shadow-md active:scale-95 transition-transform flex items-center justify-center gap-2"
+                className="w-full bg-[#E8922A] text-white rounded-full py-4 font-bold text-[16px] shadow-[0_8px_20px_rgba(232,146,42,0.3)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 hover:bg-[#D97706]"
               >
                 <span>Начать путешествие</span>
-                <ChevronRight size={20} />
+                <ChevronRight size={20} strokeWidth={3} />
               </button>
             </div>
           </motion.div>
