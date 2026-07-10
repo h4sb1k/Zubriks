@@ -81,6 +81,9 @@ export default function OnboardingScreen({ onComplete, initialStep = 0 }: Onboar
   const [showPassword, setShowPassword] = useState(false)
   const [shake, setShake] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState('')
+  const [otpStep, setOtpStep] = useState(false)
+  const [otpCode, setOtpCode] = useState('')
+  const [resendTimer, setResendTimer] = useState(60)
 
   const emailRef = useRef<HTMLInputElement>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
@@ -95,6 +98,14 @@ export default function OnboardingScreen({ onComplete, initialStep = 0 }: Onboar
       return () => clearTimeout(t)
     }
   }, [shake])
+
+  // OTP Resend Timer
+  useEffect(() => {
+    if (otpStep && resendTimer > 0) {
+      const timer = setInterval(() => setResendTimer((prev) => prev - 1), 1000)
+      return () => clearInterval(timer)
+    }
+  }, [otpStep, resendTimer])
 
   useEffect(() => {
     // Catch OAuth errors returned in the URL
@@ -189,19 +200,51 @@ export default function OnboardingScreen({ onComplete, initialStep = 0 }: Onboar
     triggerErrorFeedback(newFieldErrors)
   }
 
+  const handleAuthSuccess = (data: any) => {
+    if (data.requireVerification) {
+      setOtpStep(true)
+      setResendTimer(60)
+      setTurnstileToken('')
+      turnstileRef.current?.reset()
+      return
+    }
+    if (data.newAchievement) {
+      window.dispatchEvent(new CustomEvent('new-achievement', { detail: data.newAchievement }))
+    }
+    finishOnboarding()
+  }
+
   const loginMutation = trpc.login.useMutation({
-    onSuccess: () => finishOnboarding(),
+    onSuccess: handleAuthSuccess,
     onError: (err) => handleServerError(err),
   })
 
   const registerMutation = trpc.register.useMutation({
+    onSuccess: handleAuthSuccess,
+    onError: (err) => handleServerError(err),
+  })
+
+  const verifyMutation = trpc.verifyEmail.useMutation({
     onSuccess: (data) => {
       if (data.newAchievement) {
         window.dispatchEvent(new CustomEvent('new-achievement', { detail: data.newAchievement }))
       }
       finishOnboarding()
     },
-    onError: (err) => handleServerError(err),
+    onError: (err) => {
+      setError(err.message || 'Неверный или просроченный код')
+      setShake(true)
+    }
+  })
+
+  const resendMutation = trpc.resendOtp.useMutation({
+    onSuccess: () => {
+      setResendTimer(60)
+      setError('Новый код отправлен на почту')
+    },
+    onError: () => {
+      setError('Ошибка при отправке кода. Попробуйте позже.')
+    }
   })
 
   /** Client-side validation — strict for register, minimal for login */
@@ -591,6 +634,88 @@ export default function OnboardingScreen({ onComplete, initialStep = 0 }: Onboar
           </button>
         )}
       </div>
+      {/* ── OTP Verification Flow ── */}
+      {step === 2 && otpStep && (
+        <div className="absolute inset-0 z-50 flex flex-col pt-8 sm:pt-[5vh] px-[22px] min-h-screen sm:min-h-0 items-center justify-start bg-[#FDFDFD]">
+          <button
+            onClick={() => {
+              setOtpStep(false)
+              setOtpCode('')
+              clearErrors()
+            }}
+            className="absolute top-6 left-5 p-2 rounded-full bg-[#f4f4f5] hover:bg-[#e4e4e7] transition-colors"
+            aria-label="Назад"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-700" />
+          </button>
+
+          <div className="mt-12 w-full max-w-sm flex flex-col items-center">
+            <h2 className="text-2xl font-black text-gray-900 mb-2">Код из письма</h2>
+            <p className="text-sm text-gray-500 text-center mb-8">
+              Мы отправили 6-значный код на <br/> <strong className="text-gray-800">{email}</strong>
+            </p>
+
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault()
+                if (otpCode.length !== 6) {
+                  setError('Код должен состоять из 6 цифр')
+                  setShake(true)
+                  return
+                }
+                clearErrors()
+                verifyMutation.mutate({ email, code: otpCode })
+              }}
+              className={`w-full flex flex-col gap-4 ${shake ? 'animate-shake' : ''}`}
+            >
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="000000"
+                value={otpCode}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '')
+                  setOtpCode(val)
+                  if (val.length === 6 && error) clearErrors()
+                }}
+                className={`w-full px-4 py-4 rounded-2xl bg-white border-2 focus:outline-none transition-all text-center text-2xl font-bold tracking-[0.5em] ${
+                  error ? 'border-red-400 bg-red-50/50 focus:border-red-500' : 'border-[#E5E3DD] focus:border-[#E8922A]'
+                }`}
+              />
+              
+              {error && (
+                <p className="text-red-500 text-[13px] font-medium text-center">{error}</p>
+              )}
+
+              <button
+                type="submit"
+                disabled={verifyMutation.isPending || otpCode.length !== 6}
+                className="w-full mt-4 bg-[#E8922A] disabled:bg-gray-300 disabled:opacity-50 text-white rounded-full py-3.5 font-bold text-lg shadow-md hover:shadow-lg active:scale-[0.98] transition-all"
+              >
+                {verifyMutation.isPending ? 'Проверка...' : 'Продолжить'}
+              </button>
+            </form>
+
+            <button
+              onClick={() => {
+                clearErrors()
+                resendMutation.mutate({ email })
+              }}
+              disabled={resendTimer > 0 || resendMutation.isPending}
+              className={`mt-6 text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                resendTimer > 0 
+                  ? 'text-gray-500' 
+                  : 'text-[#E8922A] hover:text-[#d48424] active:scale-95'
+              }`}
+            >
+              {resendTimer > 0 
+                ? `Повторная отправка через 00:${resendTimer.toString().padStart(2, '0')}`
+                : 'Отправить код повторно'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

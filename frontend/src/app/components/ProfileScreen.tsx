@@ -65,7 +65,7 @@ export default function ProfileScreen() {
   const logoutMutation = trpc.logout.useMutation({
     onSuccess: () => {
       utils.invalidate()
-      window.location.reload()
+      window.location.href = window.location.pathname + window.location.search
     },
   })
   

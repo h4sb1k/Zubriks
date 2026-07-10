@@ -27,8 +27,10 @@
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "express": "^5.2.1",
+    "handlebars": "^4.7.9",
     "jsonwebtoken": "^9.0.3",
     "lodash": "^4.18.1",
+    "mjml": "^5.4.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -38,6 +40,7 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/lodash": "^4.17.24",
+    "@types/mjml": "^5.0.0",
     "@types/node": "^25.9.1",
     "prisma": "^6.10.1",
     "tsx": "^4.22.4"

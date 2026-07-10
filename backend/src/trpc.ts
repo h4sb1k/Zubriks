@@ -15,6 +15,7 @@ import {
   verifyRefreshToken,
   verifyTurnstileToken,
 } from './auth'
+import { generateOTP, sendVerificationEmail } from './email'
 import { prisma } from './prisma'
 
 export const createContext = async ({ req, res }: CreateExpressContextOptions) => {
@@ -180,16 +181,94 @@ export const trpcRouter = trpc.router({
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Капча не пройдена' })
       }
 
-      const existingUser = await ctx.prisma.user.findUnique({ where: { email: input.email } })
-      if (existingUser) {
-        throw new TRPCError({ code: 'CONFLICT', message: 'User already exists' })
-      }
+      let user = await ctx.prisma.user.findUnique({ where: { email: input.email } })
       const passwordHash = await hashPassword(input.password)
-      const user = await ctx.prisma.user.create({
-        data: { email: input.email, passwordHash, name: input.name, avatarUrl: '/images/avatar.png' },
+
+      if (user) {
+        if (user.emailVerified) {
+          throw new TRPCError({ code: 'CONFLICT', message: 'User already exists' })
+        }
+        // Lazy cleanup: If the email exists but isn't verified, it might be an abandoned registration.
+        // We allow the new user to take it over (they still must verify it).
+        user = await ctx.prisma.user.update({
+          where: { id: user.id },
+          data: { passwordHash, name: input.name },
+        })
+        await ctx.prisma.verificationToken.deleteMany({ where: { email: user.email } })
+      } else {
+        user = await ctx.prisma.user.create({
+          data: { email: input.email, passwordHash, name: input.name, avatarUrl: '/images/avatar.png', emailVerified: false },
+        })
+      }
+
+      // Generate OTP
+      const otp = generateOTP()
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 mins
+
+      await ctx.prisma.verificationToken.create({
+        data: { email: user.email, code: otp, expiresAt },
       })
 
-      // Clean up expired refresh tokens for this user
+      // Send email (async, don't await blocking if we want to be fast, but waiting is safer to ensure it didn't fail)
+      await sendVerificationEmail(user.email, otp)
+
+      return { requireVerification: true, email: user.email }
+    }),
+
+  resendOtp: trpc.procedure
+    .input(z.object({ email: z.string().email() }))
+    .mutation(async ({ input, ctx }) => {
+      const user = await ctx.prisma.user.findUnique({ where: { email: input.email } })
+      if (!user || user.emailVerified) {
+        // Return success silently to prevent email enumeration
+        return { success: true }
+      }
+
+      await ctx.prisma.verificationToken.deleteMany({ where: { email: user.email } })
+      
+      const otp = generateOTP()
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000)
+      
+      await ctx.prisma.verificationToken.create({
+        data: { email: user.email, code: otp, expiresAt },
+      })
+      
+      await sendVerificationEmail(user.email, otp)
+      return { success: true }
+    }),
+
+  verifyEmail: trpc.procedure
+    .input(z.object({ email: z.string().email(), code: z.string().length(6) }))
+    .mutation(async ({ input, ctx }) => {
+      const user = await ctx.prisma.user.findUnique({ where: { email: input.email } })
+      if (!user) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' })
+      }
+
+      const validToken = await ctx.prisma.verificationToken.findFirst({
+        where: {
+          email: input.email,
+          code: input.code,
+          expiresAt: { gt: new Date() },
+        },
+      })
+
+      if (!validToken) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Неверный или просроченный код' })
+      }
+
+      // Mark verified
+      await ctx.prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerified: true },
+      })
+
+      // Cleanup tokens
+      await ctx.prisma.verificationToken.deleteMany({
+        where: { email: input.email },
+      })
+
+      // Clean up old refresh tokens
       await ctx.prisma.refreshToken.deleteMany({
         where: { userId: user.id, expiresAt: { lt: new Date() } },
       })
@@ -201,18 +280,25 @@ export const trpcRouter = trpc.router({
         data: { token: refreshToken, userId: user.id, expiresAt: getRefreshTokenExpiry() },
       })
 
+      // Award achievement for onboarding
       let newAchievement = null
-      const achievement = await ctx.prisma.achievement.findFirst({ where: { name: 'Начало пути' } })
-      if (achievement) {
-        await ctx.prisma.userAchievement.create({
-          data: { userId: user.id, achievementId: achievement.id, earned: true, earnedAt: new Date(), progress: 100 },
-        })
-        newAchievement = {
-          id: achievement.id,
-          name: achievement.name,
-          description: achievement.description ?? '',
-          icon: achievement.icon ?? 'Trophy',
-          imageUrl: achievement.imageUrl ?? '',
+      const hasAchievement = await ctx.prisma.userAchievement.findFirst({
+        where: { userId: user.id, achievement: { name: 'Начало пути' } }
+      })
+      
+      if (!hasAchievement) {
+        const achievement = await ctx.prisma.achievement.findFirst({ where: { name: 'Начало пути' } })
+        if (achievement) {
+          await ctx.prisma.userAchievement.create({
+            data: { userId: user.id, achievementId: achievement.id, earned: true, earnedAt: new Date(), progress: 100 },
+          })
+          newAchievement = {
+            id: achievement.id,
+            name: achievement.name,
+            description: achievement.description ?? '',
+            icon: achievement.icon ?? 'Trophy',
+            imageUrl: achievement.imageUrl ?? '',
+          }
         }
       }
 
@@ -236,6 +322,22 @@ export const trpcRouter = trpc.router({
       const isValid = await verifyPassword(input.password, user.passwordHash)
       if (!isValid) {
         throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid credentials' })
+      }
+
+      if (!user.emailVerified) {
+        // Generate new OTP
+        await ctx.prisma.verificationToken.deleteMany({ where: { email: user.email } })
+        
+        const otp = generateOTP()
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000)
+        
+        await ctx.prisma.verificationToken.create({
+          data: { email: user.email, code: otp, expiresAt },
+        })
+
+        await sendVerificationEmail(user.email, otp)
+        
+        return { requireVerification: true, email: user.email }
       }
 
       // Clean up expired refresh tokens for this user
