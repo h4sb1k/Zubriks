@@ -127,17 +127,17 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
           </div>
           <div className="p-5">
             <p className="text-[#6B6B6B] mb-4">{mainRoute?.description}</p>
-            <div className="flex items-center gap-4 mb-4 text-sm text-[#6B6B6B]">
+            <div className="flex items-center gap-4 mb-4 text-sm text-[#6B6B6B] font-medium">
               <div className="flex items-center gap-1.5">
-                <MapPin size={16} />
+                <img src="/images/icons/Way.svg" alt="Distance" className="w-5 h-5 object-contain" />
                 <span>{mainRoute?.distance}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <Clock size={16} />
+                <img src="/images/icons/Time.svg" alt="Duration" className="w-5 h-5 object-contain" />
                 <span>{mainRoute?.duration}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span>📍</span>
+                <img src="/images/icons/PinBW.svg" alt="Stops" className="w-5 h-5 object-contain" />
                 <span>{mainRoute?.stops} остановок</span>
               </div>
             </div>

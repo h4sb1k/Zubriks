@@ -1,3 +1,5 @@
+import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react'
+import { AnimatePresence, motion } from 'framer-motion'
 import * as L from 'leaflet'
 import { ArrowLeft, ChevronDown, ChevronUp, MapPin, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -80,7 +82,7 @@ function LocationPicker({
   )
 }
 
-const EMOJI_LIST = ['📍', '🏛️', '🎭', '🌳', '📸', '☕', '🍔', '🎨', '🏰', '⛪', '⛲', '🚢']
+// EMOJI_LIST removed in favor of emoji-picker-react
 
 type WaypointDraft = {
   id: string
@@ -295,23 +297,34 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
               />
             </div>
             
-            {routeEmojiPickerOpen && (
-              <div className="bg-[#F5F2EB]/50 border border-gray-100 rounded-2xl p-3 grid grid-cols-6 gap-2 animate-in fade-in zoom-in-95 duration-200 mt-3">
-                {EMOJI_LIST.map(emoji => (
-                  <button
-                    type="button"
-                    key={emoji}
-                    onClick={() => {
-                      setRouteEmoji(emoji)
-                      setRouteEmojiPickerOpen(false)
-                    }}
-                    className="aspect-square flex items-center justify-center text-2xl bg-white hover:bg-[#E8922A]/10 rounded-xl shadow-sm transition-colors border border-gray-100"
+            <AnimatePresence>
+              {routeEmojiPickerOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-[110]" 
+                    onClick={() => setRouteEmojiPickerOpen(false)}
+                  />
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    className="absolute z-[120] mt-1 left-5 shadow-2xl rounded-2xl overflow-hidden"
                   >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            )}
+                    <EmojiPicker 
+                      onEmojiClick={(emojiData: EmojiClickData) => {
+                        setRouteEmoji(emojiData.emoji)
+                        setRouteEmojiPickerOpen(false)
+                      }}
+                      autoFocusSearch={false}
+                      theme={Theme.LIGHT}
+                      searchPlaceHolder="Поиск эмодзи..."
+                      width={320}
+                      height={400}
+                    />
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
           </div>
           <div>
             <label className="block text-sm text-[#6B6B6B] mb-1">Описание (опционально)</label>
@@ -367,7 +380,7 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
                   </button>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-3 relative">
                   <button
                     type="button"
                     onClick={() => setEmojiPickerIndex(emojiPickerIndex === i ? null : i)}
@@ -375,6 +388,35 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
                   >
                     <span className="text-2xl leading-none">{wp.emoji}</span>
                   </button>
+                  
+                  <AnimatePresence>
+                    {emojiPickerIndex === i && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-[110]" 
+                          onClick={() => setEmojiPickerIndex(null)}
+                        />
+                        <motion.div 
+                          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                          className="absolute z-[120] top-full mt-2 left-0 shadow-2xl rounded-2xl overflow-hidden"
+                        >
+                          <EmojiPicker 
+                            onEmojiClick={(emojiData: EmojiClickData) => {
+                              updateWaypoint(i, { emoji: emojiData.emoji })
+                              setEmojiPickerIndex(null)
+                            }}
+                            autoFocusSearch={false}
+                            theme={Theme.LIGHT}
+                            searchPlaceHolder="Поиск эмодзи..."
+                            width={300}
+                            height={350}
+                          />
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
 
                   <input
                     type="text"
@@ -385,24 +427,7 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
                   />
                 </div>
 
-                {emojiPickerIndex === i && (
-                  <div className="bg-[#F5F2EB]/50 border border-gray-100 rounded-2xl p-3 grid grid-cols-6 gap-2 animate-in fade-in zoom-in-95 duration-200">
-                    {EMOJI_LIST.map(emoji => (
-                      <button
-                        type="button"
-                        key={emoji}
-                        onClick={() => {
-                          updateWaypoint(i, { emoji })
-                          setEmojiPickerIndex(null)
-                        }}
-                        className="aspect-square flex items-center justify-center text-2xl bg-white hover:bg-[#E8922A]/10 rounded-xl shadow-sm transition-colors border border-gray-100"
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                
+
                 <input
                     type="text"
                     value={wp.description}

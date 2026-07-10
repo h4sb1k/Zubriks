@@ -152,12 +152,23 @@ export default function ProfileScreen() {
             onReorder={(newOrder) => {
               setOrderedTop(newOrder)
             }}
+            initial="hidden"
+            animate="visible"
+            variants={{
+              visible: { transition: { staggerChildren: 0.1 } },
+              hidden: {}
+            }}
             className="grid grid-cols-3 gap-3 mb-6"
           >
             {orderedTop.map((achievement) => (
               <Reorder.Item
                 key={achievement.id}
                 value={achievement}
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { opacity: 1, y: 0, transition: { ease: [0.16, 1, 0.3, 1], duration: 0.6 } }
+                }}
+                onClick={() => setSelectedAchievement(achievement)}
                 onDragEnd={() => {
                   // Save the new order to the server
                   const ids = orderedTop.map(a => a.id)
@@ -350,14 +361,22 @@ export default function ProfileScreen() {
                           e.stopPropagation()
                           togglePin.mutate({ achievementId: achievement.id })
                         }}
-                        className={`absolute top-2 right-2 z-20 w-7 h-7 rounded-full flex items-center justify-center backdrop-blur-md transition-colors ${
+                        className={`absolute top-2 right-2 z-20 w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md transition-colors ${
                           achievement.isPinned ? 'bg-[#E8922A] text-white shadow-md' : 'bg-black/20 text-white/50 hover:text-white hover:bg-black/40'
                         }`}
                       >
-                        {achievement.isPinned ? '📌' : '📍'}
+                        <img 
+                          src={achievement.isPinned ? '/images/icons/Pinned.svg' : '/images/icons/Pin.svg'} 
+                          alt="Pin" 
+                          className={`object-contain ${achievement.isPinned ? 'w-5 h-5' : 'h-5 w-auto'}`} 
+                        />
                       </button>
                     )}
-                    {!achievement.earned && <div className="absolute top-3 right-3 text-lg opacity-20">🔒</div>}
+                    {!achievement.earned && (
+                      <div className="absolute top-3 right-3 opacity-40">
+                        <img src="/images/icons/Lock.svg" alt="Lock" className="w-5 h-5" />
+                      </div>
+                    )}
                   </motion.div>
                 ))}
               </motion.div>
