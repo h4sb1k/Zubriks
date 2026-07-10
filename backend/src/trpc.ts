@@ -13,6 +13,7 @@ import {
   verifyAccessToken,
   verifyPassword,
   verifyRefreshToken,
+  verifyTurnstileToken,
 } from './auth'
 import { prisma } from './prisma'
 
@@ -171,8 +172,14 @@ export const trpcRouter = trpc.router({
   // ─── Auth ────────────────────────────────────────────────────────
 
   register: trpc.procedure
-    .input(z.object({ email: z.string().email(), password: z.string().min(6), name: z.string().optional() }))
+    .input(z.object({ email: z.string().email(), password: z.string().min(6), name: z.string().optional(), turnstileToken: z.string() }))
     .mutation(async ({ input, ctx }) => {
+      // 1. Verify Turnstile token first
+      const isHuman = await verifyTurnstileToken(input.turnstileToken)
+      if (!isHuman) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Капча не пройдена' })
+      }
+
       const existingUser = await ctx.prisma.user.findUnique({ where: { email: input.email } })
       if (existingUser) {
         throw new TRPCError({ code: 'CONFLICT', message: 'User already exists' })
@@ -214,8 +221,14 @@ export const trpcRouter = trpc.router({
     }),
 
   login: trpc.procedure
-    .input(z.object({ email: z.string().email(), password: z.string() }))
+    .input(z.object({ email: z.string().email(), password: z.string(), turnstileToken: z.string() }))
     .mutation(async ({ input, ctx }) => {
+      // 1. Verify Turnstile token first
+      const isHuman = await verifyTurnstileToken(input.turnstileToken)
+      if (!isHuman) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Капча не пройдена' })
+      }
+
       const user = await ctx.prisma.user.findUnique({ where: { email: input.email } })
       if (!user || !user.passwordHash) {
         throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid credentials' })

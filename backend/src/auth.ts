@@ -88,3 +88,28 @@ export function getRefreshTokenExpiry(): Date {
   date.setDate(date.getDate() + REFRESH_TOKEN_EXPIRES_IN_DAYS)
   return date
 }
+
+// ─── Cloudflare Turnstile ──────────────────────────────────────────
+
+const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY || '1x0000000000000000000000000000000AA' // Default to Cloudflare "always passes" dummy key for dev
+
+export async function verifyTurnstileToken(token: string): Promise<boolean> {
+  if (!token) return false
+
+  try {
+    const formData = new URLSearchParams()
+    formData.append('secret', TURNSTILE_SECRET_KEY)
+    formData.append('response', token)
+
+    const result = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      body: formData,
+      method: 'POST',
+    })
+
+    const outcome = (await result.json()) as { success: boolean }
+    return outcome.success
+  } catch (err) {
+    console.error('Turnstile verification error:', err)
+    return false
+  }
+}

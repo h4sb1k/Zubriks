@@ -1,3 +1,5 @@
+import type { TurnstileInstance } from '@marsidev/react-turnstile'
+import { Turnstile } from '@marsidev/react-turnstile'
 import { ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
@@ -78,11 +80,13 @@ export default function OnboardingScreen({ onComplete, initialStep = 0 }: Onboar
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [showPassword, setShowPassword] = useState(false)
   const [shake, setShake] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState('')
 
   const emailRef = useRef<HTMLInputElement>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
   const confirmPasswordRef = useRef<HTMLInputElement>(null)
   const nameRef = useRef<HTMLInputElement>(null)
+  const turnstileRef = useRef<TurnstileInstance>(null)
 
   // Shake animation auto-reset
   useEffect(() => {
@@ -176,6 +180,10 @@ export default function OnboardingScreen({ onComplete, initialStep = 0 }: Onboar
     setPassword('')
     setConfirmPassword('')
 
+    // Reset Turnstile on any server error so the user gets a fresh challenge
+    setTurnstileToken('')
+    turnstileRef.current?.reset()
+
     setError(message)
     setFieldErrors(newFieldErrors)
     triggerErrorFeedback(newFieldErrors)
@@ -237,6 +245,13 @@ export default function OnboardingScreen({ onComplete, initialStep = 0 }: Onboar
       triggerErrorFeedback(errors)
       return false
     }
+
+    if (!turnstileToken) {
+      setError('Пожалуйста, пройдите проверку на робота')
+      setShake(true)
+      return false
+    }
+
     return true
   }
 
@@ -256,9 +271,9 @@ export default function OnboardingScreen({ onComplete, initialStep = 0 }: Onboar
     if (!isValid) return
 
     if (isRegister) {
-      registerMutation.mutate({ email: email.trim(), password: currentPassword, name: name.trim() })
+      registerMutation.mutate({ email: email.trim(), password: currentPassword, name: name.trim(), turnstileToken })
     } else {
-      loginMutation.mutate({ email: email.trim(), password: currentPassword })
+      loginMutation.mutate({ email: email.trim(), password: currentPassword, turnstileToken })
     }
   }
 
@@ -519,6 +534,21 @@ export default function OnboardingScreen({ onComplete, initialStep = 0 }: Onboar
                     )}
                   </div>
                 )}
+
+                {/* ── Turnstile Widget ── */}
+                <div className="flex justify-center mt-2">
+                  <Turnstile
+                    ref={turnstileRef}
+                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
+                    onSuccess={(token) => {
+                      setTurnstileToken(token)
+                      setError('')
+                    }}
+                    onError={() => setError('Ошибка загрузки проверки на робота')}
+                    onExpire={() => setTurnstileToken('')}
+                    options={{ theme: 'light', size: 'normal' }}
+                  />
+                </div>
 
                 <button
                   type="submit"
