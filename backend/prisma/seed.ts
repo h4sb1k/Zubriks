@@ -136,7 +136,7 @@ async function main() {
     data: {
       name: 'Тур «Зубрики»',
       distance: '5.2 км',
-      duration: '2-3 часа',
+      duration: '2.5 часа',
       description: 'Пройди по главным достопримечательностям Орла и собери всех зубриков',
       isMain: true,
       waypoints: {
