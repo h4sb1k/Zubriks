@@ -27,7 +27,28 @@ const tabs: { id: TabType; icon: typeof Home; label: string }[] = [
 ]
 
 function MainApp() {
-  const [activeTab, setActiveTab] = useState<TabType>('home')
+  const getTabFromHash = (): TabType => {
+    const hash = window.location.hash.replace('#', '') as TabType
+    if (['home', 'map', 'routes', 'events', 'profile'].includes(hash)) {
+      return hash
+    }
+    return 'home'
+  }
+
+  const [activeTab, setActiveTabRaw] = useState<TabType>(getTabFromHash)
+
+  const setActiveTab = (tab: TabType) => {
+    window.location.hash = tab
+    setActiveTabRaw(tab)
+  }
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setActiveTabRaw(getTabFromHash())
+    }
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
   const [showOnboarding, setShowOnboarding] = useState(() => localStorage.getItem(ONBOARDING_KEY) !== 'true')
   const [achievementQueue, setAchievementQueue] = useState<NewAchievement[]>([])
 
