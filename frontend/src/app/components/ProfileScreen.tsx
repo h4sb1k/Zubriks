@@ -1,8 +1,9 @@
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, Reorder } from 'framer-motion'
 import { LogOut, Settings } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect,useState } from 'react'
 
 import { trpc } from '../lib/trpc'
+import AchievementModal from './AchievementModal'
 import AdminScreen from './AdminScreen'
 import ConfirmModal from './ConfirmModal'
 import LoadingZubrik from './LoadingZubrik'
@@ -43,6 +44,7 @@ export default function ProfileScreen() {
   const [activeTab, setActiveTab] = useState('Награды')
   const [showAdmin, setShowAdmin] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [selectedAchievement, setSelectedAchievement] = useState<any | null>(null)
 
   const { data: user } = trpc.me.useQuery()
   const { data: statsData, isLoading: isStatsLoading } = trpc.getProfileStats.useQuery()
@@ -66,12 +68,21 @@ export default function ProfileScreen() {
   
   const pinnedAchievements = earnedAchievements
     .filter((a) => a.isPinned)
-    .sort((a, b) => {
-      const timeA = a.pinnedAt ? new Date(a.pinnedAt).getTime() : 0
-      const timeB = b.pinnedAt ? new Date(b.pinnedAt).getTime() : 0
-      return timeA - timeB
-    })
+    .sort((a, b) => (a.pinOrder ?? 0) - (b.pinOrder ?? 0))
   const topAchievements = pinnedAchievements.length > 0 ? pinnedAchievements.slice(0, 3) : earnedAchievements.slice(0, 3)
+  
+  // Local state for drag & drop reordering
+  const [orderedTop, setOrderedTop] = useState(topAchievements)
+  
+  // Sync local state with server data
+  useEffect(() => {
+    setOrderedTop(topAchievements)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [achievementsData])
+  
+  const reorderMutation = trpc.reorderPinnedAchievements.useMutation({
+    onSuccess: () => utils.getAchievements.invalidate()
+  })
 
   const stats = statsData?.stats ?? { zubriksCount: 0, totalZubriks: 0, routesCount: 0, daysCount: 0 }
   const createdRoutes = statsData?.createdRoutes ?? []
@@ -134,6 +145,55 @@ export default function ProfileScreen() {
             <div className="text-4xl mb-3 opacity-50">🌱</div>
             <p className="text-[#6B6B6B] text-sm">Здесь появятся ваши лучшие достижения. Начните исследовать город!</p>
           </div>
+        ) : pinnedAchievements.length > 0 ? (
+          <Reorder.Group 
+            axis="x" 
+            values={orderedTop} 
+            onReorder={(newOrder) => {
+              setOrderedTop(newOrder)
+            }}
+            className="grid grid-cols-3 gap-3 mb-6"
+          >
+            {orderedTop.map((achievement) => (
+              <Reorder.Item
+                key={achievement.id}
+                value={achievement}
+                onDragEnd={() => {
+                  // Save the new order to the server
+                  const ids = orderedTop.map(a => a.id)
+                  reorderMutation.mutate({ achievementIds: ids })
+                }}
+                whileTap={{ scale: 0.95 }}
+                whileDrag={{ scale: 1.08, zIndex: 50, boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}
+                className="aspect-[4/5] rounded-[24px] p-2 flex flex-col items-center justify-end text-center shadow-lg shadow-[#1A3D2B]/10 relative overflow-hidden cursor-grab active:cursor-grabbing"
+                style={{ background: 'linear-gradient(135deg, #1A3D2B, #2E5A41)' }}
+                layout
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              >
+                {/* Декоративный блик */}
+                <div className="absolute top-0 right-0 w-20 h-20 bg-[#E8922A]/20 rounded-full blur-xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+
+                {/* Изображение на всю карточку */}
+                <div className="absolute inset-0 pt-2 px-2 pb-8 flex items-center justify-center pointer-events-none">
+                  {achievement.imageUrl && achievement.imageUrl !== '' ? (
+                    <img
+                      src={achievement.imageUrl}
+                      alt={achievement.name}
+                      className="w-full h-full object-contain drop-shadow-lg"
+                    />
+                  ) : (
+                    <div className="text-5xl drop-shadow-md">{achievement.emoji}</div>
+                  )}
+                </div>
+
+                <div className="w-full bg-black/30 backdrop-blur-md rounded-[16px] py-1.5 px-1 relative z-10">
+                  <div className="text-[10px] font-medium text-white leading-tight line-clamp-1">
+                    {achievement.name}
+                  </div>
+                </div>
+              </Reorder.Item>
+            ))}
+          </Reorder.Group>
         ) : (
           <motion.div 
             initial="hidden"
@@ -151,30 +211,21 @@ export default function ProfileScreen() {
                   visible: { opacity: 1, y: 0, transition: { ease: [0.16, 1, 0.3, 1], duration: 0.6 } }
                 }}
                 key={achievement.id}
+                onClick={() => setSelectedAchievement(achievement)}
                 whileTap={{ scale: 0.95 }}
-                className="aspect-[4/5] rounded-[24px] p-2 flex flex-col items-center justify-end text-center shadow-lg shadow-[#1A3D2B]/10 relative overflow-hidden"
+                className="aspect-[4/5] rounded-[24px] p-2 flex flex-col items-center justify-end text-center shadow-lg shadow-[#1A3D2B]/10 relative overflow-hidden cursor-pointer"
                 style={{ background: 'linear-gradient(135deg, #1A3D2B, #2E5A41)' }}
               >
-                {/* Декоративный блик */}
                 <div className="absolute top-0 right-0 w-20 h-20 bg-[#E8922A]/20 rounded-full blur-xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-
-                {/* Изображение на всю карточку */}
                 <div className="absolute inset-0 pt-2 px-2 pb-8 flex items-center justify-center">
                   {achievement.imageUrl && achievement.imageUrl !== '' ? (
-                    <img
-                      src={achievement.imageUrl}
-                      alt={achievement.name}
-                      className="w-full h-full object-contain drop-shadow-lg"
-                    />
+                    <img src={achievement.imageUrl} alt={achievement.name} className="w-full h-full object-contain drop-shadow-lg" />
                   ) : (
                     <div className="text-5xl drop-shadow-md">{achievement.emoji}</div>
                   )}
                 </div>
-
                 <div className="w-full bg-black/30 backdrop-blur-md rounded-[16px] py-1.5 px-1 relative z-10">
-                  <div className="text-[10px] font-medium text-white leading-tight line-clamp-1">
-                    {achievement.name}
-                  </div>
+                  <div className="text-[10px] font-medium text-white leading-tight line-clamp-1">{achievement.name}</div>
                 </div>
               </motion.div>
             ))}
@@ -229,8 +280,9 @@ export default function ProfileScreen() {
                       visible: { opacity: 1, scale: 1, transition: { ease: [0.16, 1, 0.3, 1], duration: 0.5 } }
                     }}
                     key={achievement.id}
+                    onClick={() => setSelectedAchievement(achievement)}
                     whileTap={{ scale: 0.98 }}
-                    className={`aspect-[4/5] relative overflow-hidden rounded-[24px] p-3 flex flex-col justify-end ${
+                    className={`aspect-[4/5] relative overflow-hidden rounded-[24px] p-3 flex flex-col justify-end cursor-pointer ${
                       achievement.earned
                         ? 'shadow-lg shadow-[#1A3D2B]/20 text-white transition-shadow'
                         : 'bg-white border border-[#E5E3DD] text-[#1C1C1E] shadow-sm transition-shadow'
@@ -277,12 +329,15 @@ export default function ProfileScreen() {
                         {achievement.description}
                       </p>
 
-                      {!achievement.earned && achievement.progress !== undefined && achievement.progress > 0 && (
+                      {!achievement.earned && achievement.conditionType !== 'MANUAL' && achievement.progressTarget !== undefined && achievement.progressTarget > 0 && (
                         <div className="w-full mt-2">
+                          <div className="text-[9px] font-bold text-center mb-0.5" style={{ color: achievement.earned ? 'rgba(255,255,255,0.7)' : '#6B6B6B' }}>
+                            {achievement.progressCurrent ?? 0} / {achievement.progressTarget}
+                          </div>
                           <div className="h-1 bg-[#E5E3DD] rounded-full overflow-hidden">
                             <div
                               className="h-full bg-[#E8922A] rounded-full transition-all duration-1000 ease-out"
-                              style={{ width: `${achievement.progress}%` }}
+                              style={{ width: `${achievement.progress ?? 0}%` }}
                             />
                           </div>
                         </div>
@@ -348,6 +403,11 @@ export default function ProfileScreen() {
       <AnimatePresence>
         {showAdmin && <AdminScreen onClose={() => setShowAdmin(false)} />}
       </AnimatePresence>
+
+      <AchievementModal 
+        achievement={selectedAchievement} 
+        onClose={() => setSelectedAchievement(null)} 
+      />
 
       <ConfirmModal
         isOpen={showLogoutConfirm}

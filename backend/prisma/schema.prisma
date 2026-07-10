@@ -193,6 +193,7 @@ model UserAchievement {
   progress      Int       @default(0)
   isPinned      Boolean   @default(false)
   pinnedAt      DateTime?
+  pinOrder      Int       @default(0)
   earnedAt      DateTime?
 
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)

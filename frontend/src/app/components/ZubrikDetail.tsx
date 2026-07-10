@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { MapContainer, Marker, TileLayer } from 'react-leaflet'
 
 import { openPointInMaps } from '../utils/openInMaps'
+import ZubrikImage from './ZubrikImage'
 
 type ZubrikDetailProps = {
   name: string
@@ -74,13 +75,9 @@ export default function ZubrikDetail({
           </button>
 
           <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
-            {imageUrl ? (
-              <div className="w-48 h-48 rounded-full overflow-hidden bg-white/20 backdrop-blur-sm border-4 border-white flex items-center justify-center shadow-lg transition-transform hover:scale-105 duration-300">
-                <img src={imageUrl} alt={name} className="w-full h-full object-cover" />
-              </div>
-            ) : (
-              <div className="text-9xl">🦬</div>
-            )}
+            <div className="w-48 h-48 rounded-full overflow-hidden bg-white/20 backdrop-blur-sm border-4 border-white flex items-center justify-center shadow-lg transition-transform hover:scale-105 duration-300">
+              <ZubrikImage src={imageUrl} alt={name} emojiSize="text-7xl" />
+            </div>
           </div>
 
           {unlocked && (

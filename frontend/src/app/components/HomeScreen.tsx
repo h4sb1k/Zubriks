@@ -8,6 +8,7 @@ import LeaderboardScreen from './LeaderboardScreen'
 import LoadingZubrik from './LoadingZubrik'
 import RouteActive from './RouteActive'
 import ZubrikDetail from './ZubrikDetail'
+import ZubrikImage from './ZubrikImage'
 
 type Zubrik = {
   id: string
@@ -194,11 +195,7 @@ export default function HomeScreen({
                   <div
                     className="w-20 h-20 rounded-full mx-auto mb-3 flex items-center justify-center overflow-hidden shadow-inner bg-[#E8922A]/15"
                   >
-                    {zubrik.imageUrl ? (
-                      <img src={zubrik.imageUrl} alt={zubrik.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-3xl">🦬</span>
-                    )}
+                    <ZubrikImage src={zubrik.imageUrl} alt={zubrik.name} emojiSize="text-3xl" />
                   </div>
                   <h3 className="text-[15px] font-bold text-[#1C1C1E] mb-1.5 line-clamp-2 min-h-[2.5rem] leading-tight">{zubrik.name}</h3>
                   <div className="flex items-center justify-between text-xs">

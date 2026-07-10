@@ -821,15 +821,94 @@ export const trpcRouter = trpc.router({
   getAchievements: trpc.procedure.query(async ({ ctx }) => {
     const achievements = await ctx.prisma.achievement.findMany()
 
-    let earnedMap = new Map<string, { earned: boolean; progress: number, isPinned: boolean, pinnedAt: Date | null }>()
+    let earnedMap = new Map<string, { earned: boolean; progress: number, isPinned: boolean, pinnedAt: Date | null, pinOrder: number }>()
+    
+    // Variables for dynamic progress calculation
+    let zubrikCount = 0
+    let totalZubriks = 0
+    let completedRoutes = 0
+    let createdRoutes = 0
+    let mainRouteCompleted = false
+    let unlockedZubrikIds = new Set<string>()
+
     if (ctx.userId) {
       const userAchievements = await ctx.prisma.userAchievement.findMany({ where: { userId: ctx.userId } })
-      userAchievements.forEach((ua) => earnedMap.set(ua.achievementId, { earned: ua.earned, progress: ua.progress, isPinned: ua.isPinned, pinnedAt: ua.pinnedAt }))
+      userAchievements.forEach((ua) => earnedMap.set(ua.achievementId, { earned: ua.earned, progress: ua.progress, isPinned: ua.isPinned, pinnedAt: ua.pinnedAt, pinOrder: ua.pinOrder }))
+
+      // Fetch user stats
+      const [unlockedZubriks, totalZCount, routesC, createdR, mainRoute] = await Promise.all([
+        ctx.prisma.userZubrik.findMany({ where: { userId: ctx.userId }, select: { zubrikId: true } }),
+        ctx.prisma.zubrik.count(),
+        ctx.prisma.userRoute.count({ where: { userId: ctx.userId, completedAt: { not: null } } }),
+        ctx.prisma.route.count({ where: { authorId: ctx.userId } }),
+        ctx.prisma.route.findFirst({ where: { isMain: true }, select: { id: true } })
+      ])
+      
+      zubrikCount = unlockedZubriks.length
+      totalZubriks = totalZCount
+      completedRoutes = routesC
+      createdRoutes = createdR
+      unlockedZubrikIds = new Set(unlockedZubriks.map((uz) => uz.zubrikId))
+
+      if (mainRoute) {
+        mainRouteCompleted = await ctx.prisma.userRoute.findUnique({
+          where: { userId_routeId: { userId: ctx.userId, routeId: mainRoute.id } }
+        }).then(ur => ur?.completedAt != null)
+      }
     }
 
     return {
       achievements: achievements.map((a) => {
-        const userState = earnedMap.get(a.id) || { earned: false, progress: 0, isPinned: false, pinnedAt: null }
+        const userState = earnedMap.get(a.id) || { earned: false, progress: 0, isPinned: false, pinnedAt: null, pinOrder: 0 }
+        
+        let currentProgress = userState.progress
+        let progressCurrent = 0
+        let progressTarget = 0
+        
+        // Compute progress dynamically if not earned
+        if (ctx.userId && !userState.earned) {
+           switch (a.conditionType) {
+              case 'ZUBRIK_COUNT':
+                 progressCurrent = Math.min(zubrikCount, a.conditionCount)
+                 progressTarget = a.conditionCount
+                 currentProgress = Math.min(100, Math.floor((zubrikCount / Math.max(1, a.conditionCount)) * 100))
+                 break
+              case 'ZUBRIK_ALL':
+                 progressCurrent = zubrikCount
+                 progressTarget = totalZubriks
+                 currentProgress = totalZubriks > 0 ? Math.min(100, Math.floor((zubrikCount / totalZubriks) * 100)) : 0
+                 break
+              case 'SPECIFIC_ZUBRIK':
+                 progressCurrent = a.conditionTarget != null && unlockedZubrikIds.has(a.conditionTarget) ? 1 : 0
+                 progressTarget = 1
+                 currentProgress = progressCurrent * 100
+                 break
+              case 'ROUTE_COMPLETE':
+                 progressCurrent = Math.min(completedRoutes, a.conditionCount)
+                 progressTarget = a.conditionCount
+                 currentProgress = Math.min(100, Math.floor((completedRoutes / Math.max(1, a.conditionCount)) * 100))
+                 break
+              case 'MAIN_ROUTE_COMPLETE':
+                 progressCurrent = mainRouteCompleted ? 1 : 0
+                 progressTarget = 1
+                 currentProgress = progressCurrent * 100
+                 break
+              case 'ROUTE_CREATE':
+                 progressCurrent = Math.min(createdRoutes, a.conditionCount)
+                 progressTarget = a.conditionCount
+                 currentProgress = Math.min(100, Math.floor((createdRoutes / Math.max(1, a.conditionCount)) * 100))
+                 break
+              case 'MANUAL':
+                 currentProgress = 0
+                 progressCurrent = 0
+                 progressTarget = 0
+                 break
+           }
+        } else if (userState.earned) {
+          // Already earned — fill progress
+          currentProgress = 100
+        }
+
         return {
           id: a.id,
           name: a.name,
@@ -837,9 +916,13 @@ export const trpcRouter = trpc.router({
           imageUrl: a.imageUrl,
           emoji: a.emoji ?? '🏆',
           earned: userState.earned,
-          progress: userState.progress,
+          progress: currentProgress,
+          progressCurrent,
+          progressTarget,
+          conditionType: a.conditionType,
           isPinned: userState.isPinned,
           pinnedAt: userState.pinnedAt ? userState.pinnedAt.toISOString() : null,
+          pinOrder: userState.pinOrder,
         }
       }),
     }
@@ -874,6 +957,21 @@ export const trpcRouter = trpc.router({
 
     return { isPinned: updated.isPinned, pinnedAt: updated.pinnedAt ? updated.pinnedAt.toISOString() : null }
   }),
+
+  reorderPinnedAchievements: protectedProcedure
+    .input(z.object({ achievementIds: z.array(z.string()).min(1).max(3) }))
+    .mutation(async ({ input, ctx }) => {
+      // Update pinOrder for each achievement in the new order
+      await Promise.all(
+        input.achievementIds.map((achievementId, index) =>
+          ctx.prisma.userAchievement.update({
+            where: { userId_achievementId: { userId: ctx.userId, achievementId } },
+            data: { pinOrder: index },
+          })
+        )
+      )
+      return { success: true }
+    }),
 
   // --- ADMIN PROCEDURES ---
   adminGetStats: adminProcedure.query(async ({ ctx }) => {
