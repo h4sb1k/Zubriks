@@ -1,6 +1,7 @@
 import { AnimatePresence,motion } from 'framer-motion'
 import { ArrowLeft, ImagePlus, SmilePlus,Trash2, Trophy } from 'lucide-react'
 import { useState } from 'react'
+import React from 'react'
 
 import { trpc } from '../lib/trpc'
 import ConfirmModal from './ConfirmModal'
@@ -71,18 +72,36 @@ export default function AchievementBuilder({
   const isPending = createAchievement.isPending || updateAchievement.isPending || deleteAchievement.isPending
   const isValid = name.trim() && description.trim()
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isUploading, setIsUploading] = useState(false)
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setImageUrl(event.target.result as string)
-      }
-    }
-    reader.readAsDataURL(file)
-  }
 
+    const formData = new FormData()
+    formData.append('file', file)
+
+    setIsUploading(true)
+    try {
+      // The proxy in vite.config.ts will route this to the backend
+      const res = await fetch('/admin-api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!res.ok) {
+        throw new Error('Upload failed')
+      }
+
+      const data = await res.json()
+      setImageUrl(data.url)
+    } catch (err) {
+      alert('Ошибка при загрузке картинки. Проверьте размер и формат.')
+      console.error(err)
+    } finally {
+      setIsUploading(false)
+    }
+  }
   const handleSubmit = () => {
     if (!isValid) return
     if (!imageUrl.trim()) {

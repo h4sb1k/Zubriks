@@ -2,7 +2,9 @@ import { ArrowLeft } from 'lucide-react'
 import { useState } from 'react'
 
 import { trpc } from '../lib/trpc'
+import AchievementModal from './AchievementModal'
 import { DynamicIcon } from './DynamicIcon'
+import LoadingZubrik from './LoadingZubrik'
 
 type RouteInfo = {
   id: string
@@ -39,12 +41,13 @@ function RouteCard({ route }: { route: RouteInfo }) {
 
 export default function PublicProfileScreen({ userId, onClose }: { userId: string; onClose: () => void }) {
   const [activeTab, setActiveTab] = useState('Награды')
+  const [selectedAchievement, setSelectedAchievement] = useState<any>(null)
   const { data: user, isLoading } = trpc.getPublicProfile.useQuery({ userId })
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 bg-[#F5F2EB] z-[100] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E8922A]"></div>
+      <div className="fixed inset-0 bg-[#F5F2EB] z-[100] flex flex-col items-center justify-center">
+        <LoadingZubrik text="Загрузка профиля..." />
       </div>
     )
   }
@@ -127,7 +130,8 @@ export default function PublicProfileScreen({ userId, onClose }: { userId: strin
             {topAchievements.map((achievement) => (
                 <div
                   key={achievement.id}
-                  className="aspect-[4/5] rounded-[24px] p-2 flex flex-col items-center justify-end text-center shadow-lg shadow-[#1A3D2B]/10 relative overflow-hidden transition-transform active:scale-95"
+                  onClick={() => setSelectedAchievement(achievement)}
+                  className="aspect-[4/5] rounded-[24px] p-2 flex flex-col items-center justify-end text-center shadow-lg shadow-[#1A3D2B]/10 relative overflow-hidden transition-transform active:scale-95 cursor-pointer"
                   style={{ background: 'linear-gradient(135deg, #1A3D2B, #2E5A41)' }}
                 >
                   <div className="absolute top-0 right-0 w-20 h-20 bg-[#E8922A]/20 rounded-full blur-xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
@@ -183,9 +187,10 @@ export default function PublicProfileScreen({ userId, onClose }: { userId: strin
                 {earnedAchievements.map((achievement) => (
                   <div
                     key={achievement.id}
+                    onClick={() => achievement.earned && setSelectedAchievement(achievement)}
                     className={`aspect-[4/5] relative overflow-hidden rounded-[24px] p-3 flex flex-col justify-end transition-all duration-300 active:scale-[0.98] ${
                       achievement.earned
-                        ? 'shadow-lg shadow-[#1A3D2B]/20 text-white'
+                        ? 'shadow-lg shadow-[#1A3D2B]/20 text-white cursor-pointer'
                         : 'bg-white border border-[#E5E3DD] text-[#1C1C1E] shadow-sm'
                     }`}
                     style={achievement.earned ? { background: 'linear-gradient(135deg, #1A3D2B, #2E5A41)' } : undefined}
@@ -257,6 +262,10 @@ export default function PublicProfileScreen({ userId, onClose }: { userId: strin
           )}
         </div>
       </div>
+      <AchievementModal 
+        achievement={selectedAchievement} 
+        onClose={() => setSelectedAchievement(null)} 
+      />
     </div>
   )
 }

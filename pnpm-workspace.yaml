@@ -1,6 +1,7 @@
 packages:
   - backend
   - frontend
+  - admin
 allowBuilds:
   esbuild: true
   '@tailwindcss/oxide': false

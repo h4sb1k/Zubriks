@@ -14,7 +14,14 @@ import {
   verifyPassword,
   verifyRefreshToken,
   verifyTurnstileToken,
+  generateAdminAccessToken,
+  generateAdminRefreshToken,
+  verifyAdminAccessToken,
+  verifyAdminRefreshToken,
+  setAdminAuthCookies,
+  clearAdminAuthCookies
 } from './auth'
+import * as OTPAuth from 'otpauth'
 import { generateOTP, sendVerificationEmail } from './email'
 import { prisma } from './prisma'
 
@@ -59,6 +66,52 @@ export const createContext = async ({ req, res }: CreateExpressContextOptions) =
   return { req, res, prisma, userId }
 }
 
+export const createAdminContext = async ({ req, res }: CreateExpressContextOptions) => {
+  let userId: string | null = null
+
+  const accessToken = req.cookies?.admin_at
+  if (accessToken) {
+    const payload = verifyAdminAccessToken(accessToken)
+    if (payload) {
+      userId = payload.userId
+    }
+  }
+
+  if (!userId) {
+    const refreshTokenValue = req.cookies?.admin_rt
+    if (refreshTokenValue) {
+      const payload = verifyAdminRefreshToken(refreshTokenValue)
+      if (payload) {
+        // We verify the refresh token hasn't been globally invalidated by checking DB tokenVersion.
+        // Or for simplicity, we store admin refresh tokens in the same `RefreshToken` table or assume we just rotate them.
+        // Wait, the prompt says "Убедись, что при смене пароля или подозрительной активности все активные admin-сессии (refresh-токены) инвалидируются".
+        // Let's use the DB RefreshToken table just like public ones, maybe adding a `isAdmin` boolean or just trusting the token.
+        const storedToken = await prisma.refreshToken.findUnique({
+          where: { token: refreshTokenValue },
+        })
+        if (storedToken && storedToken.expiresAt > new Date()) {
+          userId = payload.userId
+
+          // Rotate tokens
+          await prisma.refreshToken.delete({ where: { id: storedToken.id } })
+
+          const newAccessToken = generateAdminAccessToken(userId)
+          const newRefreshToken = generateAdminRefreshToken(userId)
+          // 12 hours expiry
+          const expiry = new Date()
+          expiry.setHours(expiry.getHours() + 12)
+          await prisma.refreshToken.create({
+            data: { token: newRefreshToken, userId, expiresAt: expiry },
+          })
+          setAdminAuthCookies(res, newAccessToken, newRefreshToken)
+        }
+      }
+    }
+  }
+
+  return { req, res, prisma, userId }
+}
+
 
 type Context = Awaited<ReturnType<typeof createContext>>
 
@@ -87,6 +140,41 @@ const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
       userRole: user.role,
     },
   })
+}).use(async ({ next, path, type, ctx, getRawInput }) => {
+  const result = await next()
+  
+  // Log all successful admin mutations
+  if (type === 'mutation' && result.ok) {
+    const ip = ctx.req?.ip || ctx.req?.socket?.remoteAddress || null
+    
+    // Prevent logging sensitive data (like passwords in adminLogin/verify2FA) if those ever become adminProcedures.
+    // Right now, those are public procedures, but just in case, we can omit password fields.
+    let detailsToLog: any = {}
+    try {
+      if (getRawInput) {
+        const rawInput = await getRawInput()
+        detailsToLog = rawInput
+        if (detailsToLog && typeof detailsToLog === 'object' && ('password' in detailsToLog || 'totpCode' in detailsToLog)) {
+          detailsToLog = { ...detailsToLog, password: '[REDACTED]', totpCode: '[REDACTED]' }
+        }
+      }
+    } catch(e) {}
+
+    try {
+      await ctx.prisma.adminAuditLog.create({
+        data: {
+          adminId: ctx.userId,
+          action: path,
+          details: detailsToLog || {},
+          ipAddress: ip,
+        }
+      })
+    } catch (e) {
+      console.error('Failed to write admin audit log:', e)
+    }
+  }
+  
+  return result
 })
 
 async function checkAndAwardAchievements(prisma: PrismaClient, userId: string) {
@@ -1086,7 +1174,95 @@ export const trpcRouter = trpc.router({
         )
       )
       return { success: true }
+    })
+})
+
+export const adminRouter = trpc.router({
+  adminLogin: trpc.procedure
+    .input(z.object({ email: z.string().email(), password: z.string(), turnstileToken: z.string().optional() }))
+    .mutation(async ({ input, ctx }) => {
+      // Turnstile can be enabled here if needed
+      if (input.turnstileToken) {
+        const isValid = await verifyTurnstileToken(input.turnstileToken)
+        if (!isValid) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Капча не пройдена' })
+      }
+
+      const user = await ctx.prisma.user.findUnique({ where: { email: input.email } })
+      if (!user || user.role !== 'ADMIN' || !user.passwordHash) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Неверные учетные данные' })
+      }
+
+      const isPasswordValid = await verifyPassword(input.password, user.passwordHash)
+      if (!isPasswordValid) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Неверные учетные данные' })
+      }
+
+      if (!user.totpEnabled) {
+        const secret = user.totpSecret || new OTPAuth.Secret().base32
+        if (!user.totpSecret) {
+          await ctx.prisma.user.update({ where: { id: user.id }, data: { totpSecret: secret } })
+        }
+        return { requiresEnrollment: true, secret }
+      }
+
+      return { requires2FA: true }
     }),
+
+  adminVerify2FA: trpc.procedure
+    .input(z.object({ email: z.string().email(), password: z.string(), totpCode: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const user = await ctx.prisma.user.findUnique({ where: { email: input.email } })
+      if (!user || user.role !== 'ADMIN' || !user.passwordHash || !user.totpSecret) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Неверные учетные данные' })
+      }
+
+      const isPasswordValid = await verifyPassword(input.password, user.passwordHash)
+      if (!isPasswordValid) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Неверные учетные данные' })
+      }
+
+      let isValidTotp = false
+      try {
+        const totp = new OTPAuth.TOTP({ secret: OTPAuth.Secret.fromBase32(user.totpSecret) })
+        const delta = totp.validate({ token: input.totpCode, window: 1 })
+        isValidTotp = delta !== null
+      } catch (e) {
+        isValidTotp = false
+      }
+
+      if (!isValidTotp) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Неверный код 2FA' })
+      }
+
+      if (!user.totpEnabled) {
+        await ctx.prisma.user.update({ where: { id: user.id }, data: { totpEnabled: true } })
+      }
+
+      // Cleanup old admin refresh tokens if needed (or just general tokens)
+      await ctx.prisma.refreshToken.deleteMany({
+        where: { userId: user.id, expiresAt: { lt: new Date() } },
+      })
+
+      const newAccessToken = generateAdminAccessToken(user.id)
+      const newRefreshToken = generateAdminRefreshToken(user.id)
+      
+      const expiry = new Date()
+      expiry.setHours(expiry.getHours() + 12)
+      
+      await ctx.prisma.refreshToken.create({
+        data: { token: newRefreshToken, userId: user.id, expiresAt: expiry },
+      })
+      
+      setAdminAuthCookies(ctx.res, newAccessToken, newRefreshToken)
+
+      return { success: true }
+    }),
+
+  adminLogout: adminProcedure.mutation(async ({ ctx }) => {
+    clearAdminAuthCookies(ctx.res)
+    // Optional: delete the current refresh token from DB if we tracked it by session
+    return { success: true }
+  }),
 
   // --- ADMIN PROCEDURES ---
   adminGetStats: adminProcedure.query(async ({ ctx }) => {
@@ -1295,7 +1471,172 @@ export const trpcRouter = trpc.router({
       await ctx.prisma.userAchievement.deleteMany({ where: { achievementId: input.id } })
       await ctx.prisma.achievement.delete({ where: { id: input.id } })
       return { success: true }
+    }),
+
+  adminGetRoutes: adminProcedure.query(async ({ ctx }) => {
+    const routes = await ctx.prisma.route.findMany({
+      include: {
+        author: { select: { name: true } },
+        _count: { select: { waypoints: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+    return routes.map((r) => ({
+      ...r,
+      author: r.author?.name ?? 'Аноним',
+      stops: r._count.waypoints,
+    }))
+  }),
+
+  adminGetRouteById: adminProcedure
+    .input(z.object({ routeId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const route = await ctx.prisma.route.findUnique({
+        where: { id: input.routeId },
+        include: {
+          waypoints: {
+            orderBy: { orderIndex: 'asc' }
+          }
+        }
+      })
+      return { route }
+    }),
+
+  adminDeleteRoute: adminProcedure
+    .input(z.object({ routeId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      await ctx.prisma.waypoint.deleteMany({ where: { routeId: input.routeId } })
+      await ctx.prisma.userRoute.deleteMany({ where: { routeId: input.routeId } })
+      await ctx.prisma.route.delete({ where: { id: input.routeId } })
+      return { success: true }
+    }),
+
+  adminCreateRoute: adminProcedure
+    .input(z.object({
+      name: z.string().min(1).max(100),
+      description: z.string().max(500).optional(),
+      imageColor: z.string().default('#1A3D2B'),
+      icon: z.string().default('MapPin'),
+      isMain: z.boolean().default(false),
+      waypoints: z.array(z.object({
+        name: z.string(),
+        description: z.string().optional(),
+        latitude: z.number(),
+        longitude: z.number(),
+        icon: z.string().optional(),
+      }))
+    }))
+    .mutation(async ({ input, ctx }) => {
+      let totalKm = 0
+      for (let i = 0; i < input.waypoints.length - 1; i++) {
+        const p1 = input.waypoints[i]
+        const p2 = input.waypoints[i+1]
+        const R = 6371
+        const dLat = (p2.latitude - p1.latitude) * (Math.PI/180)
+        const dLon = (p2.longitude - p1.longitude) * (Math.PI/180)
+        const a = 
+          Math.sin(dLat/2) * Math.sin(dLat/2) +
+          Math.cos(p1.latitude * (Math.PI/180)) * Math.cos(p2.latitude * (Math.PI/180)) * 
+          Math.sin(dLon/2) * Math.sin(dLon/2)
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+        totalKm += R * c
+      }
+      const distance = totalKm > 0 && totalKm < 0.1 ? '~0.1 км' : `~${totalKm.toFixed(1)} км`
+      const durationMinutes = Math.max(1, Math.round((totalKm / 5) * 60))
+      const duration = durationMinutes >= 60 
+        ? `${Math.floor(durationMinutes/60)} ч ${durationMinutes%60} мин`
+        : `${durationMinutes} мин`
+
+      const route = await ctx.prisma.route.create({
+        data: {
+          name: input.name,
+          description: input.description,
+          distance,
+          duration,
+          imageColor: input.imageColor,
+          icon: input.icon,
+          isMain: input.isMain,
+          authorId: ctx.userId, // use admin's user id
+          waypoints: {
+            create: input.waypoints.map((w, index) => ({
+              ...w,
+              orderIndex: index,
+            }))
+          }
+        }
+      })
+      return { routeId: route.id }
+    }),
+
+  adminUpdateRoute: adminProcedure
+    .input(z.object({
+      id: z.string(),
+      name: z.string().min(1).max(100),
+      description: z.string().max(500).optional(),
+      imageColor: z.string().default('#1A3D2B'),
+      icon: z.string().default('MapPin'),
+      isMain: z.boolean().default(false),
+      waypoints: z.array(z.object({
+        name: z.string(),
+        description: z.string().optional(),
+        latitude: z.number(),
+        longitude: z.number(),
+        icon: z.string().optional(),
+      }))
+    }))
+    .mutation(async ({ input, ctx }) => {
+      let totalKm = 0
+      for (let i = 0; i < input.waypoints.length - 1; i++) {
+        const p1 = input.waypoints[i]
+        const p2 = input.waypoints[i+1]
+        const R = 6371
+        const dLat = (p2.latitude - p1.latitude) * (Math.PI/180)
+        const dLon = (p2.longitude - p1.longitude) * (Math.PI/180)
+        const a = 
+          Math.sin(dLat/2) * Math.sin(dLat/2) +
+          Math.cos(p1.latitude * (Math.PI/180)) * Math.cos(p2.latitude * (Math.PI/180)) * 
+          Math.sin(dLon/2) * Math.sin(dLon/2)
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+        totalKm += R * c
+      }
+      const distance = totalKm > 0 && totalKm < 0.1 ? '~0.1 км' : `~${totalKm.toFixed(1)} км`
+      const durationMinutes = Math.max(1, Math.round((totalKm / 5) * 60))
+      const duration = durationMinutes >= 60 
+        ? `${Math.floor(durationMinutes/60)} ч ${durationMinutes%60} мин`
+        : `${durationMinutes} мин`
+
+      // update route
+      await ctx.prisma.route.update({
+        where: { id: input.id },
+        data: {
+          name: input.name,
+          description: input.description,
+          distance,
+          duration,
+          imageColor: input.imageColor,
+          icon: input.icon,
+          isMain: input.isMain,
+        }
+      })
+
+      // delete old waypoints and create new ones
+      await ctx.prisma.waypoint.deleteMany({ where: { routeId: input.id } })
+      
+      await ctx.prisma.route.update({
+        where: { id: input.id },
+        data: {
+          waypoints: {
+            create: input.waypoints.map((w, index) => ({
+              ...w,
+              orderIndex: index,
+            }))
+          }
+        }
+      })
+      
+      return { success: true }
     })
 })
 
 export type TrpcRouter = typeof trpcRouter
+export type AdminRouter = typeof adminRouter

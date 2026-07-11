@@ -16,6 +16,8 @@ function requireEnv(name: string): string {
 
 const JWT_ACCESS_SECRET = requireEnv('JWT_ACCESS_SECRET')
 const JWT_REFRESH_SECRET = requireEnv('JWT_REFRESH_SECRET')
+const JWT_ADMIN_ACCESS_SECRET = requireEnv('JWT_ADMIN_ACCESS_SECRET')
+const JWT_ADMIN_REFRESH_SECRET = requireEnv('JWT_ADMIN_REFRESH_SECRET')
 
 // Tokens expire configuration
 const ACCESS_TOKEN_EXPIRES_IN = '15m' // 15 minutes
@@ -25,10 +27,15 @@ const isDev = process.env.NODE_ENV !== 'production'
 
 const COOKIE_OPTIONS_BASE = {
   httpOnly: true,
-  // В dev используем 'lax', т.к. localhost не поддерживает sameSite=none без HTTPS
-  // В prod используем 'none' + secure для cross-origin запросов
   secure: !isDev,
   sameSite: isDev ? ('lax' as const) : ('none' as const),
+}
+
+const COOKIE_OPTIONS_ADMIN = {
+  httpOnly: true,
+  secure: !isDev,
+  sameSite: 'strict' as const,
+  path: '/admin-api',
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -64,6 +71,30 @@ export function verifyRefreshToken(token: string): { userId: string } | null {
   }
 }
 
+export function generateAdminAccessToken(userId: string): string {
+  return jwt.sign({ userId }, JWT_ADMIN_ACCESS_SECRET, { expiresIn: '15m' })
+}
+
+export function generateAdminRefreshToken(userId: string): string {
+  return jwt.sign({ userId }, JWT_ADMIN_REFRESH_SECRET, { expiresIn: '12h' })
+}
+
+export function verifyAdminAccessToken(token: string): { userId: string } | null {
+  try {
+    return jwt.verify(token, JWT_ADMIN_ACCESS_SECRET) as { userId: string }
+  } catch (err) {
+    return null
+  }
+}
+
+export function verifyAdminRefreshToken(token: string): { userId: string } | null {
+  try {
+    return jwt.verify(token, JWT_ADMIN_REFRESH_SECRET) as { userId: string }
+  } catch (err) {
+    return null
+  }
+}
+
 export function setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
   // Access token cookie
   res.cookie('accessToken', accessToken, {
@@ -81,6 +112,23 @@ export function setAuthCookies(res: Response, accessToken: string, refreshToken:
 export function clearAuthCookies(res: Response) {
   res.clearCookie('accessToken', COOKIE_OPTIONS_BASE)
   res.clearCookie('refreshToken', COOKIE_OPTIONS_BASE)
+}
+
+export function setAdminAuthCookies(res: Response, accessToken: string, refreshToken: string) {
+  res.cookie('admin_at', accessToken, {
+    ...COOKIE_OPTIONS_ADMIN,
+    maxAge: 15 * 60 * 1000,
+  })
+
+  res.cookie('admin_rt', refreshToken, {
+    ...COOKIE_OPTIONS_ADMIN,
+    maxAge: 12 * 60 * 60 * 1000, // 12 hours
+  })
+}
+
+export function clearAdminAuthCookies(res: Response) {
+  res.clearCookie('admin_at', COOKIE_OPTIONS_ADMIN)
+  res.clearCookie('admin_rt', COOKIE_OPTIONS_ADMIN)
 }
 
 export function getRefreshTokenExpiry(): Date {

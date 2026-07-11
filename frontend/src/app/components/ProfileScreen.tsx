@@ -4,7 +4,6 @@ import { useEffect,useState } from 'react'
 
 import { trpc } from '../lib/trpc'
 import AchievementModal from './AchievementModal'
-import AdminScreen from './AdminScreen'
 import ConfirmModal from './ConfirmModal'
 import { DynamicIcon } from './DynamicIcon'
 import LoadingZubrik from './LoadingZubrik'
@@ -53,7 +52,6 @@ function RouteCard({ route }: { route: RouteInfo }) {
 
 export default function ProfileScreen() {
   const [activeTab, setActiveTab] = useState('Награды')
-  const [showAdmin, setShowAdmin] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [selectedAchievement, setSelectedAchievement] = useState<any | null>(null)
 
@@ -110,16 +108,6 @@ export default function ProfileScreen() {
           <LogOut size={18} />
           <span>Выйти</span>
         </button>
-
-        {user?.role === 'ADMIN' && (
-          <button
-            onClick={() => setShowAdmin(true)}
-            className="absolute top-6 left-5 bg-[#1A3D2B] text-white px-3.5 py-2 rounded-full text-sm font-bold shadow-md active:scale-95 transition-transform flex items-center gap-1.5"
-          >
-            <Settings size={16} />
-            <span>Админка</span>
-          </button>
-        )}
 
         <div className="flex flex-col items-center">
           <div className="w-24 h-24 rounded-full bg-[#1A3D2B] flex items-center justify-center mb-4 shadow-lg overflow-hidden">
@@ -431,10 +419,6 @@ export default function ProfileScreen() {
           </motion.div>
         )}
       </div>
-      
-      <AnimatePresence>
-        {showAdmin && <AdminScreen onClose={() => setShowAdmin(false)} />}
-      </AnimatePresence>
 
       <AchievementModal 
         achievement={selectedAchievement} 

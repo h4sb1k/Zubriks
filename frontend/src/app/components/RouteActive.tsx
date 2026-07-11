@@ -38,8 +38,7 @@ export default function RouteActive({ routeId, routeName: initialRouteName, auth
       onClose()
     }
   })
-
-  const canEdit = user?.role === 'ADMIN' || (user && authorId === user.id)
+  const canEdit = Boolean(user && authorId === user.id)
 
   const handleDelete = () => {
     setShowSettings(false)

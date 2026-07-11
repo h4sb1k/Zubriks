@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import AchievementUnlock from './components/AchievementUnlock'
 import EventsScreen from './components/EventsScreen'
 import HomeScreen from './components/HomeScreen'
+import LoadingZubrik from './components/LoadingZubrik'
 import MapScreen from './components/MapScreen'
 import OnboardingScreen from './components/OnboardingScreen'
 import bisonSVG from './components/pics/zubr.svg'
@@ -132,11 +133,7 @@ function MainApp() {
   })
 
   if (isLoading) {
-    return (
-      <div className="flex-1 flex items-center justify-center min-h-screen bg-[#FAFAF7]">
-        <div className="w-10 h-10 border-4 border-[#E8922A] border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
+    return <LoadingZubrik text="Подготовка экспедиции..." fullScreen />
   }
 
   if (!user || showOnboarding) {

@@ -1,6 +1,7 @@
 import * as L from 'leaflet'
 import { ArrowLeft, ImagePlus, MapPin, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import React from 'react'
 import { MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet'
 
 import { trpc } from '../lib/trpc'
@@ -132,16 +133,34 @@ export default function ZubrikBuilder({
   // imageUrl is checked separately in handleSubmit to show a specific error
   const isValid = name.trim() && description.trim() && position
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isUploading, setIsUploading] = useState(false)
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setImageUrl(event.target.result as string)
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    setIsUploading(true)
+    try {
+      const res = await fetch('/admin-api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!res.ok) {
+        throw new Error('Upload failed')
       }
+
+      const data = await res.json()
+      setImageUrl(data.url)
+    } catch (err) {
+      alert('Ошибка при загрузке картинки. Проверьте размер и формат.')
+      console.error(err)
+    } finally {
+      setIsUploading(false)
     }
-    reader.readAsDataURL(file)
   }
 
   const handleSubmit = () => {

@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
+    "a": "pnpm --filter @Zubriki/admin",
     "b": "pnpm --filter @Zubriki/backend",
     "f": "pnpm --filter @Zubriki/frontend",
     "dev": "pnpm -r --parallel dev",
