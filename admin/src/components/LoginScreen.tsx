@@ -7,6 +7,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [password, setPassword] = useState('')
   const [totpCode, setTotpCode] = useState('')
   const [turnstileToken, setTurnstileToken] = useState<string>('')
+  const [turnstileReady, setTurnstileReady] = useState(false)
   
   const [step, setStep] = useState<'login' | 'enroll' | 'verify'>('login')
   const [enrollSecret, setEnrollSecret] = useState('')
@@ -14,6 +15,11 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   const loginMutation = trpc.adminLogin.useMutation()
   const verifyMutation = trpc.adminVerify2FA.useMutation()
+
+  // tRPC wraps server errors — extract the real message
+  const extractError = (err: any): string => {
+    return err?.data?.message || err?.message || 'Неизвестная ошибка'
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,7 +33,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         setStep('verify')
       }
     } catch (err: any) {
-      setError(err.message || 'Ошибка входа')
+      setError(extractError(err))
     }
   }
 
@@ -38,7 +44,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       await verifyMutation.mutateAsync({ email, password, totpCode })
       onLogin()
     } catch (err: any) {
-      setError(err.message || 'Неверный код')
+      setError(extractError(err))
     }
   }
 
@@ -76,19 +82,25 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
             
             <div className="flex justify-center my-2">
               <Turnstile 
-                siteKey="1x00000000000000000000AA" // Dev dummy key. Change in production.
-                onSuccess={setTurnstileToken} 
+                siteKey="1x00000000000000000000AA" // Dev dummy key — always passes. Change in production.
+                onSuccess={(token) => { setTurnstileToken(token); setTurnstileReady(true) }}
+                onLoad={() => setTurnstileReady(true)}
+                onError={() => { setTurnstileReady(true) }}
               />
             </div>
 
-            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
+                <p className="text-red-600 text-sm text-center font-medium">{error}</p>
+              </div>
+            )}
             
             <button
               type="submit"
-              disabled={loginMutation.isPending || !turnstileToken}
+              disabled={loginMutation.isPending || !turnstileReady}
               className="w-full py-4 bg-[#1A3D2B] text-white font-bold rounded-full mt-2 hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {loginMutation.isPending ? 'Вход...' : 'Продолжить'}
+              {loginMutation.isPending ? 'Вход...' : !turnstileReady ? 'Загрузка капчи...' : 'Продолжить'}
             </button>
           </form>
         )}

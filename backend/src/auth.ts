@@ -144,6 +144,15 @@ const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY || '1x000000000000
 export async function verifyTurnstileToken(token: string): Promise<boolean> {
   if (!token) return false
 
+  // In dev mode with the test secret, skip the actual network call
+  // Test secret key always passes, but only when the corresponding test siteKey is used
+  const isDev = process.env.NODE_ENV !== 'production'
+  const isTestSecret = TURNSTILE_SECRET_KEY === '1x0000000000000000000000000000000AA'
+  if (isDev && isTestSecret) {
+    console.info('[Turnstile] Dev mode with test key — skipping Cloudflare verification, auto-passing')
+    return true
+  }
+
   try {
     const formData = new URLSearchParams()
     formData.append('secret', TURNSTILE_SECRET_KEY)
@@ -154,10 +163,16 @@ export async function verifyTurnstileToken(token: string): Promise<boolean> {
       method: 'POST',
     })
 
-    const outcome = (await result.json()) as { success: boolean }
+    const outcome = (await result.json()) as { success: boolean; 'error-codes'?: string[] }
+    console.info('[Turnstile] Cloudflare response:', outcome)
     return outcome.success
   } catch (err) {
-    console.error('Turnstile verification error:', err)
+    console.error('[Turnstile] Network error verifying token:', err)
+    // In dev, fail open so network issues don't block login
+    if (isDev) {
+      console.warn('[Turnstile] Dev mode — ignoring network error, allowing login')
+      return true
+    }
     return false
   }
 }

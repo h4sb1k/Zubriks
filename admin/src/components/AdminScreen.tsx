@@ -1,5 +1,5 @@
 import { AnimatePresence,motion } from 'framer-motion'
-import { ArrowLeft, Calendar, MapPin, Route, Search, Settings, Trophy,Users } from 'lucide-react'
+import { ArrowLeft, Calendar, LogOut, MapPin, Route, Search, Settings, Trophy, Users } from 'lucide-react'
 import { useMemo,useState } from 'react'
 
 import { trpc } from '../lib/trpc'
@@ -9,6 +9,7 @@ import LoadingZubrik from './LoadingZubrik'
 import UserBuilder, { type UserEditData } from './UserBuilder'
 import ZubrikBuilder, { type ZubrikEditData } from './ZubrikBuilder'
 import RouteBuilder from './RouteBuilder'
+import ConfirmModal from './ConfirmModal'
 
 type AdminTab = 'stats' | 'users' | 'zubriks' | 'achievements' | 'routes'
 
@@ -28,6 +29,14 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
   const { data: zubriksData, isLoading: isZubriksLoading } = trpc.adminGetZubriks.useQuery(undefined, { enabled: activeTab === 'zubriks' })
   const { data: achievementsData, isLoading: isAchievementsLoading } = trpc.adminGetAchievements.useQuery(undefined, { enabled: activeTab === 'achievements' })
   const { data: routesData, isLoading: isRoutesLoading } = trpc.adminGetRoutes.useQuery(undefined, { enabled: activeTab === 'routes' })
+  const { data: me } = trpc.adminMe.useQuery()
+  
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false)
+  const logoutMutation = trpc.adminLogout.useMutation({
+    onSuccess: () => {
+      window.location.reload()
+    }
+  })
   
   const deleteRouteMutation = trpc.adminDeleteRoute.useMutation({
     onSuccess: () => {
@@ -80,15 +89,48 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
       className="fixed inset-0 z-50 bg-[#F5F2EB] flex flex-col"
     >
       {/* Header */}
-      <div className="px-5 pt-safe-top pb-4 bg-white border-b border-[#E5E3DD] flex items-center justify-between shadow-sm z-10 relative">
-        <button
-          onClick={onClose}
-          className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-[#F5F2EB] active:scale-95 transition-all text-[#1C1C1E]"
-        >
-          <ArrowLeft size={24} />
-        </button>
-        <h1 className="text-[20px] font-bold text-[#1C1C1E] tracking-tight">Панель управления</h1>
-        <div className="w-10 h-10" /> {/* Spacer */}
+      <div className="px-5 pt-safe-top pb-4 bg-white/90 backdrop-blur-xl border-b border-[#E5E3DD]/60 flex flex-col gap-4 shadow-[0_4px_24px_rgba(0,0,0,0.02)] z-20 relative">
+        
+        {/* Row 1: Centered Title */}
+        <div className="flex justify-center items-center w-full pt-2">
+          <h1 className="text-[22px] sm:text-[26px] font-black text-[#1C1C1E] tracking-tight leading-none text-center">
+            Панель администратора
+          </h1>
+        </div>
+
+        {/* Row 2: Profile & Logout */}
+        <div className="flex items-center justify-between w-full">
+          
+          {/* Left: User Profile */}
+          <div className="flex items-center z-10 min-w-0 flex-shrink pr-4">
+            {me && (
+              <div className="flex items-center gap-2.5 bg-[#F5F2EB]/80 border border-[#E5E3DD] p-1.5 pr-4 rounded-full shadow-sm max-w-full">
+                {me.avatarUrl ? (
+                  <img src={me.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover shadow-inner flex-shrink-0" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1A3D2B] to-[#2A523D] flex items-center justify-center text-white text-[15px] font-bold shadow-inner flex-shrink-0">
+                    {me.name?.[0]?.toUpperCase() || me.email[0].toUpperCase()}
+                  </div>
+                )}
+                <div className="flex flex-col justify-center min-w-0">
+                  <span className="text-[14px] font-bold text-[#1C1C1E] leading-tight truncate">{me.name || me.email}</span>
+                  <span className="text-[12px] font-bold text-[#1A3D2B] leading-tight opacity-80 mt-0.5 truncate">{me.role === 'admin' ? 'Администратор' : me.role}</span>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Right: Logout Button */}
+          <div className="flex items-center z-10 flex-shrink-0">
+            <button
+              onClick={() => setIsLogoutModalOpen(true)}
+              className="w-12 h-12 rounded-full flex items-center justify-center bg-[#FFEFEF] text-[#FF3B30] hover:bg-[#FFD6D6] active:scale-95 active:bg-[#FFC4C4] transition-all border border-[#FF3B30]/10 shadow-sm"
+              aria-label="Выйти"
+            >
+              <LogOut size={22} strokeWidth={2.5} />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -404,6 +446,15 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
           />
         )}
       </AnimatePresence>
+
+      <ConfirmModal
+        isOpen={isLogoutModalOpen}
+        onCancel={() => setIsLogoutModalOpen(false)}
+        onConfirm={() => logoutMutation.mutate()}
+        title="Выйти из профиля?"
+        message="Вы уверены, что хотите выйти из панели управления?"
+        confirmText="Выйти"
+      />
     </motion.div>
   )
 }

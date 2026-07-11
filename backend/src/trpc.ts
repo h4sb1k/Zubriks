@@ -1,27 +1,26 @@
 import { PrismaClient } from '@prisma/client'
 import { initTRPC, TRPCError } from '@trpc/server'
 import { CreateExpressContextOptions } from '@trpc/server/adapters/express'
+import * as OTPAuth from 'otpauth'
 import { z } from 'zod'
 
 import {
+  clearAdminAuthCookies,
   clearAuthCookies,
   generateAccessToken,
+  generateAdminAccessToken,
+  generateAdminRefreshToken,
   generateRefreshToken,
   getRefreshTokenExpiry,
   hashPassword,
+  setAdminAuthCookies,
   setAuthCookies,
   verifyAccessToken,
-  verifyPassword,
-  verifyRefreshToken,
-  verifyTurnstileToken,
-  generateAdminAccessToken,
-  generateAdminRefreshToken,
   verifyAdminAccessToken,
   verifyAdminRefreshToken,
-  setAdminAuthCookies,
-  clearAdminAuthCookies
-} from './auth'
-import * as OTPAuth from 'otpauth'
+  verifyPassword,
+  verifyRefreshToken,
+  verifyTurnstileToken} from './auth'
 import { generateOTP, sendVerificationEmail } from './email'
 import { prisma } from './prisma'
 
@@ -1262,6 +1261,14 @@ export const adminRouter = trpc.router({
     clearAdminAuthCookies(ctx.res)
     // Optional: delete the current refresh token from DB if we tracked it by session
     return { success: true }
+  }),
+
+  adminMe: adminProcedure.query(async ({ ctx }) => {
+    const user = await ctx.prisma.user.findUnique({
+      where: { id: ctx.userId },
+      select: { email: true, name: true, avatarUrl: true, role: true }
+    });
+    return user;
   }),
 
   // --- ADMIN PROCEDURES ---
