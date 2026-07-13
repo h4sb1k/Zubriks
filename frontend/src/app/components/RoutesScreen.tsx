@@ -20,6 +20,7 @@ type Route = {
   liked: boolean
   imageColor: string
   icon: string
+  imageUrl?: string | null
 }
 
 export default function RoutesScreen({ userLocation }: { userLocation: [number, number] | null }) {
@@ -115,8 +116,8 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
         <div className="bg-white rounded-[32px] overflow-hidden shadow-[0_12px_30px_rgba(26,61,43,0.08)] mb-8">
           <div className="h-56 relative overflow-hidden p-6 flex items-end">
             <img
-              src="/images/Tour-Zubriki-1.webp"
-              alt="Тур Зубрики"
+              src={mainRoute?.imageUrl || "/images/Tour-Zubriki-1.webp"}
+              alt={mainRoute?.name || "Тур Зубрики"}
               className="absolute inset-0 w-full h-full object-cover transform hover:scale-105 transition-transform duration-700"
             />
             <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(26,61,43,0.9), rgba(26,61,43,0.3) 60%, transparent)' }} />
@@ -169,9 +170,13 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
                 className="w-full h-28 flex items-center justify-center relative overflow-hidden shrink-0 shadow-inner"
                 style={{ backgroundColor: route.imageColor }}
               >
-                <div className="flex-1 w-full h-full flex items-center justify-center bg-black/20 backdrop-blur-md">
-                  <DynamicIcon name={route.icon || 'MapPin'} size={48} className="text-white drop-shadow-md" />
-                </div>
+                {route.imageUrl ? (
+                  <img src={route.imageUrl} alt={route.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="flex-1 w-full h-full flex items-center justify-center bg-black/20 backdrop-blur-md">
+                    <DynamicIcon name={route.icon || 'MapPin'} size={48} className="text-white drop-shadow-md" />
+                  </div>
+                )}
               </div>
               <div className="p-4">
                 <h3 className="text-[15px] font-bold text-[#1C1C1E] mb-2 line-clamp-2 min-h-[2.5rem] leading-tight">{route.name}</h3>

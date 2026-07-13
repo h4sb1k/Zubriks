@@ -4,6 +4,7 @@ import { useState } from 'react'
 import React from 'react'
 
 import { trpc } from '../lib/trpc'
+import AlertModal from './AlertModal'
 import ConfirmModal from './ConfirmModal'
 import { DynamicIcon } from './DynamicIcon'
 import { IconPicker } from './IconPicker'
@@ -39,6 +40,7 @@ export default function AchievementBuilder({
   
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showIconPicker, setShowIconPicker] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
 
   // Получаем список зубриков для дропдауна SPECIFIC_ZUBRIK
   const { data: zubriksData } = trpc.adminGetZubriksList.useQuery(undefined, {
@@ -50,7 +52,7 @@ export default function AchievementBuilder({
       utils.adminGetAchievements.invalidate()
       onClose()
     },
-    onError: (err) => alert('Ошибка при создании: ' + err.message)
+    onError: (err) => setUploadError('Ошибка при создании: ' + err.message)
   })
 
   const updateAchievement = trpc.adminUpdateAchievement.useMutation({
@@ -58,7 +60,7 @@ export default function AchievementBuilder({
       utils.adminGetAchievements.invalidate()
       onClose()
     },
-    onError: (err) => alert('Ошибка при обновлении: ' + err.message)
+    onError: (err) => setUploadError('Ошибка при обновлении: ' + err.message)
   })
 
   const deleteAchievement = trpc.adminDeleteAchievement.useMutation({
@@ -66,7 +68,7 @@ export default function AchievementBuilder({
       utils.adminGetAchievements.invalidate()
       onClose()
     },
-    onError: (err) => alert('Ошибка при удалении: ' + err.message)
+    onError: (err) => setUploadError('Ошибка при удалении: ' + err.message)
   })
 
   const isPending = createAchievement.isPending || updateAchievement.isPending || deleteAchievement.isPending
@@ -96,16 +98,16 @@ export default function AchievementBuilder({
       const data = await res.json()
       setImageUrl(data.url)
     } catch (err) {
-      alert('Ошибка при загрузке картинки. Проверьте размер и формат.')
+      setUploadError('Ошибка при загрузке картинки. Проверьте размер (до 5 МБ) и формат (только изображения).')
       console.error(err)
     } finally {
       setIsUploading(false)
     }
   }
   const handleSubmit = () => {
-    if (!isValid) return
+    if (!isValid || isPending) return
     if (!imageUrl.trim()) {
-      alert('Ошибка: необходимо загрузить иконку достижения!')
+      setUploadError('Ошибка: необходимо загрузить иконку достижения!')
       return
     }
 
@@ -382,6 +384,12 @@ export default function AchievementBuilder({
           setShowDeleteConfirm(false)
         }}
         onCancel={() => setShowDeleteConfirm(false)}
+      />
+      <AlertModal
+        isOpen={!!uploadError}
+        title="Ошибка"
+        message={uploadError || ''}
+        onClose={() => setUploadError(null)}
       />
     </motion.div>
   )

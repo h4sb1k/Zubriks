@@ -5,6 +5,7 @@ import React from 'react'
 import { MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet'
 
 import { trpc } from '../lib/trpc'
+import AlertModal from './AlertModal'
 import ConfirmModal from './ConfirmModal'
 
 const customIcon = L.divIcon({
@@ -103,6 +104,7 @@ export default function ZubrikBuilder({
 
   const [isPickingMap, setIsPickingMap] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
 
   const utils = trpc.useUtils()
 
@@ -111,7 +113,7 @@ export default function ZubrikBuilder({
       utils.adminGetZubriks.invalidate()
       onClose()
     },
-    onError: (err) => alert('Ошибка при создании Зубрика: ' + err.message),
+    onError: (err) => setUploadError('Ошибка при создании Зубрика: ' + err.message),
   })
 
   const updateZubrik = trpc.adminUpdateZubrik.useMutation({
@@ -119,7 +121,7 @@ export default function ZubrikBuilder({
       utils.adminGetZubriks.invalidate()
       onClose()
     },
-    onError: (err) => alert('Ошибка при обновлении Зубрика: ' + err.message),
+    onError: (err) => setUploadError('Ошибка при обновлении Зубрика: ' + err.message),
   })
 
   const deleteZubrik = trpc.adminDeleteZubrik.useMutation({
@@ -127,7 +129,7 @@ export default function ZubrikBuilder({
       utils.adminGetZubriks.invalidate()
       onClose()
     },
-    onError: (err) => alert('Ошибка при удалении Зубрика: ' + err.message),
+    onError: (err) => setUploadError('Ошибка при удалении Зубрика: ' + err.message),
   })
 
   // imageUrl is checked separately in handleSubmit to show a specific error
@@ -156,7 +158,7 @@ export default function ZubrikBuilder({
       const data = await res.json()
       setImageUrl(data.url)
     } catch (err) {
-      alert('Ошибка при загрузке картинки. Проверьте размер и формат.')
+      setUploadError('Ошибка при загрузке картинки. Проверьте размер (до 5 МБ) и формат (только изображения).')
       console.error(err)
     } finally {
       setIsUploading(false)
@@ -333,6 +335,13 @@ export default function ZubrikBuilder({
           setShowDeleteConfirm(false)
         }}
         onCancel={() => setShowDeleteConfirm(false)}
+      />
+
+      <AlertModal
+        isOpen={!!uploadError}
+        title="Ошибка загрузки"
+        message={uploadError || ''}
+        onClose={() => setUploadError(null)}
       />
     </div>
   )

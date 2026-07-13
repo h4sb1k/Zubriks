@@ -124,8 +124,8 @@ export default function HomeScreen({
           >
             <div className="h-56 relative overflow-hidden p-6 flex items-end">
               <img
-                src="/images/Tour-Zubriki-1.webp"
-                alt="Тур Зубрики"
+                src={mainRouteData?.mainRoute?.imageUrl || "/images/Tour-Zubriki-1.webp"}
+                alt={mainRouteData?.mainRoute?.name || "Тур Зубрики"}
                 className="absolute inset-0 w-full h-full object-cover transform hover:scale-105 transition-transform duration-700"
               />
               <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(26,61,43,0.9), rgba(26,61,43,0.3) 60%, transparent)' }} />

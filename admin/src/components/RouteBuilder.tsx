@@ -1,11 +1,12 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import * as L from 'leaflet'
-import { ArrowLeft, ChevronDown, ChevronUp, MapPin, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, ChevronDown, ChevronUp, ImagePlus, MapPin, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 
 import { trpc } from '../lib/trpc'
 import ConfirmModal from './ConfirmModal'
+import AlertModal from './AlertModal'
 import { DynamicIcon } from './DynamicIcon'
 import { IconPicker } from './IconPicker'
 
@@ -99,12 +100,15 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
   const [routeIconPickerOpen, setRouteIconPickerOpen] = useState(false)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [imageUrl, setImageUrl] = useState('')
+  const [isUploading, setIsUploading] = useState(false)
   const [isMain, setIsMain] = useState(false)
   const [waypoints, setWaypoints] = useState<WaypointDraft[]>([])
 
   const [pickerIndex, setPickerIndex] = useState<number | null>(null)
   const [iconPickerIndex, setIconPickerIndex] = useState<number | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   
   const utils = trpc.useUtils()
   
@@ -118,6 +122,7 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
       const route = routeData.route
       setName(route.name)
       setDescription(route.description || '')
+      setImageUrl(route.imageUrl || '')
       setRouteIcon(route.icon || 'MapPin')
       setIsMain(route.isMain || false)
       setWaypoints(route.waypoints.map(wp => ({
@@ -148,7 +153,7 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
       utils.adminGetRoutes.invalidate()
       onClose()
     },
-    onError: (err) => alert('Ошибка при создании маршрута: ' + err.message),
+    onError: (err) => setUploadError('Ошибка при создании маршрута: ' + err.message),
   })
 
   const updateRoute = trpc.adminUpdateRoute.useMutation({
@@ -156,19 +161,45 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
       utils.adminGetRoutes.invalidate()
       onClose()
     },
-    onError: (err) => alert('Ошибка при обновлении маршрута: ' + err.message),
+    onError: (err) => setUploadError('Ошибка при обновлении маршрута: ' + err.message),
   })
 
   const deleteRoute = trpc.adminDeleteRoute.useMutation({
     onSuccess: () => {
       utils.adminGetRoutes.invalidate()
-      onClose() // also closes RouteActive if it's nested
-      // To close RouteActive fully, we might need a signal, but reloading routes or just closing this modal will trigger state cleanup.
-      // Wait, we need to dispatch an event to completely close RouteActive.
+      onClose()
       window.dispatchEvent(new CustomEvent('close-route-active'))
     },
-    onError: (err) => alert('Ошибка при удалении маршрута: ' + err.message),
+    onError: (err) => setUploadError('Ошибка при удалении маршрута: ' + err.message),
   })
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    setIsUploading(true)
+    try {
+      const res = await fetch('/admin-api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!res.ok) {
+        throw new Error('Upload failed')
+      }
+
+      const data = await res.json()
+      setImageUrl(data.url)
+    } catch (err) {
+      setUploadError('Ошибка при загрузке картинки. Проверьте размер (до 5 МБ) и формат (только изображения).')
+      console.error(err)
+    } finally {
+      setIsUploading(false)
+    }
+  }
 
   const addWaypoint = () => {
     setWaypoints([
@@ -234,6 +265,7 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
         name,
         description,
         icon: routeIcon,
+        imageUrl: imageUrl || null,
         isMain: isMain,
         waypoints: waypoints.map(w => ({
           name: w.name,
@@ -248,6 +280,7 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
         name,
         description,
         icon: routeIcon,
+        imageUrl: imageUrl || null,
         isMain: isMain,
         waypoints: waypoints.map(w => ({
           name: w.name,
@@ -356,7 +389,60 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
               placeholder="Краткое описание"
             />
           </div>
-          <div className="flex items-center justify-between p-4 bg-[#F5F2EB] rounded-xl mb-4">
+
+          <div>
+            <label className="block text-sm font-bold text-[#6B6B6B] uppercase tracking-wider mb-2">Изображение маршрута (опционально)</label>
+            
+            <label className={`relative flex items-center justify-center cursor-pointer transition-all overflow-hidden ${
+              imageUrl 
+                ? 'w-full min-h-[220px] bg-[#F5F2EB] rounded-[24px] p-6 border border-[#E5E3DD] shadow-inner group'
+                : 'w-full bg-white rounded-[24px] p-8 flex-col shadow-sm border-2 border-dashed border-[#E5E3DD] hover:border-[#E8922A] hover:bg-[#FFF9E6]/30 active:scale-[0.99] group'
+            }`}>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageUpload}
+                disabled={isUploading}
+              />
+
+              {isUploading ? (
+                <div className="flex flex-col items-center justify-center">
+                  <div className="w-8 h-8 border-4 border-[#E8922A] border-t-transparent rounded-full animate-spin mb-3"></div>
+                  <span className="font-bold text-[#E8922A]">Загрузка...</span>
+                </div>
+              ) : imageUrl ? (
+                <>
+                  <img src={imageUrl} alt="preview" className="max-w-full max-h-[260px] object-contain drop-shadow-lg rounded-[12px] transition-transform group-hover:scale-[1.02]" />
+                  <div className="absolute inset-0 bg-[#1C1C1E]/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                    <div className="bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-[20px] font-bold text-[15px] text-[#1C1C1E] shadow-xl flex items-center gap-2 transform translate-y-2 group-hover:translate-y-0 transition-transform">
+                      <ImagePlus size={18} className="text-[#E8922A]" />
+                      Изменить фото
+                    </div>
+                  </div>
+                  <button 
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setImageUrl('')
+                    }}
+                    className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm p-2.5 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.1)] text-red-500 hover:text-red-600 hover:bg-white hover:scale-105 active:scale-95 transition-all z-10"
+                    title="Удалить"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="w-14 h-14 bg-[#F5F2EB] group-hover:bg-[#FFF9E6] rounded-full flex items-center justify-center transition-colors mb-3">
+                    <ImagePlus size={28} className="text-[#6B6B6B] group-hover:text-[#E8922A] transition-colors" />
+                  </div>
+                  <span className="font-bold text-[#6B6B6B] group-hover:text-[#E8922A] transition-colors">Загрузить фото маршрута</span>
+                </>
+              )}
+            </label>
+          </div>
+
+          <div className="flex items-center gap-3 bg-white p-4 rounded-[20px] shadow-sm border border-[#E5E3DD]">
                   <div>
                     <div className="font-bold text-[#1C1C1E]">Главный маршрут</div>
                     <div className="text-xs text-[#6B6B6B]">Отображается на главном экране</div>
@@ -572,6 +658,13 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
           setShowDeleteConfirm(false)
         }}
         onCancel={() => setShowDeleteConfirm(false)}
+      />
+
+      <AlertModal
+        isOpen={!!uploadError}
+        title="Ошибка загрузки"
+        message={uploadError || ''}
+        onClose={() => setUploadError(null)}
       />
     </div>
   )

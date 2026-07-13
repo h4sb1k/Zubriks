@@ -106,7 +106,8 @@ model Route {
   duration         String
   description      String?
   imageColor       String?
-  icon String?
+  icon             String?
+  imageUrl         String?
   isMain           Boolean     @default(false)
   authorId         String?
   createdAt        DateTime    @default(now())

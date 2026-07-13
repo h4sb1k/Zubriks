@@ -406,11 +406,17 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
                 >
                   <div
                     className="w-[84px] h-[84px] rounded-full flex items-center justify-center shadow-inner shrink-0 overflow-hidden border-[3px] border-white p-[2px]"
-                    style={{ backgroundColor: r.imageColor || '#1A3D2B' }}
+                    style={{ backgroundColor: r.imageUrl ? '#F5F2EB' : (r.imageColor || '#1A3D2B') }}
                   >
-                    <div className="w-full h-full rounded-full flex items-center justify-center text-3xl" style={{ backgroundColor: r.imageColor || '#1A3D2B' }}>
-                      <DynamicIcon name={r.icon || 'MapPin'} size={36} className="text-white" />
-                    </div>
+                    {r.imageUrl ? (
+                      <div className="w-full h-full rounded-full overflow-hidden">
+                        <img src={r.imageUrl} alt={r.name} className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="w-full h-full rounded-full flex items-center justify-center text-3xl" style={{ backgroundColor: r.imageColor || '#1A3D2B' }}>
+                        <DynamicIcon name={r.icon || 'MapPin'} size={36} className="text-white" />
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0 py-1">
                     <div className="font-black text-[18px] text-[#1C1C1E] leading-tight mb-1 truncate">{r.name}</div>

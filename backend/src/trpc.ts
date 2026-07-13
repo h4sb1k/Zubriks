@@ -669,6 +669,7 @@ export const trpcRouter = trpc.router({
         liked: likedRouteIds.has(r.id),
         imageColor: r.imageColor ?? '#1A3D2B',
         icon: r.icon ?? 'MapPin',
+        imageUrl: r.imageUrl,
       })),
       mainRoute: mainRoute
         ? {
@@ -679,6 +680,7 @@ export const trpcRouter = trpc.router({
             stops: mainRoute._count.waypoints,
             description: mainRoute.description,
             icon: mainRoute.icon ?? 'Crown',
+            imageUrl: mainRoute.imageUrl,
           }
         : null,
     }
@@ -1525,6 +1527,7 @@ export const adminRouter = trpc.router({
       description: z.string().max(500).optional(),
       imageColor: z.string().default('#1A3D2B'),
       icon: z.string().default('MapPin'),
+      imageUrl: z.string().nullable().optional(),
       isMain: z.boolean().default(false),
       waypoints: z.array(z.object({
         name: z.string(),
@@ -1563,6 +1566,7 @@ export const adminRouter = trpc.router({
           duration,
           imageColor: input.imageColor,
           icon: input.icon,
+          imageUrl: input.imageUrl,
           isMain: input.isMain,
           authorId: ctx.userId, // use admin's user id
           waypoints: {
@@ -1583,6 +1587,7 @@ export const adminRouter = trpc.router({
       description: z.string().max(500).optional(),
       imageColor: z.string().default('#1A3D2B'),
       icon: z.string().default('MapPin'),
+      imageUrl: z.string().nullable().optional(),
       isMain: z.boolean().default(false),
       waypoints: z.array(z.object({
         name: z.string(),
@@ -1623,6 +1628,7 @@ export const adminRouter = trpc.router({
           duration,
           imageColor: input.imageColor,
           icon: input.icon,
+          imageUrl: input.imageUrl,
           isMain: input.isMain,
         }
       })
