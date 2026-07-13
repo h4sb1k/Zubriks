@@ -143,8 +143,8 @@ export default function UserBuilder({
               onClick={() => handleRoleChange('USER')}
               className={`p-4 rounded-[20px] border-2 transition-all flex flex-col items-center justify-center gap-2 ${
                 role === 'USER'
-                  ? 'border-[#34C759] bg-[#34C759]/10 text-[#34C759]'
-                  : 'border-[#E5E3DD] bg-white text-[#6B6B6B] hover:border-[#34C759]/50'
+                  ? 'border-[#1A3D2B] bg-[#1A3D2B]/10 text-[#1A3D2B]'
+                  : 'border-[#E5E3DD] bg-white text-[#6B6B6B] hover:border-[#1A3D2B]/50'
               }`}
             >
               <User size={24} />

@@ -168,7 +168,7 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
             animate={{ opacity: 1, y: 0 }}
             className="grid grid-cols-2 gap-4"
           >
-            <div className="bg-white rounded-[24px] p-5 shadow-[0_8px_20px_rgba(0,0,0,0.05)] flex flex-col">
+            <div onClick={() => setActiveTab('users')} className="bg-white rounded-[24px] p-5 shadow-[0_8px_20px_rgba(0,0,0,0.05)] flex flex-col active:scale-[0.97] transition-all cursor-pointer hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
               <div className="w-12 h-12 rounded-full bg-[#1A3D2B]/10 flex items-center justify-center text-[#1A3D2B] mb-3">
                 <Users size={24} />
               </div>
@@ -176,7 +176,7 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
               <span className="text-sm font-medium text-[#6B6B6B]">Пользователей</span>
             </div>
             
-            <div className="bg-white rounded-[24px] p-5 shadow-[0_8px_20px_rgba(0,0,0,0.05)] flex flex-col">
+            <div onClick={() => setActiveTab('zubriks')} className="bg-white rounded-[24px] p-5 shadow-[0_8px_20px_rgba(0,0,0,0.05)] flex flex-col active:scale-[0.97] transition-all cursor-pointer hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
               <div className="w-12 h-12 rounded-full bg-[#E8922A]/10 flex items-center justify-center text-[#E8922A] mb-3">
                 <MapPin size={24} />
               </div>
@@ -184,7 +184,7 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
               <span className="text-sm font-medium text-[#6B6B6B]">Зубриков</span>
             </div>
             
-            <div className="bg-white rounded-[24px] p-5 shadow-[0_8px_20px_rgba(0,0,0,0.05)] flex flex-col">
+            <div onClick={() => setActiveTab('routes')} className="bg-white rounded-[24px] p-5 shadow-[0_8px_20px_rgba(0,0,0,0.05)] flex flex-col active:scale-[0.97] transition-all cursor-pointer hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
               <div className="w-12 h-12 rounded-full bg-[#34C759]/10 flex items-center justify-center text-[#34C759] mb-3">
                 <Route size={24} />
               </div>
@@ -192,6 +192,14 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
               <span className="text-sm font-medium text-[#6B6B6B]">Маршрутов</span>
             </div>
             
+            <div onClick={() => setActiveTab('achievements')} className="bg-white rounded-[24px] p-5 shadow-[0_8px_20px_rgba(0,0,0,0.05)] flex flex-col active:scale-[0.97] transition-all cursor-pointer hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+              <div className="w-12 h-12 rounded-full bg-[#BF5AF2]/10 flex items-center justify-center text-[#BF5AF2] mb-3">
+                <Trophy size={24} />
+              </div>
+              <span className="text-[32px] font-black text-[#1C1C1E]">{isStatsLoading ? '-' : stats?.achievements}</span>
+              <span className="text-sm font-medium text-[#6B6B6B]">Достижений</span>
+            </div>
+
             <div className="bg-white rounded-[24px] p-5 shadow-[0_8px_20px_rgba(0,0,0,0.05)] flex flex-col">
               <div className="w-12 h-12 rounded-full bg-[#FEA35A]/10 flex items-center justify-center text-[#FEA35A] mb-3">
                 <Calendar size={24} />
@@ -202,16 +210,16 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
           </motion.div>
         )}
 
-        {(activeTab === 'users' || activeTab === 'zubriks' || activeTab === 'achievements') && (
-          <div className="mb-4 relative">
-             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B6B6B]" size={20} />
-             <input 
-               type="text" 
-               placeholder="Поиск..." 
-               value={searchQuery}
-               onChange={e => setSearchQuery(e.target.value)}
-               className="w-full bg-white border-2 border-[#E5E3DD] rounded-full py-3 pl-12 pr-4 font-medium text-[#1C1C1E] focus:border-[#E8922A] focus:outline-none transition-colors shadow-[0_4px_16px_rgba(0,0,0,0.02)]"
-             />
+        {activeTab !== 'stats' && (
+          <div className="mb-4 relative shrink-0">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#A3A3A3]" size={20} />
+            <input 
+              type="text"
+              placeholder="Поиск..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white rounded-full py-3.5 pl-12 pr-4 shadow-sm border border-[#E5E3DD]/60 outline-none focus:border-[#E8922A] focus:ring-2 focus:ring-[#E8922A]/20 transition-all font-medium text-[#1C1C1E]"
+            />
           </div>
         )}
 
@@ -228,15 +236,39 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
                 <div 
                   key={u.id} 
                   onClick={() => setEditingUser(u as any)}
-                  className="bg-white rounded-[20px] p-4 shadow-[0_4px_16px_rgba(0,0,0,0.04)] border border-[#E5E3DD]/60 flex items-center justify-between active:scale-[0.97] transition-all cursor-pointer hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)]"
+                  className="bg-white rounded-[24px] p-4 shadow-[0_4px_16px_rgba(0,0,0,0.04)] border border-[#E5E3DD]/60 flex items-center gap-5 active:scale-[0.97] transition-all cursor-pointer hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)]"
                 >
-                  <div>
-                    <div className="font-bold text-[#1C1C1E] mb-1">{u.name || 'Аноним'}</div>
-                    <div className="text-sm text-[#6B6B6B] mb-1">{u.email}</div>
-                    <div className="text-xs text-[#1A3D2B] bg-[#1A3D2B]/10 inline-block px-2 py-0.5 rounded-full font-medium">
-                      {u.role}
+                  <div
+                    className="w-[64px] h-[64px] rounded-full flex items-center justify-center bg-[#F5F2EB] shadow-inner shrink-0 overflow-hidden border-[3px] border-white text-xl font-black text-[#1C1C1E]"
+                  >
+                    {(u as any).avatarUrl ? (
+                      <img src={(u as any).avatarUrl} alt={u.name || 'Аватар'} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#E5E3DD] to-[#D5D3CD]">
+                        {u.name ? u.name[0].toUpperCase() : u.email[0].toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 py-1">
+                    <div className="font-black text-[18px] text-[#1C1C1E] leading-tight mb-1 truncate">{u.name || 'Аноним'}</div>
+                    <div className="text-[14px] text-[#6B6B6B] leading-snug line-clamp-1 mb-1.5">{u.email}</div>
+                    <div className={`text-[12px] inline-block px-2.5 py-1 rounded-md font-bold uppercase tracking-wider ${
+                      u.role === 'ADMIN' 
+                        ? 'bg-[#E8922A]/10 text-[#E8922A]' 
+                        : 'bg-[#1A3D2B]/10 text-[#1A3D2B]'
+                    }`}>
+                      {u.role === 'ADMIN' ? 'Администратор' : 'Пользователь'}
                     </div>
                   </div>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setEditingUser(u as any)
+                    }}
+                    className="w-10 h-10 rounded-full bg-[#F5F2EB] flex items-center justify-center text-[#E8922A] hover:bg-[#E8922A] hover:text-white transition-colors shrink-0"
+                  >
+                    <DynamicIcon name="Settings" size={20} />
+                  </button>
                 </div>
               ))
             )}
@@ -275,9 +307,25 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
                     )}
                   </div>
                   <div className="flex-1 min-w-0 py-1">
-                    <div className="font-bold text-[17px] text-[#1C1C1E] mb-1 tracking-tight truncate">{z.name}</div>
+                    <div className="font-black text-[18px] text-[#1C1C1E] leading-tight mb-1 truncate">{z.name}</div>
                     <div className="text-[14px] text-[#6B6B6B] leading-snug line-clamp-2">{z.description}</div>
                   </div>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setEditingZubrik({
+                        id: z.id,
+                        name: z.name,
+                        description: z.description,
+                        latitude: z.latitude,
+                        longitude: z.longitude,
+                        imageUrl: z.imageUrl || undefined,
+                      })
+                    }}
+                    className="w-10 h-10 rounded-full bg-[#F5F2EB] flex items-center justify-center text-[#E8922A] hover:bg-[#E8922A] hover:text-white transition-colors shrink-0"
+                  >
+                    <DynamicIcon name="Settings" size={20} />
+                  </button>
                 </div>
               ))
             )}
@@ -344,16 +392,6 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
 
         {activeTab === 'routes' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3 pb-20">
-            <div className="relative mb-4">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#A3A3A3]" size={20} />
-              <input 
-                type="text"
-                placeholder="Поиск маршрутов..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white rounded-full py-3.5 pl-12 pr-4 shadow-sm border border-[#E5E3DD]/60 outline-none focus:border-[#E8922A] focus:ring-2 focus:ring-[#E8922A]/20 transition-all font-medium text-[#1C1C1E]"
-              />
-            </div>
             
             {isRoutesLoading ? (
               <LoadingZubrik text="Загрузка..." />

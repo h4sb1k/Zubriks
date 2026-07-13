@@ -1273,13 +1273,14 @@ export const adminRouter = trpc.router({
 
   // --- ADMIN PROCEDURES ---
   adminGetStats: adminProcedure.query(async ({ ctx }) => {
-    const [users, zubriks, routes, events] = await Promise.all([
+    const [users, zubriks, routes, events, achievements] = await Promise.all([
       ctx.prisma.user.count(),
       ctx.prisma.zubrik.count(),
       ctx.prisma.route.count(),
       ctx.prisma.event.count(),
+      ctx.prisma.achievement.count(),
     ])
-    return { users, zubriks, routes, events }
+    return { users, zubriks, routes, events, achievements }
   }),
 
   adminGetUsers: adminProcedure.query(async ({ ctx }) => {

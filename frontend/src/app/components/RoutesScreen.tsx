@@ -30,6 +30,7 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
 
   const utils = trpc.useUtils()
   const { data: routesData, isLoading, isError, error } = trpc.getRoutes.useQuery()
+  const { data: me } = trpc.me.useQuery()
 
   const toggleLikeMutation = trpc.toggleRouteLike.useMutation({
     onMutate: async ({ routeId }) => {
@@ -87,7 +88,7 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
       return route.liked
     }
     if (activeFilter === 'Мои') {
-      return route.author === 'Я' || route.id === 'user-created'
+      return (me && route.authorId === me.id) || route.id === 'user-created'
     }
     return true
   })

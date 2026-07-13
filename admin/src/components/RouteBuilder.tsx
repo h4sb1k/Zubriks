@@ -429,14 +429,14 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
                     {iconPickerIndex === i && (
                       <>
                         <div 
-                          className="fixed inset-0 z-[110]" 
+                          className="fixed inset-0 z-[450]" 
                           onClick={() => setIconPickerIndex(null)}
                         />
                         <motion.div 
                           initial={{ opacity: 0, y: -10, scale: 0.95 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                          className="absolute z-[120] top-full mt-2 left-0 shadow-2xl rounded-2xl overflow-hidden"
+                          className="absolute z-[500] top-full mt-2 left-0 shadow-2xl rounded-2xl overflow-hidden"
                         >
                           <IconPicker 
                             onIconSelect={(iconName) => {
