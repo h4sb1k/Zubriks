@@ -22,7 +22,7 @@ const getBaseUrl = () => {
   if (typeof window !== 'undefined') {
     const apiUrl = import.meta.env.VITE_API_URL
     if (apiUrl) return apiUrl
-    return `${window.location.protocol}//${window.location.hostname}:3000/trpc`
+    return '/trpc'
   }
   return 'http://localhost:3000/trpc'
 }

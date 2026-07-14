@@ -328,7 +328,7 @@ export default function MapScreen({
               transform: `translateY(${translateY}px)`,
               transition: isDragging ? 'none' : 'transform 0.3s ease-out',
             }}
-            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl p-5 pointer-events-auto touch-none select-none"
+            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.15)] px-5 pt-5 pb-[calc(76px+env(safe-area-inset-bottom))] pointer-events-auto touch-none select-none"
           >
             {/* Drag Handle Indicator */}
             <div className="w-12 h-1.5 bg-[#E5E3DD] rounded-full mx-auto mb-4 cursor-grab active:cursor-grabbing" />
@@ -393,7 +393,7 @@ export default function MapScreen({
 
         {/* Nearby Zubriks Horizontal Scroll (when no specific pin selected) */}
         {!selectedZubrik && mapZubriks.length > 0 && (
-          <div className="absolute bottom-20 left-4 right-4 pointer-events-auto">
+          <div className="absolute bottom-[calc(76px+env(safe-area-inset-bottom))] left-0 right-0 px-4 pointer-events-auto">
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               {mapZubriks
                 .filter((z) => !z.visited)

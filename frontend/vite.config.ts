@@ -1,4 +1,5 @@
 import tailwindcss from '@tailwindcss/vite'
+import basicSsl from '@vitejs/plugin-basic-ssl'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 import { defineConfig } from 'vite'
@@ -22,6 +23,7 @@ export default defineConfig({
     // Tailwind is not being actively used – do not remove them
     react(),
     tailwindcss(),
+    basicSsl(),
   ],
   resolve: {
     alias: {
@@ -37,7 +39,11 @@ export default defineConfig({
       '/images': {
         target: 'http://localhost:3000',
         changeOrigin: true,
-      }
-    }
-  }
+      },
+      '/trpc': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    },
+  },
 })

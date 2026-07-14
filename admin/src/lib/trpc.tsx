@@ -24,7 +24,7 @@ const getBaseUrl = () => {
   if (typeof window !== 'undefined') {
     const apiUrl = import.meta.env.VITE_ADMIN_API_URL
     if (apiUrl) return apiUrl
-    return `${window.location.protocol}//${window.location.hostname}:3000/admin-api/trpc`
+    return '/admin-api/trpc'
   }
   return 'http://localhost:3000/admin-api/trpc'
 }

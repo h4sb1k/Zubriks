@@ -106,10 +106,6 @@ export default function AchievementBuilder({
   }
   const handleSubmit = () => {
     if (!isValid || isPending) return
-    if (!imageUrl.trim()) {
-      setUploadError('Ошибка: необходимо загрузить иконку достижения!')
-      return
-    }
 
     if (initialData) {
       updateAchievement.mutate({
@@ -252,10 +248,12 @@ export default function AchievementBuilder({
               </>
             ) : (
               <>
-                <div className="w-14 h-14 bg-[#F5F2EB] group-hover:bg-[#FFF9E6] rounded-full flex items-center justify-center transition-colors mb-3">
-                  <Trophy size={28} className="text-[#6B6B6B] group-hover:text-[#E8922A] transition-colors" />
+                <div className="w-[120px] h-[120px] bg-gradient-to-br from-yellow-300 via-amber-400 to-orange-500 rounded-full flex items-center justify-center p-[4px] shadow-sm mb-3 group-hover:scale-105 transition-transform">
+                  <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
+                    <DynamicIcon name={icon || 'Trophy'} size={48} className="text-[#E8922A]" />
+                  </div>
                 </div>
-                <span className="font-bold text-[#6B6B6B] group-hover:text-[#E8922A] transition-colors">Загрузить иконку достижения</span>
+                <span className="font-bold text-[#6B6B6B] group-hover:text-[#E8922A] transition-colors">Загрузить картинку достижения</span>
               </>
             )}
           </label>

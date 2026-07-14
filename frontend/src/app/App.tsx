@@ -149,7 +149,7 @@ function MainApp() {
   }
 
   return (
-    <div className="size-full flex flex-col bg-[#FAFAF7] max-w-md mx-auto relative min-h-screen">
+    <div className="size-full flex flex-col bg-[#FAFAF7] max-w-md mx-auto relative h-[100dvh] overflow-hidden">
       {activeTab === 'home' && (
         <HomeScreen userLocation={userLocation} user={user} onNavigate={() => setActiveTab('profile')} />
       )}

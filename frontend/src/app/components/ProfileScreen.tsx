@@ -6,6 +6,7 @@ import { trpc } from '../lib/trpc'
 import AchievementModal from './AchievementModal'
 import ConfirmModal from './ConfirmModal'
 import { DynamicIcon } from './DynamicIcon'
+import { ImageWithFallback } from './ImageWithFallback'
 import LoadingZubrik from './LoadingZubrik'
 
 type RouteInfo = {
@@ -188,14 +189,23 @@ export default function ProfileScreen() {
                 {/* Изображение на всю карточку */}
                 <div className="absolute inset-0 pt-2 px-2 pb-8 flex items-center justify-center pointer-events-none">
                   {achievement.imageUrl && achievement.imageUrl !== '' ? (
-                    <img
+                    <ImageWithFallback
                       src={achievement.imageUrl}
                       alt={achievement.name}
                       className="w-full h-full object-contain drop-shadow-lg"
+                      fallback={
+                        <div className="w-[80%] aspect-square rounded-full flex items-center justify-center bg-gradient-to-br from-[#FCE182] via-[#E8922A] to-[#8C520E] shadow-xl p-[3px] transform group-hover:scale-105 transition-all">
+                          <div className={`w-full h-full rounded-full flex items-center justify-center ${achievement.earned ? 'bg-white text-[#E8922A]' : 'bg-gray-100 text-[#6B6B6B]'}`}>
+                            <DynamicIcon name={achievement.icon || 'Trophy'} size={48} />
+                          </div>
+                        </div>
+                      }
                     />
                   ) : (
-                    <div className={`w-16 h-16 rounded-full flex items-center justify-center ${achievement.earned ? 'bg-white/20 text-white' : 'bg-gray-100 text-[#1C1C1E]'}`}>
-                      <DynamicIcon name={achievement.icon || 'Trophy'} size={32} />
+                    <div className="w-[80%] aspect-square rounded-full flex items-center justify-center bg-gradient-to-br from-[#FCE182] via-[#E8922A] to-[#8C520E] shadow-xl p-[3px] transform group-hover:scale-105 transition-all">
+                      <div className={`w-full h-full rounded-full flex items-center justify-center ${achievement.earned ? 'bg-white text-[#E8922A]' : 'bg-gray-100 text-[#6B6B6B]'}`}>
+                        <DynamicIcon name={achievement.icon || 'Trophy'} size={48} />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -233,10 +243,23 @@ export default function ProfileScreen() {
                 <div className="absolute top-0 right-0 w-20 h-20 bg-[#E8922A]/20 rounded-full blur-xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
                 <div className="absolute inset-0 pt-2 px-2 pb-8 flex items-center justify-center">
                   {achievement.imageUrl && achievement.imageUrl !== '' ? (
-                    <img src={achievement.imageUrl} alt={achievement.name} className="w-full h-full object-contain drop-shadow-lg" />
+                    <ImageWithFallback
+                      src={achievement.imageUrl}
+                      alt={achievement.name}
+                      className="w-full h-full object-contain drop-shadow-lg"
+                      fallback={
+                        <div className="w-[80%] aspect-square rounded-full flex items-center justify-center bg-gradient-to-br from-[#FCE182] via-[#E8922A] to-[#8C520E] shadow-xl p-[3px] transform group-hover:scale-105 transition-all">
+                          <div className={`w-full h-full rounded-full flex items-center justify-center ${achievement.earned ? 'bg-white text-[#E8922A]' : 'bg-gray-100 text-[#6B6B6B]'}`}>
+                            <DynamicIcon name={achievement.icon || 'Trophy'} size={48} />
+                          </div>
+                        </div>
+                      }
+                    />
                   ) : (
-                    <div className={`w-16 h-16 rounded-full flex items-center justify-center ${achievement.earned ? 'bg-white/20 text-white' : 'bg-gray-100 text-[#1C1C1E]'}`}>
-                      <DynamicIcon name={achievement.icon || 'Trophy'} size={32} />
+                    <div className="w-[80%] aspect-square rounded-full flex items-center justify-center bg-gradient-to-br from-[#FCE182] via-[#E8922A] to-[#8C520E] shadow-xl p-[3px] transform group-hover:scale-105 transition-all">
+                      <div className={`w-full h-full rounded-full flex items-center justify-center ${achievement.earned ? 'bg-white text-[#E8922A]' : 'bg-gray-100 text-[#6B6B6B]'}`}>
+                        <DynamicIcon name={achievement.icon || 'Trophy'} size={48} />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -312,18 +335,25 @@ export default function ProfileScreen() {
                     {/* Огромное изображение по центру */}
                     <div className="absolute inset-0 pt-3 px-3 pb-16 flex items-center justify-center pointer-events-none">
                       {achievement.imageUrl && achievement.imageUrl !== '' ? (
-                        <img
+                        <ImageWithFallback
                           src={achievement.imageUrl}
                           alt={achievement.name}
                           className={`w-full h-full object-contain drop-shadow-md transition-all duration-500 ${
                             !achievement.earned ? 'grayscale opacity-30 scale-90' : 'scale-100 hover:scale-110'
                           }`}
+                          fallback={
+                            <div className={`w-[80%] aspect-square rounded-full flex items-center justify-center p-[3px] transform transition-all ${achievement.earned ? 'bg-gradient-to-br from-[#FCE182] via-[#E8922A] to-[#8C520E] shadow-xl hover:scale-105' : 'bg-[#E5E3DD] opacity-50 grayscale'}`}>
+                              <div className={`w-full h-full rounded-full flex items-center justify-center ${achievement.earned ? 'bg-white text-[#E8922A]' : 'bg-gray-100 text-[#6B6B6B]'}`}>
+                                <DynamicIcon name={achievement.icon || 'Trophy'} size={40} />
+                              </div>
+                            </div>
+                          }
                         />
                       ) : (
-                        <div
-                          className={`w-20 h-20 rounded-full flex items-center justify-center ${!achievement.earned ? 'bg-gray-100/80 text-gray-400 scale-90 shadow-inner' : 'bg-white/20 text-white shadow-lg'}`}
-                        >
-                          <DynamicIcon name={achievement.icon || 'Trophy'} size={40} />
+                        <div className={`w-[80%] aspect-square rounded-full flex items-center justify-center p-[3px] transform transition-all ${achievement.earned ? 'bg-gradient-to-br from-[#FCE182] via-[#E8922A] to-[#8C520E] shadow-xl hover:scale-105' : 'bg-[#E5E3DD] opacity-50 grayscale'}`}>
+                          <div className={`w-full h-full rounded-full flex items-center justify-center ${achievement.earned ? 'bg-white text-[#E8922A]' : 'bg-gray-100 text-[#6B6B6B]'}`}>
+                            <DynamicIcon name={achievement.icon || 'Trophy'} size={40} />
+                          </div>
                         </div>
                       )}
                     </div>

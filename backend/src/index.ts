@@ -14,6 +14,14 @@ expressApp.use(cookieParser())
 // Serve static images from /public/images
 expressApp.use('/images', express.static(path.join(__dirname, '../public/images')))
 
+// Production HTTP to HTTPS redirect
+expressApp.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'production' && !req.secure && req.get('x-forwarded-proto') !== 'https') {
+    return res.redirect(`https://${req.hostname}${req.url}`)
+  }
+  next()
+})
+
 // Public CORS
 const ALLOWED_ORIGINS = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : true // In development, allow all origins
 const publicCors = cors({
@@ -22,10 +30,12 @@ const publicCors = cors({
 })
 
 // Admin CORS
-const ADMIN_ORIGINS = process.env.ADMIN_CORS_ORIGINS ? process.env.ADMIN_CORS_ORIGINS.split(',') : ['http://localhost:5174'] // Admin Vite port
+const ADMIN_ORIGINS = process.env.ADMIN_CORS_ORIGINS ? process.env.ADMIN_CORS_ORIGINS.split(',') : ['http://localhost:5174', 'https://localhost:5174'] // Admin Vite port
 const adminCors = cors({
   origin: (origin, callback) => {
-    if (!origin || ADMIN_ORIGINS.includes(origin) || (process.env.NODE_ENV !== 'production' && origin.includes('localhost'))) {
+    if (process.env.NODE_ENV !== 'production') {
+      callback(null, true) // Allow all in dev for local network testing
+    } else if (!origin || ADMIN_ORIGINS.includes(origin)) {
       callback(null, true)
     } else {
       callback(new Error('Not allowed by CORS'))

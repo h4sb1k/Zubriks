@@ -358,12 +358,19 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
                     className="w-[84px] h-[84px] rounded-full flex items-center justify-center bg-gradient-to-br from-yellow-300 via-amber-400 to-orange-500 shadow-inner shrink-0 overflow-hidden border-[3px] border-white p-[2px]"
                   >
                     {a.imageUrl ? (
-                      <img src={a.imageUrl} alt={a.name} className="w-full h-full object-cover rounded-full bg-white" />
-                    ) : (
-                      <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-3xl">
-                        <DynamicIcon name={a.icon || 'Trophy'} size={36} className="text-[#E8922A]" />
-                      </div>
-                    )}
+                      <img 
+                        src={a.imageUrl} 
+                        alt={a.name} 
+                        className="w-full h-full object-cover rounded-full bg-white" 
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <div className={`w-full h-full rounded-full bg-white flex items-center justify-center text-3xl ${a.imageUrl ? 'hidden' : ''}`}>
+                      <DynamicIcon name={a.icon || 'Trophy'} size={36} className="text-[#E8922A]" />
+                    </div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-black text-[18px] text-[#1C1C1E] leading-tight mb-1 truncate">{a.name}</div>
@@ -410,13 +417,20 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
                   >
                     {r.imageUrl ? (
                       <div className="w-full h-full rounded-full overflow-hidden">
-                        <img src={r.imageUrl} alt={r.name} className="w-full h-full object-cover" />
+                        <img 
+                          src={r.imageUrl} 
+                          alt={r.name} 
+                          className="w-full h-full object-cover" 
+                          onError={(e) => {
+                            e.currentTarget.parentElement!.style.display = 'none';
+                            e.currentTarget.parentElement!.nextElementSibling?.classList.remove('hidden');
+                          }}
+                        />
                       </div>
-                    ) : (
-                      <div className="w-full h-full rounded-full flex items-center justify-center text-3xl" style={{ backgroundColor: r.imageColor || '#1A3D2B' }}>
-                        <DynamicIcon name={r.icon || 'MapPin'} size={36} className="text-white" />
-                      </div>
-                    )}
+                    ) : null}
+                    <div className={`w-full h-full rounded-full flex items-center justify-center text-3xl ${r.imageUrl ? 'hidden' : ''}`} style={{ backgroundColor: r.imageColor || '#1A3D2B' }}>
+                      <DynamicIcon name={r.icon || 'MapPin'} size={36} className="text-white" />
+                    </div>
                   </div>
                   <div className="flex-1 min-w-0 py-1">
                     <div className="font-black text-[18px] text-[#1C1C1E] leading-tight mb-1 truncate">{r.name}</div>

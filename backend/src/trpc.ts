@@ -1427,7 +1427,7 @@ export const adminRouter = trpc.router({
     .input(z.object({
       name: z.string().min(1).max(100),
       description: z.string().max(500),
-      imageUrl: z.string().min(1),
+      imageUrl: z.string(),
       icon: z.string().optional(),
       conditionType: z.string().default('MANUAL'),
       conditionTarget: z.string().nullable().optional(),
@@ -1453,7 +1453,7 @@ export const adminRouter = trpc.router({
       id: z.string(),
       name: z.string().min(1).max(100),
       description: z.string().max(500),
-      imageUrl: z.string().min(1),
+      imageUrl: z.string(),
       icon: z.string().optional(),
       conditionType: z.string().default('MANUAL'),
       conditionTarget: z.string().nullable().optional(),
