@@ -22,7 +22,7 @@ type Zubrik = {
 // Real locations of interest in Orel for the walking tour
 
 // Controller component to dynamically change map view and fix initial container size issues
-function MapController({ center }: { center: [number, number] | null }) {
+function MapController({ center, isDrawerOpen }: { center: [number, number] | null; isDrawerOpen: boolean }) {
   const map = useMap()
 
   useEffect(() => {
@@ -37,9 +37,24 @@ function MapController({ center }: { center: [number, number] | null }) {
 
   useEffect(() => {
     if (center) {
-      map.setView(center, 15, { animate: true })
+      // Preserve current zoom level
+      let currentZoom = map.getZoom()
+      // If we are selecting a Zubrik and we are zoomed too far out, auto-zoom in a bit
+      if (isDrawerOpen && currentZoom < 14) {
+        currentZoom = 15
+      }
+
+      if (isDrawerOpen) {
+        // Offset the center by 150px downwards so the marker moves UP on the screen
+        const targetPoint = map.project(center, currentZoom)
+        targetPoint.y += 50
+        const targetLatLng = map.unproject(targetPoint, currentZoom)
+        map.setView(targetLatLng, currentZoom, { animate: true })
+      } else {
+        map.setView(center, currentZoom, { animate: true })
+      }
     }
-  }, [center, map])
+  }, [center, isDrawerOpen, map])
 
   return null
 }
@@ -151,6 +166,7 @@ export default function MapScreen({
 
   // Geolocation centering logic
   const handleCenterUserLocation = () => {
+    setSelectedZubrik(null)
     if (userLocation) {
       setMapCenter(userLocation)
     } else {
@@ -218,7 +234,7 @@ export default function MapScreen({
           />
 
           {/* Dynamic Map Controller */}
-          <MapController center={mapCenter} />
+          <MapController center={mapCenter} isDrawerOpen={!!selectedZubrik} />
 
           {/* User Location Pulsing Dot */}
           {userLocation && <Marker position={userLocation} icon={createUserLocationIcon()} />}

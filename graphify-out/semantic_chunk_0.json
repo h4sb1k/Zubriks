@@ -1,0 +1,43 @@
+{
+  "nodes": [
+    {
+      "id": "frontend_src_imports_pasted_text_zubriki-city-guide-1_zubriki",
+      "label": "Zubriki App",
+      "file_type": "concept",
+      "source_file": "/home/invigar/IT/Development/Zubriks/frontend/src/imports/pasted_text/zubriki-city-guide-1.md"
+    },
+    {
+      "id": "frontend_src_imports_pasted_text_zubriki-city-guide-1_zubrik",
+      "label": "Zubrik Mascot",
+      "file_type": "concept",
+      "source_file": "/home/invigar/IT/Development/Zubriks/frontend/src/imports/pasted_text/zubriki-city-guide-1.md"
+    },
+    {
+      "id": "frontend_src_imports_pasted_text_zubriki-city-guide-1_orel",
+      "label": "Orel City",
+      "file_type": "concept",
+      "source_file": "/home/invigar/IT/Development/Zubriks/frontend/src/imports/pasted_text/zubriki-city-guide-1.md"
+    }
+  ],
+  "edges": [
+    {
+      "source": "frontend_src_imports_pasted_text_zubriki-city-guide-1_zubriki",
+      "target": "frontend_src_imports_pasted_text_zubriki-city-guide-1_orel",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/invigar/IT/Development/Zubriks/frontend/src/imports/pasted_text/zubriki-city-guide-1.md"
+    },
+    {
+      "source": "frontend_src_imports_pasted_text_zubriki-city-guide-1_zubrik",
+      "target": "frontend_src_imports_pasted_text_zubriki-city-guide-1_zubriki",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/invigar/IT/Development/Zubriks/frontend/src/imports/pasted_text/zubriki-city-guide-1.md"
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 100,
+  "output_tokens": 100
+}

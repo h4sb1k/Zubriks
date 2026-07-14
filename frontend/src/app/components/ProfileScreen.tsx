@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, Reorder } from 'framer-motion'
-import { Clock, Lock, LogOut, MapPin,Pin, Route, Settings } from 'lucide-react'
+import { ChevronRight, Clock, Lock, LogOut, MapPin, Pin, Route, Settings } from 'lucide-react'
 import { useEffect,useState } from 'react'
 
 import { trpc } from '../lib/trpc'
@@ -8,6 +8,7 @@ import ConfirmModal from './ConfirmModal'
 import { DynamicIcon } from './DynamicIcon'
 import { ImageWithFallback } from './ImageWithFallback'
 import LoadingZubrik from './LoadingZubrik'
+import RouteActive from './RouteActive'
 
 type RouteInfo = {
   id: string
@@ -20,31 +21,44 @@ type RouteInfo = {
   icon: string
 }
 
-function RouteCard({ route }: { route: RouteInfo }) {
+function RouteCard({ route, onClick }: { route: RouteInfo; onClick?: () => void }) {
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm flex flex-col mb-3">
-      <div className="flex items-center justify-between mb-2">
-        <h4 className="font-medium text-[#1C1C1E]">{route.name}</h4>
-        <div
-          className="w-8 h-8 rounded-full flex items-center justify-center text-white"
-          style={{ backgroundColor: route.imageColor }}
-        >
-          <DynamicIcon name={route.icon || 'MapPin'} size={18} />
+    <div
+      onClick={onClick}
+      className="bg-white rounded-[24px] overflow-hidden shadow-[0_8px_20px_rgba(0,0,0,0.05)] cursor-pointer active:scale-[0.98] transition-all border border-transparent hover:border-[#E5E3DD]/50 mb-3 flex items-stretch group"
+    >
+      <div
+        className="w-24 shrink-0 flex items-center justify-center relative overflow-hidden shadow-inner"
+        style={{ backgroundColor: route.imageColor || '#1A3D2B' }}
+      >
+        <div className="absolute inset-0 bg-black/10 backdrop-blur-sm" />
+        <div className="relative z-10 w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-md border border-white/30 shadow-lg group-hover:scale-110 transition-transform">
+          <DynamicIcon name={route.icon || 'MapPin'} size={24} className="text-white drop-shadow-md" />
         </div>
       </div>
-      <p className="text-sm text-[#6B6B6B] mb-3 line-clamp-2">{route.description}</p>
-      <div className="flex items-center gap-4 text-xs text-[#6B6B6B] font-medium">
-        <div className="flex items-center gap-1">
-          <Route size={14} className="text-[#E8922A]" />
-          <span>{route.distance}</span>
+      <div className="p-4 flex-1 flex flex-col justify-center min-w-0">
+        <h3 className="text-[15px] font-bold text-[#1C1C1E] mb-1 leading-tight line-clamp-2 pr-2">{route.name}</h3>
+        {route.description && (
+          <p className="text-[11px] text-[#6B6B6B] line-clamp-1 mb-2 pr-2">{route.description}</p>
+        )}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[#6B6B6B] font-medium mt-auto">
+          <div className="flex items-center gap-1">
+            <Route size={14} className="text-[#E8922A]" />
+            <span>{route.distance}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Clock size={14} className="text-[#E8922A]" />
+            <span>{route.duration}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <MapPin size={14} className="text-[#E8922A]" />
+            <span>{route.stops} ост.</span>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          <Clock size={14} className="text-[#E8922A]" />
-          <span>{route.duration}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <MapPin size={14} className="text-[#E8922A]" />
-          <span>{route.stops} точек</span>
+      </div>
+      <div className="flex items-center pr-4">
+        <div className="w-8 h-8 rounded-full bg-[#F5F2EB] group-hover:bg-[#E8922A] group-hover:text-white transition-colors flex items-center justify-center text-[#6B6B6B]">
+          <ChevronRight size={16} />
         </div>
       </div>
     </div>
@@ -55,6 +69,7 @@ export default function ProfileScreen() {
   const [activeTab, setActiveTab] = useState('Награды')
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [selectedAchievement, setSelectedAchievement] = useState<any | null>(null)
+  const [activeRoute, setActiveRoute] = useState<{ id: string; name: string; authorId?: string | null; isMain?: boolean } | null>(null)
 
   const { data: user } = trpc.me.useQuery()
   const { data: statsData, isLoading: isStatsLoading } = trpc.getProfileStats.useQuery()
@@ -425,7 +440,7 @@ export default function ProfileScreen() {
             {isStatsLoading ? (
               <LoadingZubrik text="Загрузка..." />
             ) : createdRoutes.length > 0 ? (
-              createdRoutes.map((r) => <RouteCard key={r.id} route={r} />)
+              createdRoutes.map((r) => <RouteCard key={r.id} route={r} onClick={() => setActiveRoute({ id: r.id, name: r.name, authorId: user?.id })} />)
             ) : (
               <p className="text-center text-[#6B6B6B] py-12">Вы пока не создали ни одного маршрута</p>
             )}
@@ -442,7 +457,7 @@ export default function ProfileScreen() {
             {isStatsLoading ? (
               <LoadingZubrik text="Загрузка..." />
             ) : likedRoutes.length > 0 ? (
-              likedRoutes.map((r) => <RouteCard key={r.id} route={r} />)
+              likedRoutes.map((r) => <RouteCard key={r.id} route={r} onClick={() => setActiveRoute({ id: r.id, name: r.name })} />)
             ) : (
               <p className="text-center text-[#6B6B6B] py-12">Здесь будут ваши избранные маршруты</p>
             )}
@@ -454,6 +469,17 @@ export default function ProfileScreen() {
         achievement={selectedAchievement} 
         onClose={() => setSelectedAchievement(null)} 
       />
+
+      {activeRoute && (
+        <RouteActive
+          routeId={activeRoute.id}
+          routeName={activeRoute.name}
+          authorId={activeRoute.authorId}
+          isMain={activeRoute.isMain}
+          userLocation={null}
+          onClose={() => setActiveRoute(null)}
+        />
+      )}
 
       <ConfirmModal
         isOpen={showLogoutConfirm}

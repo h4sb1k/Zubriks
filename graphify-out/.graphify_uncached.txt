@@ -1,0 +1,9 @@
+/home/invigar/IT/Development/Zubriks/frontend/src/imports/pasted_text/zubriki-city-guide-1.md
+/home/invigar/IT/Development/Zubriks/frontend/src/app/components/pics/goal.svg
+/home/invigar/IT/Development/Zubriks/frontend/src/app/components/pics/map (Copy).svg
+/home/invigar/IT/Development/Zubriks/frontend/src/app/components/pics/map.svg
+/home/invigar/IT/Development/Zubriks/frontend/src/app/components/pics/zubr.svg
+/home/invigar/IT/Development/Zubriks/admin/src/components/pics/goal.svg
+/home/invigar/IT/Development/Zubriks/admin/src/components/pics/map (Copy).svg
+/home/invigar/IT/Development/Zubriks/admin/src/components/pics/map.svg
+/home/invigar/IT/Development/Zubriks/admin/src/components/pics/zubr.svg
