@@ -10,8 +10,11 @@ import type { MapPoint } from '../utils/openInMaps'
 import { openPointInMaps, openRouteInMaps } from '../utils/openInMaps'
 import ConfirmModal from './ConfirmModal'
 import { DynamicIcon } from './DynamicIcon'
+import InteractiveMapModal from './InteractiveMapModal'
 import LoadingZubrik from './LoadingZubrik'
+import PublicProfileScreen from './PublicProfileScreen'
 import RouteBuilder from './RouteBuilder'
+import RoutePreviewMap from './RoutePreviewMap'
 
 type RouteActiveProps = {
   routeId: string
@@ -31,6 +34,8 @@ export default function RouteActive({ routeId, routeName: initialRouteName, auth
   const [showSettings, setShowSettings] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showPublicProfile, setShowPublicProfile] = useState<string | null>(null)
+  const [showInteractiveMap, setShowInteractiveMap] = useState(false)
 
   const deleteMutation = trpc.deleteRoute.useMutation({
     onSuccess: () => {
@@ -226,6 +231,91 @@ export default function RouteActive({ routeId, routeName: initialRouteName, auth
 
       {/* Content Area */}
       <div className="flex-1 bg-[#FAFAF7] rounded-t-[32px] -mt-6 relative z-20 overflow-y-auto px-5 pt-8 pb-24 shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
+        
+        {/* Main CTA - Start Journey */}
+        <button
+          onClick={handleOpenInMaps}
+          className="w-full bg-[#E8922A] text-white rounded-[24px] py-4 mb-6 flex items-center justify-center gap-2 font-black text-[18px] active:scale-[0.98] transition-transform shadow-[0_12px_30px_rgba(232,146,42,0.3)] hover:bg-[#D97706]"
+        >
+          <Navigation size={22} fill="currentColor" />
+          В путь
+        </button>
+
+        {/* Route Stats Grid */}
+        <div className="flex flex-col gap-3 mb-8">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-white rounded-[24px] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.04)] border border-[#E5E3DD]/50 flex flex-col items-center justify-center text-center">
+              <span className="text-[11px] font-extrabold text-[#6B6B6B] uppercase tracking-wider mb-1 opacity-70">Дистанция</span>
+              <span className="text-[18px] font-black text-[#1C1C1E]">{routeData?.route?.distance || '-'}</span>
+            </div>
+            <div className="bg-white rounded-[24px] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.04)] border border-[#E5E3DD]/50 flex flex-col items-center justify-center text-center">
+              <span className="text-[11px] font-extrabold text-[#6B6B6B] uppercase tracking-wider mb-1 opacity-70">Время</span>
+              <span className="text-[18px] font-black text-[#1C1C1E]">{routeData?.route?.duration || '-'}</span>
+            </div>
+            <div className="bg-white rounded-[24px] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.04)] border border-[#E5E3DD]/50 flex flex-col items-center justify-center text-center">
+              <span className="text-[11px] font-extrabold text-[#6B6B6B] uppercase tracking-wider mb-1 opacity-70">Шаги</span>
+              <span className="text-[18px] font-black text-[#1C1C1E]">
+                {routeData?.route?.distance ? Math.round(parseFloat(routeData.route.distance.replace(/[^0-9.]/g, '')) * 1300) : '-'}
+              </span>
+            </div>
+          </div>
+          
+          {routeData?.route && (
+            (() => {
+              // We use authorId from props (or from route object) to know if there SHOULD be an author
+              const routeAuthorId = routeData.route.author?.id || routeData.route.authorId || authorId
+              const hasAuthor = !!routeAuthorId
+              
+              const authorName = hasAuthor ? (routeData.route.author?.name || 'Аноним') : 'Команда Зубриков'
+              const avatarUrl = routeData.route.author?.avatarUrl
+              const isClickable = !!routeAuthorId
+              
+              const Wrapper = isClickable ? 'button' : 'div'
+              const clickProps = isClickable ? { onClick: () => setShowPublicProfile(routeAuthorId) } : {}
+
+              return (
+                <Wrapper 
+                  {...clickProps}
+                  className={`bg-white rounded-[24px] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.04)] border border-[#E5E3DD]/50 flex items-center justify-between text-left ${isClickable ? 'group active:scale-[0.98] transition-all' : ''}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-[#1A3D2B] flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
+                      {avatarUrl ? (
+                        <img src={avatarUrl} alt="Аватар" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xl">🦬</span>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <span className="text-[11px] font-extrabold text-[#6B6B6B] uppercase tracking-wider opacity-70 mb-0.5">Автор маршрута</span>
+                      <span className="text-[16px] font-black text-[#1C1C1E]">{authorName}</span>
+                    </div>
+                  </div>
+                  {isClickable && (
+                    <div className="w-8 h-8 rounded-full bg-[#F5F2EB] flex items-center justify-center text-[#E8922A] group-hover:bg-[#E8922A] group-hover:text-white transition-colors">
+                      <ArrowLeft size={16} style={{ transform: 'rotate(135deg)' }} />
+                    </div>
+                  )}
+                </Wrapper>
+              )
+            })()
+          )}
+        </div>
+
+        {/* Route Preview Map Higher Up */}
+        <div className="mb-8 bg-white p-4 rounded-[28px] shadow-[0_8px_24px_rgba(0,0,0,0.04)] border border-[#E5E3DD]/50">
+          <h3 className="text-[18px] font-black text-[#1C1C1E] tracking-tight mb-3 px-1">Карта маршрута</h3>
+          <RoutePreviewMap 
+            waypoints={waypoints.map(w => ({ 
+              id: w.id, 
+              latitude: w.coords.lat, 
+              longitude: w.coords.lon, 
+              completed: w.completed 
+            }))} 
+            onClick={() => setShowInteractiveMap(true)}
+          />
+        </div>
+
         {isCompleted ? (
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
@@ -370,6 +460,25 @@ export default function RouteActive({ routeId, routeName: initialRouteName, auth
             utils.getRouteWaypoints.invalidate({ routeId })
             utils.getRoutes.invalidate()
           }} 
+        />
+      )}
+
+      {showPublicProfile && (
+        <PublicProfileScreen
+          userId={showPublicProfile}
+          onClose={() => setShowPublicProfile(null)}
+        />
+      )}
+
+      {showInteractiveMap && (
+        <InteractiveMapModal
+          waypoints={waypoints.map(w => ({
+            id: w.id,
+            latitude: w.coords.lat,
+            longitude: w.coords.lon,
+            completed: w.completed
+          }))}
+          onClose={() => setShowInteractiveMap(false)}
         />
       )}
     </motion.div>

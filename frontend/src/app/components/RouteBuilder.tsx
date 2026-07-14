@@ -4,10 +4,12 @@ import { ArrowLeft, ChevronDown, ChevronUp, MapPin, Plus, Trash2 } from 'lucide-
 import { useEffect, useState } from 'react'
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 
+import { useOsrmRoute } from '../hooks/useOsrmRoute'
 import { trpc } from '../lib/trpc'
 import ConfirmModal from './ConfirmModal'
 import { DynamicIcon } from './DynamicIcon'
 import { IconPicker } from './IconPicker'
+import RoutePreviewMap from './RoutePreviewMap'
 
 const customIcon = L.divIcon({
   className: 'custom-icon',
@@ -203,6 +205,8 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
 
   const validWaypoints = waypoints.filter((w) => w.latitude && w.longitude)
 
+  const { distanceMeters, durationSeconds } = useOsrmRoute(validWaypoints as any)
+
   const handleSubmit = () => {
     if (!isValid) return
     if (editRouteId) {
@@ -235,19 +239,23 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
     }
   }
 
-  // Calculate stats dynamically
+  // Calculate stats dynamically using OSRM results if available, else fallback to Haversine
   let totalKm = 0
-  for (let i = 0; i < validWaypoints.length - 1; i++) {
-    const p1 = validWaypoints[i]
-    const p2 = validWaypoints[i + 1]
-    const R = 6371
-    const dLat = (p2.latitude! - p1.latitude!) * (Math.PI / 180)
-    const dLon = (p2.longitude! - p1.longitude!) * (Math.PI / 180)
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(p1.latitude! * (Math.PI / 180)) * Math.cos(p2.latitude! * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2)
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-    totalKm += R * c
+  if (distanceMeters !== null) {
+    totalKm = distanceMeters / 1000
+  } else {
+    for (let i = 0; i < validWaypoints.length - 1; i++) {
+      const p1 = validWaypoints[i]
+      const p2 = validWaypoints[i + 1]
+      const R = 6371
+      const dLat = (p2.latitude! - p1.latitude!) * (Math.PI / 180)
+      const dLon = (p2.longitude! - p1.longitude!) * (Math.PI / 180)
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(p1.latitude! * (Math.PI / 180)) * Math.cos(p2.latitude! * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2)
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+      totalKm += R * c
+    }
   }
   
   const displayKm = totalKm > 0 && totalKm < 0.1 ? 0.1 : Number(totalKm.toFixed(1))
@@ -332,6 +340,13 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
             />
           </div>
         </div>
+
+        {validWaypoints.length >= 2 && (
+          <div className="mb-6">
+            <h3 className="text-sm font-bold text-[#6B6B6B] uppercase tracking-wider mb-3 ml-2">Превью маршрута</h3>
+            <RoutePreviewMap waypoints={validWaypoints as any} />
+          </div>
+        )}
 
         <h3 className="text-lg font-medium mb-4">
           Точки {waypoints.length > 0 && <span className="text-[#6B6B6B]">({waypoints.length})</span>}

@@ -24,6 +24,49 @@ import {
 import { generateOTP, sendVerificationEmail } from './email'
 import { prisma } from './prisma'
 
+async function calculateRouteStats(waypoints: {latitude: number, longitude: number}[]) {
+  let totalKm = 0
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const p1 = waypoints[i]
+    const p2 = waypoints[i+1]
+    const R = 6371
+    const dLat = (p2.latitude - p1.latitude) * (Math.PI/180)
+    const dLon = (p2.longitude - p1.longitude) * (Math.PI/180)
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(p1.latitude * (Math.PI/180)) * Math.cos(p2.latitude * (Math.PI/180)) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+    totalKm += R * c
+  }
+  let durationMinutes = Math.max(1, Math.round((totalKm / 5) * 60))
+
+  try {
+    if (waypoints.length >= 2) {
+      const coordsString = waypoints.map(w => `${w.longitude},${w.latitude}`).join(';')
+      const res = await fetch(`https://router.project-osrm.org/route/v1/foot/${coordsString}?overview=false`)
+      if (res.ok) {
+        const data = await res.json() as any
+        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+          totalKm = data.routes[0].distance / 1000
+        }
+      }
+    }
+  } catch(e) {
+    console.error('OSRM fetch failed, falling back to Haversine', e)
+  }
+
+  // Recalculate duration based on final distance (5 km/h average walking speed)
+  durationMinutes = Math.max(1, Math.round((totalKm / 5) * 60))
+
+  const distance = totalKm > 0 && totalKm < 0.1 ? '~0.1 км' : `~${totalKm.toFixed(1)} км`
+  const duration = durationMinutes >= 60 
+    ? `${Math.floor(durationMinutes/60)} ч ${durationMinutes%60} мин`
+    : `${durationMinutes} мин`
+
+  return { distance, duration }
+}
+
 export const createContext = async ({ req, res }: CreateExpressContextOptions) => {
   let userId: string | null = null
 
@@ -881,7 +924,10 @@ export const trpcRouter = trpc.router({
     .query(async ({ input, ctx }) => {
       const route = await ctx.prisma.route.findUnique({
         where: { id: input.routeId },
-        include: { waypoints: { orderBy: { orderIndex: 'asc' } } }
+        include: { 
+          waypoints: { orderBy: { orderIndex: 'asc' } },
+          author: { select: { id: true, name: true, avatarUrl: true } }
+        }
       })
       if (!route) throw new TRPCError({ code: 'NOT_FOUND' })
       return { route }
@@ -918,28 +964,7 @@ export const trpcRouter = trpc.router({
         throw new TRPCError({ code: 'FORBIDDEN', message: 'You can only edit your own routes' })
       }
 
-      // Calculate new distance and duration
-      let totalKm = 0
-      for (let i = 0; i < input.waypoints.length - 1; i++) {
-        const p1 = input.waypoints[i]
-        const p2 = input.waypoints[i+1]
-        const R = 6371
-        const dLat = (p2.latitude - p1.latitude) * (Math.PI/180)
-        const dLon = (p2.longitude - p1.longitude) * (Math.PI/180)
-        const a = 
-          Math.sin(dLat/2) * Math.sin(dLat/2) +
-          Math.cos(p1.latitude * (Math.PI/180)) * Math.cos(p2.latitude * (Math.PI/180)) * 
-          Math.sin(dLon/2) * Math.sin(dLon/2)
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-        totalKm += R * c
-      }
-
-      const distanceStr = totalKm < 0.1 ? '0.1' : totalKm.toFixed(1)
-      const estimatedMin = Math.max(1, Math.round((totalKm / 5) * 60))
-      const duration =
-        estimatedMin < 60
-          ? `${estimatedMin} мин`
-          : `${Math.floor(estimatedMin / 60)} ч ${estimatedMin % 60 > 0 ? (estimatedMin % 60) + ' мин' : ''}`.trim()
+      const { distance, duration } = await calculateRouteStats(input.waypoints)
 
       // Delete existing waypoints and replace them
       await ctx.prisma.waypoint.deleteMany({ where: { routeId: input.routeId } })
@@ -950,7 +975,7 @@ export const trpcRouter = trpc.router({
           name: input.name,
           description: input.description,
           icon: input.icon ?? 'MapPin',
-          distance: `${distanceStr} км`,
+          distance,
           duration,
           waypoints: {
             create: input.waypoints.map((wp, idx) => ({
@@ -1538,25 +1563,7 @@ export const adminRouter = trpc.router({
       }))
     }))
     .mutation(async ({ input, ctx }) => {
-      let totalKm = 0
-      for (let i = 0; i < input.waypoints.length - 1; i++) {
-        const p1 = input.waypoints[i]
-        const p2 = input.waypoints[i+1]
-        const R = 6371
-        const dLat = (p2.latitude - p1.latitude) * (Math.PI/180)
-        const dLon = (p2.longitude - p1.longitude) * (Math.PI/180)
-        const a = 
-          Math.sin(dLat/2) * Math.sin(dLat/2) +
-          Math.cos(p1.latitude * (Math.PI/180)) * Math.cos(p2.latitude * (Math.PI/180)) * 
-          Math.sin(dLon/2) * Math.sin(dLon/2)
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-        totalKm += R * c
-      }
-      const distance = totalKm > 0 && totalKm < 0.1 ? '~0.1 км' : `~${totalKm.toFixed(1)} км`
-      const durationMinutes = Math.max(1, Math.round((totalKm / 5) * 60))
-      const duration = durationMinutes >= 60 
-        ? `${Math.floor(durationMinutes/60)} ч ${durationMinutes%60} мин`
-        : `${durationMinutes} мин`
+      const { distance, duration } = await calculateRouteStats(input.waypoints)
 
       const route = await ctx.prisma.route.create({
         data: {
@@ -1598,25 +1605,7 @@ export const adminRouter = trpc.router({
       }))
     }))
     .mutation(async ({ input, ctx }) => {
-      let totalKm = 0
-      for (let i = 0; i < input.waypoints.length - 1; i++) {
-        const p1 = input.waypoints[i]
-        const p2 = input.waypoints[i+1]
-        const R = 6371
-        const dLat = (p2.latitude - p1.latitude) * (Math.PI/180)
-        const dLon = (p2.longitude - p1.longitude) * (Math.PI/180)
-        const a = 
-          Math.sin(dLat/2) * Math.sin(dLat/2) +
-          Math.cos(p1.latitude * (Math.PI/180)) * Math.cos(p2.latitude * (Math.PI/180)) * 
-          Math.sin(dLon/2) * Math.sin(dLon/2)
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-        totalKm += R * c
-      }
-      const distance = totalKm > 0 && totalKm < 0.1 ? '~0.1 км' : `~${totalKm.toFixed(1)} км`
-      const durationMinutes = Math.max(1, Math.round((totalKm / 5) * 60))
-      const duration = durationMinutes >= 60 
-        ? `${Math.floor(durationMinutes/60)} ч ${durationMinutes%60} мин`
-        : `${durationMinutes} мин`
+      const { distance, duration } = await calculateRouteStats(input.waypoints)
 
       // update route
       await ctx.prisma.route.update({

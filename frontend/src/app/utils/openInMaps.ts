@@ -61,18 +61,15 @@ export function openRouteInMaps(points: MapPoint[]): void {
     return
   }
 
-  const finish = points[points.length - 1]
-
-  // geo: не поддерживает промежуточные точки — это ограничение стандарта.
-  // Все приложения получат маршрут «до финиша», используя текущую геолокацию
-  // пользователя как старт (самый удобный UX для пешеходных маршрутов).
-  const label = encodeURIComponent(finish.name ?? '')
-  const geoUri = `geo:${finish.lat},${finish.lon}?q=${finish.lat},${finish.lon}(${label})`
-
-  // Fallback для ПК — Google Maps с полным маршрутом через waypoints
-  const webFallback = buildGoogleMapsWebUrl(points)
-
-  openGeoUri(geoUri, webFallback)
+  // Яндекс.Карты Universal Link. Поддерживает любое количество точек.
+  // Тильда (~) в начале rtext означает «От моего местоположения» (геолокация).
+  // rtt=pd означает пешеходный маршрут.
+  // Если приложение Яндекс Карт установлено — ОС перехватит ссылку и откроет его.
+  // Если не установлено — откроется удобная веб-версия.
+  const rtext = '~' + points.map(p => `${p.lat},${p.lon}`).join('~')
+  const yandexUrl = `https://yandex.ru/maps/?rtext=${rtext}&rtt=pd`
+  
+  window.open(yandexUrl, '_blank', 'noopener,noreferrer')
 }
 
 // ─── Вспомогательные ─────────────────────────────────────────────────────────

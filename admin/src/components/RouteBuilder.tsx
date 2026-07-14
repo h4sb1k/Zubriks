@@ -9,6 +9,8 @@ import ConfirmModal from './ConfirmModal'
 import AlertModal from './AlertModal'
 import { DynamicIcon } from './DynamicIcon'
 import { IconPicker } from './IconPicker'
+import { useOsrmRoute } from '../hooks/useOsrmRoute'
+import RoutePreviewMap from './RoutePreviewMap'
 
 const customIcon = L.divIcon({
   className: 'custom-icon',
@@ -233,39 +235,17 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
     waypoints.every((w) => w.name.trim() && w.latitude && w.longitude)
 
   const validWaypoints = waypoints.filter((w) => w.latitude && w.longitude)
-
-  const calculateDistance = (waypoints: WaypointDraft[]) => {
-    let totalKm = 0
-    const valid = waypoints.filter(w => w.latitude && w.longitude)
-    for (let i = 0; i < valid.length - 1; i++) {
-        const p1 = valid[i]
-        const p2 = valid[i + 1]
-        const R = 6371
-        const dLat = (p2.latitude! - p1.latitude!) * (Math.PI / 180)
-        const dLon = (p2.longitude! - p1.longitude!) * (Math.PI / 180)
-        const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(p1.latitude! * (Math.PI / 180)) * Math.cos(p2.latitude! * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2)
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-        totalKm += R * c
-    }
-    return totalKm > 0 && totalKm < 0.1 ? 0.1 : Number(totalKm.toFixed(1))
-  }
-
-  const calculateDuration = (waypoints: WaypointDraft[]) => {
-    const totalKm = calculateDistance(waypoints)
-    return Math.max(1, Math.round((totalKm / 5) * 60))
-  }
+  const { distanceMeters, durationSeconds } = useOsrmRoute(validWaypoints as any)
 
   const handleSubmit = () => {
     if (!isValid) return
     if (editRouteId) {
       updateRoute.mutate({
-        id: editRouteId,
+        routeId: editRouteId,
         name,
         description,
         icon: routeIcon,
-        imageUrl: imageUrl || null,
+        imageUrl: imageUrl || undefined,
         isMain: isMain,
         waypoints: waypoints.map(w => ({
           name: w.name,
@@ -280,7 +260,7 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
         name,
         description,
         icon: routeIcon,
-        imageUrl: imageUrl || null,
+        imageUrl: imageUrl || undefined,
         isMain: isMain,
         waypoints: waypoints.map(w => ({
           name: w.name,
@@ -295,17 +275,21 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
 
   // Calculate stats dynamically
   let totalKm = 0
-  for (let i = 0; i < validWaypoints.length - 1; i++) {
-    const p1 = validWaypoints[i]
-    const p2 = validWaypoints[i + 1]
-    const R = 6371
-    const dLat = (p2.latitude! - p1.latitude!) * (Math.PI / 180)
-    const dLon = (p2.longitude! - p1.longitude!) * (Math.PI / 180)
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(p1.latitude! * (Math.PI / 180)) * Math.cos(p2.latitude! * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2)
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-    totalKm += R * c
+  if (distanceMeters !== null) {
+    totalKm = distanceMeters / 1000
+  } else {
+    for (let i = 0; i < validWaypoints.length - 1; i++) {
+      const p1 = validWaypoints[i]
+      const p2 = validWaypoints[i + 1]
+      const R = 6371
+      const dLat = (p2.latitude! - p1.latitude!) * (Math.PI / 180)
+      const dLon = (p2.longitude! - p1.longitude!) * (Math.PI / 180)
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(p1.latitude! * (Math.PI / 180)) * Math.cos(p2.latitude! * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2)
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+      totalKm += R * c
+    }
   }
   
   const displayKm = totalKm > 0 && totalKm < 0.1 ? 0.1 : Number(totalKm.toFixed(1))
@@ -458,6 +442,13 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
                   </label>
                 </div>
         </div>
+
+        {validWaypoints.length >= 2 && (
+          <div className="mb-6">
+            <h3 className="text-sm font-bold text-[#6B6B6B] uppercase tracking-wider mb-3 ml-2">Превью маршрута</h3>
+            <RoutePreviewMap waypoints={validWaypoints as any} />
+          </div>
+        )}
 
         <h3 className="text-lg font-medium mb-4">
           Точки {waypoints.length > 0 && <span className="text-[#6B6B6B]">({waypoints.length})</span>}

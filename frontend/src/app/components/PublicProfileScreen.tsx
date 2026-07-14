@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { trpc } from '../lib/trpc'
 import AchievementModal from './AchievementModal'
 import { DynamicIcon } from './DynamicIcon'
+import { ImageWithFallback } from './ImageWithFallback'
 import LoadingZubrik from './LoadingZubrik'
 
 type RouteInfo = {
@@ -201,18 +202,25 @@ export default function PublicProfileScreen({ userId, onClose }: { userId: strin
 
                     <div className="absolute inset-0 pt-3 px-3 pb-16 flex items-center justify-center pointer-events-none">
                       {achievement.imageUrl && achievement.imageUrl !== '' ? (
-                        <img
+                        <ImageWithFallback
                           src={achievement.imageUrl}
                           alt={achievement.name}
                           className={`w-full h-full object-contain drop-shadow-md transition-all duration-500 ${
                             !achievement.earned ? 'grayscale opacity-30 scale-90' : 'scale-100 hover:scale-110'
                           }`}
+                          fallback={
+                            <div className={`w-[80%] aspect-square rounded-full flex items-center justify-center p-[3px] transform transition-all ${achievement.earned ? 'bg-gradient-to-br from-[#FCE182] via-[#E8922A] to-[#8C520E] shadow-xl hover:scale-105' : 'bg-[#E5E3DD] opacity-50 grayscale'}`}>
+                              <div className={`w-full h-full rounded-full flex items-center justify-center ${achievement.earned ? 'bg-white text-[#E8922A]' : 'bg-gray-100 text-[#6B6B6B]'}`}>
+                                <DynamicIcon name={achievement.icon || 'Trophy'} size={40} />
+                              </div>
+                            </div>
+                          }
                         />
                       ) : (
-                        <div
-                          className={`flex items-center justify-center ${!achievement.earned ? 'grayscale opacity-30 scale-90' : 'drop-shadow-md'}`}
-                        >
-                          <DynamicIcon name={achievement.icon || 'Trophy'} size={60} />
+                        <div className={`w-[80%] aspect-square rounded-full flex items-center justify-center p-[3px] transform transition-all ${achievement.earned ? 'bg-gradient-to-br from-[#FCE182] via-[#E8922A] to-[#8C520E] shadow-xl hover:scale-105' : 'bg-[#E5E3DD] opacity-50 grayscale'}`}>
+                          <div className={`w-full h-full rounded-full flex items-center justify-center ${achievement.earned ? 'bg-white text-[#E8922A]' : 'bg-gray-100 text-[#6B6B6B]'}`}>
+                            <DynamicIcon name={achievement.icon || 'Trophy'} size={40} />
+                          </div>
                         </div>
                       )}
                     </div>
