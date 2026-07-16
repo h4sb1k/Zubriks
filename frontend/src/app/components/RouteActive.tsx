@@ -473,7 +473,7 @@ export default function RouteActive({ routeId, routeName: initialRouteName, auth
       <ConfirmModal
         isOpen={showDeleteConfirm}
         title="Удалить маршрут?"
-        message="Вы уверены, что хотите удалить этот маршрут? Это действие нельзя отменить."
+        message="Вы уверены, что хотите удалить этот маршрут?"
         confirmText={deleteMutation.isPending ? "Удаление..." : "Удалить"}
         onConfirm={confirmDelete}
         onCancel={() => setShowDeleteConfirm(false)}

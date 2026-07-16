@@ -1,6 +1,7 @@
 import { ChevronRight, Clock, Heart, MapPin, Plus, Route } from 'lucide-react'
 import { useState } from 'react'
 
+import { useSessionState } from '../hooks/useSessionState'
 import { trpc } from '../lib/trpc'
 import { DynamicIcon } from './DynamicIcon'
 import LoadingZubrik from './LoadingZubrik'
@@ -24,10 +25,10 @@ type Route = {
 }
 
 export default function RoutesScreen({ userLocation }: { userLocation: [number, number] | null }) {
-  const [activeFilter, setActiveFilter] = useState('Все')
-  const [activeRoute, setActiveRoute] = useState<{ id: string; name: string; authorId?: string | null; isMain?: boolean } | null>(null)
-  const [viewProfileId, setViewProfileId] = useState<string | null>(null)
-  const [isBuilding, setIsBuilding] = useState(false)
+  const [activeFilter, setActiveFilter] = useSessionState('routes_activeFilter', 'Все')
+  const [activeRoute, setActiveRoute] = useSessionState<{ id: string; name: string; authorId?: string | null; isMain?: boolean } | null>('routes_activeRoute', null)
+  const [viewProfileId, setViewProfileId] = useSessionState<string | null>('routes_viewProfileId', null)
+  const [isBuilding, setIsBuilding] = useSessionState('routes_isBuilding', false)
 
   const utils = trpc.useUtils()
   const { data: routesData, isLoading, isError, error } = trpc.getRoutes.useQuery()
@@ -101,48 +102,50 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
 
 
 
-        <div className="bg-white rounded-[32px] overflow-hidden shadow-[0_12px_30px_rgba(26,61,43,0.08)] mb-8">
-          <div className="h-56 relative overflow-hidden p-6 flex items-end">
-            <img
-              src={mainRoute?.imageUrl || "/images/Tour-Zubriki-1.webp"}
-              alt={mainRoute?.name || "Тур Зубрики"}
-              className="absolute inset-0 w-full h-full object-cover transform hover:scale-105 transition-transform duration-700"
-            />
-            <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(26,61,43,0.9), rgba(26,61,43,0.3) 60%, transparent)' }} />
-            <div className="absolute top-5 right-5 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full text-[11px] font-bold text-[#E8922A] uppercase tracking-wider shadow-sm z-10">
-              Главный тур
-            </div>
-            <div className="relative z-10 w-full text-center">
-              <h2 className="text-white text-[32px] font-black mb-1 drop-shadow-md leading-none tracking-tight">{mainRoute?.name}</h2>
-            </div>
-          </div>
-          <div className="p-6 pt-5">
-            <p className="text-[15px] text-[#6B6B6B] mb-6 font-medium leading-relaxed">{mainRoute?.description}</p>
-            
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-6 bg-[#F5F2EB] p-4 rounded-[20px]">
-              <div className="flex items-center gap-2 text-[14px] font-bold text-[#1C1C1E]">
-                <Route size={18} className="text-[#E8922A] shrink-0" />
-                <span>{mainRoute?.distance}</span>
+        {mainRoute && (
+          <div className="bg-white rounded-[32px] overflow-hidden shadow-[0_12px_30px_rgba(26,61,43,0.08)] mb-8">
+            <div className="h-56 relative overflow-hidden p-6 flex items-end">
+              <img
+                src={mainRoute.imageUrl || "/images/Tour-Zubriki-1.webp"}
+                alt={mainRoute.name || "Тур Зубрики"}
+                className="absolute inset-0 w-full h-full object-cover transform hover:scale-105 transition-transform duration-700"
+              />
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(26,61,43,0.9), rgba(26,61,43,0.3) 60%, transparent)' }} />
+              <div className="absolute top-5 right-5 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full text-[11px] font-bold text-[#E8922A] uppercase tracking-wider shadow-sm z-10">
+                Главный тур
               </div>
-              <div className="flex items-center gap-2 text-[14px] font-bold text-[#1C1C1E]">
-                <Clock size={18} className="text-[#E8922A] shrink-0" />
-                <span>{mainRoute?.duration}</span>
-              </div>
-              <div className="flex items-center gap-2 text-[14px] font-bold text-[#1C1C1E]">
-                <MapPin size={18} className="text-[#E8922A] shrink-0" />
-                <span>{mainRoute?.stops} ост.</span>
+              <div className="relative z-10 w-full text-center">
+                <h2 className="text-white text-[32px] font-black mb-1 drop-shadow-md leading-none tracking-tight">{mainRoute.name}</h2>
               </div>
             </div>
+            <div className="p-6 pt-5">
+              <p className="text-[15px] text-[#6B6B6B] mb-6 font-medium leading-relaxed">{mainRoute.description}</p>
+              
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-6 bg-[#F5F2EB] p-4 rounded-[20px]">
+                <div className="flex items-center gap-2 text-[14px] font-bold text-[#1C1C1E]">
+                  <Route size={18} className="text-[#E8922A] shrink-0" />
+                  <span>{mainRoute.distance}</span>
+                </div>
+                <div className="flex items-center gap-2 text-[14px] font-bold text-[#1C1C1E]">
+                  <Clock size={18} className="text-[#E8922A] shrink-0" />
+                  <span>{mainRoute.duration}</span>
+                </div>
+                <div className="flex items-center gap-2 text-[14px] font-bold text-[#1C1C1E]">
+                  <MapPin size={18} className="text-[#E8922A] shrink-0" />
+                  <span>{mainRoute.stops} ост.</span>
+                </div>
+              </div>
 
-            <button
-              onClick={() => setActiveRoute({ id: mainRoute?.id as string, name: mainRoute?.name as string, isMain: true })}
-              className="w-full bg-[#E8922A] text-white rounded-full py-4 font-bold text-[16px] shadow-[0_8px_20px_rgba(232,146,42,0.3)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 hover:bg-[#D97706]"
-            >
-              <span>Начать путешествие</span>
-              <ChevronRight size={20} strokeWidth={3} />
-            </button>
+              <button
+                onClick={() => setActiveRoute({ id: mainRoute.id as string, name: mainRoute.name as string, isMain: true })}
+                className="w-full bg-[#E8922A] text-white rounded-full py-4 font-bold text-[16px] shadow-[0_8px_20px_rgba(232,146,42,0.3)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 hover:bg-[#D97706]"
+              >
+                <span>Начать путешествие</span>
+                <ChevronRight size={20} strokeWidth={3} />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="px-5 pb-8">

@@ -15,7 +15,8 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: false,
-      refetchOnWindowFocus: false,
+      staleTime: 0,
+      refetchOnMount: 'always',
     },
   },
 })
@@ -34,7 +35,7 @@ const trpcClient = trpc.createClient({
     httpBatchLink({
       url: getBaseUrl(),
       fetch(url, options) {
-        return fetch(url, { ...options, credentials: 'include' })
+        return fetch(url, { ...options, credentials: 'include', cache: 'no-store' })
       },
     }),
   ],

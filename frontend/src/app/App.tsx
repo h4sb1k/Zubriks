@@ -29,9 +29,10 @@ const tabs: { id: TabType; icon: typeof Home; label: string }[] = [
 
 function MainApp() {
   const getTabFromHash = (): TabType => {
-    const hash = window.location.hash.replace('#', '') as TabType
-    if (['home', 'map', 'routes', 'events', 'profile'].includes(hash)) {
-      return hash
+    const hash = window.location.hash.replace('#', '')
+    const tab = hash.split('?')[0] as TabType
+    if (['home', 'map', 'routes', 'events', 'profile'].includes(tab)) {
+      return tab
     }
     return 'home'
   }
@@ -113,6 +114,7 @@ function MainApp() {
 
   // Получаем зубриков для отслеживания на глобальном уровне
   const { data: zubriksData } = trpc.getZubriks.useQuery(undefined, {
+    staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!user && !showOnboarding,
   })
 

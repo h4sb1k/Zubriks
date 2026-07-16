@@ -13,6 +13,16 @@ import { upload } from './upload'
 const expressApp = express()
 expressApp.use(cookieParser())
 
+// Disable caching for all API endpoints to prevent stale data in GET requests
+expressApp.use((req, res, next) => {
+  if (req.url.startsWith('/trpc') || req.url.startsWith('/admin-api')) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    res.setHeader('Pragma', 'no-cache')
+    res.setHeader('Expires', '0')
+  }
+  next()
+})
+
 // Serve static images from /public/images
 expressApp.use('/images', express.static(path.join(__dirname, '../public/images')))
 

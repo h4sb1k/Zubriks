@@ -65,8 +65,9 @@ export default function HomeScreen({
     data: zubriksData,
     isLoading: zubriksLoading,
     isError: zubriksIsError,
-    error: zubriksError,
-  } = trpc.getZubriks.useQuery()
+  } = trpc.getZubriks.useQuery(undefined, {
+    staleTime: 1000 * 60 * 60, // 1 hour
+  })
   const {
     data: eventsData,
     isLoading: eventsLoading,

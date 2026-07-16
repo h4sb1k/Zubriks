@@ -1,10 +1,11 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import * as L from 'leaflet'
 import { ArrowLeft, ChevronDown, ChevronUp, MapPin, Plus, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { MapContainer, Marker, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 
 import { useOsrmRoute } from '../hooks/useOsrmRoute'
+import { useSessionState } from '../hooks/useSessionState'
 import { trpc } from '../lib/trpc'
 import ConfirmModal from './ConfirmModal'
 import { DynamicIcon } from './DynamicIcon'
@@ -13,7 +14,7 @@ import RoutePreviewMap from './RoutePreviewMap'
 
 const customIcon = L.divIcon({
   className: 'custom-icon',
-  html: `<div class="w-8 h-8 flex items-center justify-center bg-[#E8922A] text-white rounded-full shadow-md text-sm border-2 border-white">📍</div>`,
+  html: `<div class="w-8 h-8 flex items-center justify-center bg-[#E8922A] text-white rounded-full shadow-md text-sm border-2 border-white"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 15.007 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg></div>`,
   iconSize: [32, 32],
   iconAnchor: [16, 16],
 })
@@ -30,7 +31,8 @@ function MapEvents({ position, setTempPos, clearPoi }: { position: [number, numb
     if (position) {
       map.setView(position, 15)
     }
-  }, [map, position])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map])
   
   return null
 }
@@ -78,7 +80,7 @@ function POILayer({ pois, onSelectPOI }: { pois: any[], onSelectPOI?: (poi: any)
     zoomend: (e) => setZoom(e.target.getZoom())
   })
 
-  if (zoom < 15) return null
+  if (zoom < 14) return null
 
   return (
     <>
@@ -107,18 +109,92 @@ function POILayer({ pois, onSelectPOI }: { pois: any[], onSelectPOI?: (poi: any)
   )
 }
 
+// Zubrik custom marker
+const createZubrikIcon = (zubrik: any) => {
+  const borderClass = 'border-[#E8922A] bg-[#FEA35A]'
+  const iconHtml = `
+    <div class="relative w-10 h-10 rounded-full flex items-center justify-center shadow-[0_4px_10px_rgba(0,0,0,0.15)] border-[3px] overflow-hidden transition-transform hover:scale-110 ${borderClass}">
+      ${
+        zubrik.imageUrl
+          ? `<div class="relative w-full h-full">
+               <img src="${zubrik.imageUrl}" alt="${zubrik.name}" class="w-full h-full object-cover rounded-full" />
+             </div>`
+          : '<span class="text-xl text-white">🦬</span>'
+      }
+    </div>
+  `
+  return L.divIcon({
+    html: iconHtml,
+    className: 'custom-leaflet-marker',
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
+  })
+}
+
+// Zubrik Layer component
+function ZubrikLayer({ zubriks, onSelectZubrik }: { zubriks: any[], onSelectZubrik?: (zubrik: any) => void }) {
+  const [zoom, setZoom] = useState(15)
+  const map = useMap()
+  
+  useEffect(() => {
+    setZoom(map.getZoom())
+   
+  }, [map])
+
+  useMapEvents({
+    zoomend: (e) => setZoom(e.target.getZoom())
+  })
+
+  if (zoom < 14) return null
+
+  return (
+    <>
+      {zubriks.map((z: any) => {
+        const lat = z.latitude ?? (z.coordinates ? z.coordinates[0] : undefined);
+        const lon = z.longitude ?? (z.coordinates ? z.coordinates[1] : undefined);
+        if (lat === undefined || lon === undefined) return null;
+
+        return (
+          <Marker 
+            key={z.id} 
+            position={[lat, lon]} 
+            icon={createZubrikIcon(z)}
+            zIndexOffset={100}
+            eventHandlers={{
+              click: () => {
+                map.setView([lat, lon], Math.max(map.getZoom(), 16), { animate: true })
+                if (onSelectZubrik) onSelectZubrik(z)
+              }
+            }}
+          >
+            <Tooltip direction="top" offset={[0, -10]} opacity={0.95}>
+              <div className="font-medium text-xs text-center max-w-[150px] whitespace-normal">
+                {z.name}
+                <span className="block text-[10px] text-gray-500 mt-0.5 opacity-80 uppercase tracking-wider">Зубрик</span>
+              </div>
+            </Tooltip>
+          </Marker>
+        )
+      })}
+    </>
+  )
+}
+
 function LocationPicker({
   position,
   onSelect,
   onClose,
 }: {
   position: [number, number] | null
-  onSelect: (pos: [number, number], poi?: any) => void
+  onSelect: (pos: [number, number], poi?: any, zubrik?: any) => void
   onClose: () => void
 }) {
   const [tempPos, setTempPos] = useState<[number, number] | null>(position)
   const [selectedPoi, setSelectedPoi] = useState<any | null>(null)
+  const [selectedZubrik, setSelectedZubrik] = useState<any | null>(null)
   const { data: pois = [] } = trpc.getPOIs.useQuery()
+  const { data: zubriksData } = trpc.getZubriks.useQuery()
+  const zubriks = zubriksData?.zubriks || []
 
   return (
     <div className="fixed inset-0 bg-white z-[9999] flex flex-col">
@@ -129,18 +205,31 @@ function LocationPicker({
         <h2 className="text-xl font-medium">Выберите точку</h2>
       </div>
       <div className="flex-1 relative">
-        <MapContainer center={tempPos || [52.9701, 36.0732]} zoom={14.5} zoomControl={false} attributionControl={false} style={{ width: '100%', height: '100%' }}>
+        <MapContainer center={tempPos || [52.9701, 36.0732]} zoom={15} zoomControl={false} attributionControl={false} style={{ width: '100%', height: '100%' }}>
           <TileLayer
             url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           />
-          <MapEvents position={position} setTempPos={setTempPos} clearPoi={() => setSelectedPoi(null)} />
+          <MapEvents position={position} setTempPos={setTempPos} clearPoi={() => { setSelectedPoi(null); setSelectedZubrik(null); }} />
           {tempPos && <Marker position={tempPos} icon={customIcon} zIndexOffset={1000} />}
           <POILayer 
             pois={pois} 
             onSelectPOI={(poi) => {
               setTempPos([poi.lat, poi.lon])
               setSelectedPoi(poi)
+              setSelectedZubrik(null)
+            }} 
+          />
+          <ZubrikLayer 
+            zubriks={zubriks} 
+            onSelectZubrik={(zubrik) => {
+              const lat = zubrik.latitude ?? (zubrik.coordinates ? zubrik.coordinates[0] : undefined);
+              const lon = zubrik.longitude ?? (zubrik.coordinates ? zubrik.coordinates[1] : undefined);
+              if (lat !== undefined && lon !== undefined) {
+                setTempPos([lat, lon])
+              }
+              setSelectedZubrik(zubrik)
+              setSelectedPoi(null)
             }} 
           />
         </MapContainer>
@@ -149,9 +238,15 @@ function LocationPicker({
             type="button"
             onClick={() => {
               if (tempPos) {
-                onSelect(tempPos, selectedPoi)
-                onClose()
+                if (selectedZubrik) {
+                  onSelect(tempPos, null, selectedZubrik)
+                } else if (selectedPoi) {
+                  onSelect(tempPos, selectedPoi, null)
+                } else {
+                  onSelect(tempPos)
+                }
               }
+              onClose()
             }}
             disabled={!tempPos}
             className="w-full bg-[#E8922A] text-white rounded-2xl py-4 flex items-center justify-center font-medium disabled:opacity-50 shadow-lg active:scale-95 transition-transform"
@@ -179,11 +274,12 @@ type WaypointDraft = {
 }
 
 export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: string, onClose: () => void }) {
-  const [routeIcon, setRouteIcon] = useState('MapPin')
+  const draftKey = editRouteId ? `edit_${editRouteId}` : 'new'
+  const [routeIcon, setRouteIcon] = useSessionState(`rb_icon_${draftKey}`, 'MapPin')
   const [routeIconPickerOpen, setRouteIconPickerOpen] = useState(false)
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [waypoints, setWaypoints] = useState<WaypointDraft[]>([])
+  const [name, setName] = useSessionState(`rb_name_${draftKey}`, '')
+  const [description, setDescription] = useSessionState(`rb_desc_${draftKey}`, '')
+  const [waypoints, setWaypoints] = useSessionState<WaypointDraft[]>(`rb_wp_${draftKey}`, [])
 
   const [pickerIndex, setPickerIndex] = useState<number | null>(null)
   const [iconPickerIndex, setIconPickerIndex] = useState<number | null>(null)
@@ -197,7 +293,10 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
   )
 
   useEffect(() => {
-    if (routeData?.route) {
+    const savedName = sessionStorage.getItem(`rb_name_${draftKey}`)
+    const hasValidDraft = savedName && savedName !== '""' && savedName !== 'null'
+
+    if (routeData?.route && !hasValidDraft) {
       const route = routeData.route
       setName(route.name)
       setDescription(route.description || '')
@@ -211,7 +310,7 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
         longitude: wp.longitude,
       })))
     }
-  }, [routeData])
+  }, [routeData, draftKey])
   
   const moveWaypoint = (index: number, direction: 'up' | 'down') => {
     if (direction === 'up' && index === 0) return
@@ -225,9 +324,17 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
     setWaypoints(newWp)
   }
 
+  const clearDraft = () => {
+    sessionStorage.removeItem(`rb_icon_${draftKey}`)
+    sessionStorage.removeItem(`rb_name_${draftKey}`)
+    sessionStorage.removeItem(`rb_desc_${draftKey}`)
+    sessionStorage.removeItem(`rb_wp_${draftKey}`)
+  }
+
   const createRoute = trpc.createRoute.useMutation({
     onSuccess: () => {
       utils.getRoutes.invalidate()
+      clearDraft()
       onClose()
     },
     onError: (err) => alert('Ошибка при создании маршрута: ' + err.message),
@@ -237,6 +344,7 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
     onSuccess: () => {
       utils.getRoutes.invalidate()
       utils.getRouteWaypoints.invalidate()
+      clearDraft()
       onClose()
     },
     onError: (err) => alert('Ошибка при обновлении маршрута: ' + err.message),
@@ -246,6 +354,7 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
     onSuccess: () => {
       utils.getRoutes.invalidate()
       utils.getRouteWaypoints.invalidate()
+      clearDraft()
       onClose() // also closes RouteActive if it's nested
       // To close RouteActive fully, we might need a signal, but reloading routes or just closing this modal will trigger state cleanup.
       // Wait, we need to dispatch an event to completely close RouteActive.
@@ -353,12 +462,35 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
               ? [waypoints[pickerIndex].latitude, waypoints[pickerIndex].longitude]
               : null
           }
-          onSelect={(pos, poi) => {
-            if (poi) {
+          onSelect={(pos, poi, zubrik) => {
+            if (zubrik) {
+              updateWaypoint(pickerIndex, { 
+                latitude: pos[0], 
+                longitude: pos[1],
+                name: waypoints[pickerIndex].name || zubrik.name,
+                description: waypoints[pickerIndex].description || 'Зубрик',
+                icon: waypoints[pickerIndex].icon || 'Star',
+              })
+            } else if (poi) {
+              const poiType = (poi.type || '').toLowerCase();
+              let newIcon = waypoints[pickerIndex].icon || 'MapPin';
+              
+              if (poiType.includes('historic') || poiType.includes('monument') || poiType.includes('memorial')) {
+                newIcon = 'Landmark';
+              } else if (poiType.includes('museum') || poiType.includes('gallery')) {
+                newIcon = 'Palette';
+              } else if (poiType.includes('viewpoint')) {
+                newIcon = 'Camera';
+              } else if (poiType) {
+                newIcon = 'Star';
+              }
+
               updateWaypoint(pickerIndex, { 
                 latitude: pos[0], 
                 longitude: pos[1],
                 name: waypoints[pickerIndex].name || poi.name,
+                description: waypoints[pickerIndex].description || poi.type || '',
+                icon: newIcon,
               })
             } else {
               updateWaypoint(pickerIndex, { latitude: pos[0], longitude: pos[1] })

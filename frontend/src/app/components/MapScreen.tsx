@@ -3,6 +3,7 @@ import { Camera, Landmark, MapPin, Navigation, Navigation2, Palette, Search, Sta
 import { useEffect, useState } from 'react'
 import { MapContainer, Marker, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 
+import { useSessionState } from '../hooks/useSessionState'
 import { trpc } from '../lib/trpc'
 import { calculateDistance } from '../utils/distance'
 import { openPointInMaps } from '../utils/openInMaps'
@@ -184,8 +185,8 @@ export default function MapScreen({
   userLocation: [number, number] | null
   setUserLocation: React.Dispatch<React.SetStateAction<[number, number] | null>>
 }) {
-  const [selectedZubrik, setSelectedZubrik] = useState<Zubrik | null>(null)
-  const [detailZubrik, setDetailZubrik] = useState<Zubrik | null>(null)
+  const [selectedZubrik, setSelectedZubrik] = useSessionState<Zubrik | null>('map_selectedZubrik', null)
+  const [detailZubrik, setDetailZubrik] = useSessionState<Zubrik | null>('map_detailZubrik', null)
 
   // Map settings
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null)
@@ -210,10 +211,14 @@ export default function MapScreen({
     isLoading: zubriksLoading,
     isError: zubriksIsError,
     error: zubriksError,
-  } = trpc.getZubriks.useQuery()
+  } = trpc.getZubriks.useQuery(undefined, {
+    staleTime: 1000 * 60 * 60, // 1 hour
+  })
 
   // Fetch POIs
-  const { data: pois = [] } = trpc.getPOIs.useQuery()
+  const { data: pois = [] } = trpc.getPOIs.useQuery(undefined, {
+    staleTime: 1000 * 60 * 60 * 24, // 24 hours (rarely changes)
+  })
 
   const mapZubriks = (zubriksData?.zubriks || []).map((z) => {
     let distance = '...'

@@ -652,6 +652,9 @@ export const trpcRouter = trpc.router({
         unlocked: unlockedIds.has(z.id),
         imageUrl: z.imageUrl ?? '',
         coordinates: [z.latitude, z.longitude, z.locationName] as [number, number, string],
+        latitude: z.latitude,
+        longitude: z.longitude,
+        locationName: z.locationName,
       })),
     }
   }),
@@ -701,6 +704,7 @@ export const trpcRouter = trpc.router({
     const mainRoute = await ctx.prisma.route.findFirst({
       where: { isMain: true },
       include: { _count: { select: { waypoints: true } } },
+      orderBy: { createdAt: 'desc' },
     })
 
     return {
@@ -737,6 +741,7 @@ export const trpcRouter = trpc.router({
   getMainRoute: trpc.procedure.query(async ({ ctx }) => {
     const mainRoute = await ctx.prisma.route.findFirst({
       where: { isMain: true },
+      orderBy: { createdAt: 'desc' },
       include: { _count: { select: { waypoints: true } } },
     })
 
@@ -1265,6 +1270,9 @@ export const trpcRouter = trpc.router({
 })
 
 export const adminRouter = trpc.router({
+  getPOIs: trpc.procedure.query(async () => {
+    return await fetchOrelPOIs()
+  }),
   adminLogin: trpc.procedure
     .input(z.object({ email: z.string().email(), password: z.string(), turnstileToken: z.string().optional() }))
     .mutation(async ({ input, ctx }) => {
@@ -1577,7 +1585,7 @@ export const adminRouter = trpc.router({
       return { success: true }
     }),
 
-  adminGetRoutes: adminProcedure.query(async ({ ctx }) => {
+  adminGetRoutes: adminProcedure.query(async ({ ctx }) => { console.info("adminGetRoutes CALLED"); 
     const routes = await ctx.prisma.route.findMany({
       include: {
         author: { select: { name: true } },

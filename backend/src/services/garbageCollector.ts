@@ -4,7 +4,7 @@ import path from 'path'
 
 export async function runGarbageCollection(prisma: PrismaClient): Promise<{ deletedCount: number; bytesFreed: number }> {
   console.info('[GC] Starting Image Garbage Collection...')
-  const uploadDir = path.join(__dirname, '../../../public/images/uploads')
+  const uploadDir = path.join(__dirname, '../../public/images/uploads')
   
   // 1. Get all files on disk
   let files: string[] = []

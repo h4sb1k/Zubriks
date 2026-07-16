@@ -1,6 +1,6 @@
 import { AnimatePresence,motion } from 'framer-motion'
 import { ArrowLeft, Calendar, LogOut, MapPin, Route, Search, Settings, Trophy, Users } from 'lucide-react'
-import { useMemo,useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 
 import { trpc } from '../lib/trpc'
 import AchievementBuilder, { type AchievementEditData } from './AchievementBuilder'
@@ -10,19 +10,43 @@ import UserBuilder, { type UserEditData } from './UserBuilder'
 import ZubrikBuilder, { type ZubrikEditData } from './ZubrikBuilder'
 import RouteBuilder from './RouteBuilder'
 import ConfirmModal from './ConfirmModal'
+import { useSessionState } from '../hooks/useSessionState'
 
 type AdminTab = 'stats' | 'users' | 'zubriks' | 'achievements' | 'routes'
 
 export default function AdminScreen({ onClose }: { onClose: () => void }) {
-  const [activeTab, setActiveTab] = useState<AdminTab>('stats')
-  const [editingZubrik, setEditingZubrik] = useState<ZubrikEditData | null>(null)
-  const [editingUser, setEditingUser] = useState<UserEditData | null>(null)
-  const [editingAchievement, setEditingAchievement] = useState<AchievementEditData | null>(null)
-  const [editingRouteId, setEditingRouteId] = useState<string | null>(null)
-  const [isBuildingZubrik, setIsBuildingZubrik] = useState(false)
-  const [isBuildingAchievement, setIsBuildingAchievement] = useState(false)
-  const [isBuildingRoute, setIsBuildingRoute] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
+  const getTabFromHash = (): AdminTab => {
+    const hash = window.location.hash.replace('#', '')
+    const tab = hash.split('?')[0] as AdminTab
+    if (['stats', 'users', 'zubriks', 'achievements', 'routes'].includes(tab)) {
+      return tab
+    }
+    return 'stats'
+  }
+
+  const [activeTab, setActiveTabRaw] = useState<AdminTab>(getTabFromHash)
+
+  const setActiveTab = (tab: AdminTab) => {
+    window.location.hash = tab
+    setActiveTabRaw(tab)
+  }
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setActiveTabRaw(getTabFromHash())
+    }
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
+
+  const [editingZubrik, setEditingZubrik] = useSessionState<ZubrikEditData | null>('admin_editingZubrik', null)
+  const [editingUser, setEditingUser] = useSessionState<UserEditData | null>('admin_editingUser', null)
+  const [editingAchievement, setEditingAchievement] = useSessionState<AchievementEditData | null>('admin_editingAchievement', null)
+  const [editingRouteId, setEditingRouteId] = useSessionState<string | null>('admin_editingRouteId', null)
+  const [isBuildingZubrik, setIsBuildingZubrik] = useSessionState('admin_isBuildingZubrik', false)
+  const [isBuildingAchievement, setIsBuildingAchievement] = useSessionState('admin_isBuildingAchievement', false)
+  const [isBuildingRoute, setIsBuildingRoute] = useSessionState('admin_isBuildingRoute', false)
+  const [searchQuery, setSearchQuery] = useSessionState('admin_searchQuery', '')
   
   const { data: stats, isLoading: isStatsLoading } = trpc.adminGetStats.useQuery()
   const { data: usersData, isLoading: isUsersLoading } = trpc.adminGetUsers.useQuery(undefined, { enabled: activeTab === 'users' })

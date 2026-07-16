@@ -2,6 +2,7 @@ import { AnimatePresence, motion, Reorder } from 'framer-motion'
 import { ChevronRight, Clock, Lock, LogOut, MapPin, Pin, Route, Settings } from 'lucide-react'
 import { useEffect,useState } from 'react'
 
+import { useSessionState } from '../hooks/useSessionState'
 import { trpc } from '../lib/trpc'
 import AchievementModal from './AchievementModal'
 import ConfirmModal from './ConfirmModal'
@@ -66,10 +67,10 @@ function RouteCard({ route, onClick }: { route: RouteInfo; onClick?: () => void 
 }
 
 export default function ProfileScreen() {
-  const [activeTab, setActiveTab] = useState('Награды')
+  const [activeTab, setActiveTab] = useSessionState('profile_activeTab', 'Награды')
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [selectedAchievement, setSelectedAchievement] = useState<any | null>(null)
-  const [activeRoute, setActiveRoute] = useState<{ id: string; name: string; authorId?: string | null; isMain?: boolean } | null>(null)
+  const [activeRoute, setActiveRoute] = useSessionState<{ id: string; name: string; authorId?: string | null; isMain?: boolean } | null>('profile_activeRoute', null)
 
   const { data: user } = trpc.me.useQuery()
   const { data: statsData, isLoading: isStatsLoading } = trpc.getProfileStats.useQuery()
