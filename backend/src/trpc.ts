@@ -25,6 +25,7 @@ import { generateOTP, sendVerificationEmail } from './email'
 import { prisma } from './prisma'
 import { runGarbageCollection } from './services/garbageCollector'
 import { processAndSaveExternalImage } from './services/storage'
+import { fetchOrelPOIs } from './utils/overpass'
 
 async function calculateRouteStats(waypoints: {latitude: number, longitude: number}[]) {
   let totalKm = 0
@@ -1204,7 +1205,14 @@ export const trpcRouter = trpc.router({
         )
       )
       return { success: true }
-    })
+    }),
+
+  // ==========================================
+  // POIs (Overpass API)
+  // ==========================================
+  getPOIs: trpc.procedure.query(async () => {
+    return await fetchOrelPOIs()
+  }),
 })
 
 export const adminRouter = trpc.router({

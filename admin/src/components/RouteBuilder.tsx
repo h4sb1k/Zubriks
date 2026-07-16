@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import * as L from 'leaflet'
 import { ArrowLeft, ChevronDown, ChevronUp, ImagePlus, MapPin, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
+import { MapContainer, Marker, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 
 import { trpc } from '../lib/trpc'
 import ConfirmModal from './ConfirmModal'
@@ -20,10 +20,11 @@ const customIcon = L.divIcon({
   iconAnchor: [16, 16],
 })
 
-function MapEvents({ position, setTempPos }: { position: [number, number] | null, setTempPos: (pos: [number, number]) => void }) {
+function MapEvents({ position, setTempPos, clearPoi }: { position: [number, number] | null, setTempPos: (pos: [number, number]) => void, clearPoi?: () => void }) {
   const map = useMapEvents({
     click(e) {
       setTempPos([e.latlng.lat, e.latlng.lng])
+      if (clearPoi) clearPoi()
     },
   })
   
@@ -36,16 +37,90 @@ function MapEvents({ position, setTempPos }: { position: [number, number] | null
   return null
 }
 
+// POI custom marker
+const createPOIIcon = (poi: any) => {
+  const type = (poi.type || '').toLowerCase();
+  
+  let bgColor = 'bg-[#E8922A]' // generic attraction (Yellow)
+  let svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 text-white"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' // star
+
+  if (type.includes('historic') || type.includes('monument') || type.includes('memorial')) {
+    bgColor = 'bg-[#A16207]' // Brown
+    svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 text-white"><line x1="3" x2="21" y1="22" y2="22"/><line x1="6" x2="6" y1="18" y2="11"/><line x1="10" x2="10" y1="18" y2="11"/><line x1="14" x2="14" y1="18" y2="11"/><line x1="18" x2="18" y1="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>'
+  } else if (type.includes('museum') || type.includes('gallery')) {
+    bgColor = 'bg-[#8B5CF6]' // Purple
+    svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 text-white"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>'
+  } else if (type.includes('viewpoint')) {
+    bgColor = 'bg-[#0D9488]' // Teal
+    svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 text-white"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>'
+  }
+
+  return L.divIcon({
+    html: `
+      <div class="w-[22px] h-[22px] rounded-full ${bgColor} flex items-center justify-center border-2 border-white shadow-sm transition-transform hover:scale-110">
+        ${svg}
+      </div>
+    `,
+    className: 'custom-leaflet-marker',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  })
+}
+
+// POI Layer component to handle zoom visibility
+function POILayer({ pois, onSelectPOI }: { pois: any[], onSelectPOI?: (poi: any) => void }) {
+  const [zoom, setZoom] = useState(15)
+  const map = useMap()
+  
+  useEffect(() => {
+    setZoom(map.getZoom())
+  }, [map])
+
+  useMapEvents({
+    zoomend: (e) => setZoom(e.target.getZoom())
+  })
+
+  if (zoom < 15) return null
+
+  return (
+    <>
+      {pois.map((poi: any) => (
+        <Marker 
+          key={poi.id} 
+          position={[poi.lat, poi.lon]} 
+          icon={createPOIIcon(poi)}
+          zIndexOffset={-100}
+          eventHandlers={{
+            click: () => {
+              map.setView([poi.lat, poi.lon], Math.max(map.getZoom(), 16), { animate: true })
+              if (onSelectPOI) onSelectPOI(poi)
+            }
+          }}
+        >
+          <Tooltip direction="top" offset={[0, -6]} opacity={0.95}>
+            <div className="font-medium text-xs text-center max-w-[150px] whitespace-normal">
+              {poi.name}
+              <span className="block text-[10px] text-gray-500 mt-0.5 opacity-80 uppercase tracking-wider">{poi.type}</span>
+            </div>
+          </Tooltip>
+        </Marker>
+      ))}
+    </>
+  )
+}
+
 function LocationPicker({
   position,
   onSelect,
   onClose,
 }: {
   position: [number, number] | null
-  onSelect: (pos: [number, number]) => void
+  onSelect: (pos: [number, number], poi?: any) => void
   onClose: () => void
 }) {
   const [tempPos, setTempPos] = useState<[number, number] | null>(position)
+  const [selectedPoi, setSelectedPoi] = useState<any | null>(null)
+  const { data: pois = [] } = trpc.getPOIs.useQuery()
 
   return (
     <div className="fixed inset-0 bg-white z-[9999] flex flex-col">
@@ -61,15 +136,22 @@ function LocationPicker({
             url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           />
-          <MapEvents position={position} setTempPos={setTempPos} />
-          {tempPos && <Marker position={tempPos} icon={customIcon} />}
+          <MapEvents position={position} setTempPos={setTempPos} clearPoi={() => setSelectedPoi(null)} />
+          {tempPos && <Marker position={tempPos} icon={customIcon} zIndexOffset={1000} />}
+          <POILayer 
+            pois={pois} 
+            onSelectPOI={(poi) => {
+              setTempPos([poi.lat, poi.lon])
+              setSelectedPoi(poi)
+            }} 
+          />
         </MapContainer>
         <div className="absolute bottom-6 left-5 right-5 z-[400]">
           <button
             type="button"
             onClick={() => {
               if (tempPos) {
-                onSelect(tempPos)
+                onSelect(tempPos, selectedPoi)
                 onClose()
               }
             }}
@@ -326,8 +408,16 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
               ? [waypoints[pickerIndex].latitude, waypoints[pickerIndex].longitude]
               : null
           }
-          onSelect={(pos) => {
-            updateWaypoint(pickerIndex, { latitude: pos[0], longitude: pos[1] })
+          onSelect={(pos, poi) => {
+            if (poi) {
+              updateWaypoint(pickerIndex, { 
+                latitude: pos[0], 
+                longitude: pos[1],
+                name: waypoints[pickerIndex].name || poi.name,
+              })
+            } else {
+              updateWaypoint(pickerIndex, { latitude: pos[0], longitude: pos[1] })
+            }
           }}
           onClose={() => setPickerIndex(null)}
         />

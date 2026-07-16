@@ -1,7 +1,7 @@
 import * as L from 'leaflet'
-import { MapPin, Navigation, Navigation2, Search } from 'lucide-react'
+import { Camera, Landmark, MapPin, Navigation, Navigation2, Palette, Search, Star } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet'
+import { MapContainer, Marker, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 
 import { trpc } from '../lib/trpc'
 import { calculateDistance } from '../utils/distance'
@@ -105,6 +105,78 @@ const createUserLocationIcon = () => {
   })
 }
 
+// POI custom marker - category specific
+const createPOIIcon = (poi: any) => {
+  const type = (poi.type || '').toLowerCase();
+  
+  let bgColor = 'bg-[#E8922A]' // generic attraction (Yellow)
+  let svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 text-white"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' // star
+
+  if (type.includes('historic') || type.includes('monument') || type.includes('memorial')) {
+    bgColor = 'bg-[#A16207]' // Brown
+    svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 text-white"><line x1="3" x2="21" y1="22" y2="22"/><line x1="6" x2="6" y1="18" y2="11"/><line x1="10" x2="10" y1="18" y2="11"/><line x1="14" x2="14" y1="18" y2="11"/><line x1="18" x2="18" y1="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>'
+  } else if (type.includes('museum') || type.includes('gallery')) {
+    bgColor = 'bg-[#8B5CF6]' // Purple
+    svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 text-white"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>'
+  } else if (type.includes('viewpoint')) {
+    bgColor = 'bg-[#0D9488]' // Teal
+    svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 text-white"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>'
+  }
+
+  return L.divIcon({
+    html: `
+      <div class="w-[22px] h-[22px] rounded-full ${bgColor} flex items-center justify-center border-2 border-white shadow-sm transition-transform hover:scale-110">
+        ${svg}
+      </div>
+    `,
+    className: 'custom-leaflet-marker',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  })
+}
+
+// POI Layer component to handle zoom visibility
+function POILayer({ pois }: { pois: any[] }) {
+  const [zoom, setZoom] = useState(15)
+  const map = useMap()
+  
+  useEffect(() => {
+    setZoom(map.getZoom())
+  }, [map])
+
+  useMapEvents({
+    zoomend: (e) => setZoom(e.target.getZoom())
+  })
+
+  // Only show POIs when sufficiently zoomed in
+  if (zoom < 15) return null
+
+  return (
+    <>
+      {pois.map((poi: any) => (
+        <Marker 
+          key={poi.id} 
+          position={[poi.lat, poi.lon]} 
+          icon={createPOIIcon(poi)}
+          zIndexOffset={-100} // Ensure they are below Zubriks
+          eventHandlers={{
+            click: () => {
+              map.setView([poi.lat, poi.lon], Math.max(map.getZoom(), 16), { animate: true })
+            }
+          }}
+        >
+          <Tooltip direction="top" offset={[0, -6]} opacity={0.95}>
+            <div className="font-medium text-xs text-center max-w-[150px] whitespace-normal">
+              {poi.name}
+              <span className="block text-[10px] text-gray-500 mt-0.5 opacity-80 uppercase tracking-wider">{poi.type}</span>
+            </div>
+          </Tooltip>
+        </Marker>
+      ))}
+    </>
+  )
+}
+
 export default function MapScreen({
   userLocation,
   setUserLocation,
@@ -140,6 +212,9 @@ export default function MapScreen({
     error: zubriksError,
   } = trpc.getZubriks.useQuery()
 
+  // Fetch POIs
+  const { data: pois = [] } = trpc.getPOIs.useQuery()
+
   const mapZubriks = (zubriksData?.zubriks || []).map((z) => {
     let distance = '...'
     if (userLocation && z.coordinates) {
@@ -153,16 +228,21 @@ export default function MapScreen({
     }
   })
 
-  // Filter Zubriks based on search query
-  const searchResults = searchQuery.trim()
-    ? mapZubriks.filter((zubrik) => {
-        const query = searchQuery.toLowerCase()
-        const matchesName = zubrik.name.toLowerCase().includes(query)
-        const matchesPlace =
-          zubrik.coordinates && zubrik.coordinates[2] ? zubrik.coordinates[2].toLowerCase().includes(query) : false
-        return matchesName || matchesPlace
-      })
-    : []
+  // Filter Zubriks and POIs based on search query
+  let searchResults: Array<{ type: 'zubrik' | 'poi', item: any }> = []
+  if (searchQuery.trim()) {
+    const query = searchQuery.trim().toLowerCase()
+    
+    const matchingZubriks = mapZubriks
+      .filter((z) => z.name.toLowerCase().includes(query) || (z.coordinates?.[2] || '').toLowerCase().includes(query))
+      .map((z) => ({ type: 'zubrik' as const, item: z }))
+
+    const matchingPOIs = pois
+      .filter((p: any) => p.name.toLowerCase().includes(query))
+      .map((p: any) => ({ type: 'poi' as const, item: p }))
+
+    searchResults = [...matchingZubriks, ...matchingPOIs].slice(0, 15) // Limit to prevent UI lag
+  }
 
   // Geolocation centering logic
   const handleCenterUserLocation = () => {
@@ -237,7 +317,10 @@ export default function MapScreen({
           <MapController center={mapCenter} isDrawerOpen={!!selectedZubrik} />
 
           {/* User Location Pulsing Dot */}
-          {userLocation && <Marker position={userLocation} icon={createUserLocationIcon()} />}
+          {userLocation && <Marker position={userLocation} icon={createUserLocationIcon()} zIndexOffset={1000} />}
+
+          {/* POIs rendering */}
+          <POILayer pois={pois} />
 
           {/* Zubriks Map Pins */}
           {mapZubriks.map((zubrik) => (
@@ -245,6 +328,7 @@ export default function MapScreen({
               key={zubrik.id}
               position={zubrik.coords}
               icon={createZubrikIcon(zubrik)}
+              zIndexOffset={1000}
               eventHandlers={{
                 click: () => {
                   setSelectedZubrik(zubrik)
@@ -282,24 +366,50 @@ export default function MapScreen({
           {searchQuery.trim() && (
             <div className="bg-white rounded-2xl shadow-xl max-h-60 overflow-y-auto border border-gray-100 flex flex-col divide-y divide-gray-50 z-20">
               {searchResults.length > 0 ? (
-                searchResults.map((zubrik) => (
+                searchResults.map(({ type, item }) => (
                   <button
-                    key={zubrik.id}
+                    key={`${type}-${item.id}`}
                     onClick={() => {
-                      setSelectedZubrik(zubrik)
+                      if (type === 'zubrik') {
+                        setSelectedZubrik(item)
+                      } else {
+                        // Center map on POI
+                        setMapCenter([item.lat, item.lon])
+                      }
                       setSearchQuery('')
                     }}
                     className="px-4 py-3 text-left hover:bg-gray-50 active:bg-gray-100 transition-colors flex items-center justify-between cursor-pointer"
                   >
                     <div>
-                      <div className="text-sm font-medium text-[#1C1C1E]">{zubrik.name}</div>
-                      <div className="text-xs text-[#6B6B6B] mt-0.5">
-                        {zubrik.coordinates ? zubrik.coordinates[2] : 'Местоположение'} · {zubrik.distance}
+                      <div className="text-sm font-medium text-[#1C1C1E]">{item.name}</div>
+                      <div className="text-xs text-[#6B6B6B] mt-1 flex items-center gap-1.5">
+                        {type === 'zubrik' ? (
+                          <>
+                            <MapPin size={12} className="text-[#E8922A] opacity-80" />
+                            <span>{item.coordinates ? item.coordinates[2] : 'Местоположение'} · {item.distance}</span>
+                          </>
+                        ) : (
+                          <>
+                            {(item.type || '').includes('museum') ? <Palette size={12} className="text-[#8B5CF6] opacity-80" /> : 
+                             (item.type || '').includes('viewpoint') ? <Camera size={12} className="text-[#0D9488] opacity-80" /> : 
+                             (item.type || '').includes('historic') ? <Landmark size={12} className="text-[#A16207] opacity-80" /> : 
+                             <Star size={12} className="text-[#E8922A] opacity-80" />}
+                            <span>
+                              {(item.type || '').includes('museum') ? 'Музей' : 
+                               (item.type || '').includes('viewpoint') ? 'Смотровая площадка' : 
+                               (item.type || '').includes('historic') ? 'Историческое место' : 'Достопримечательность'}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
-                    <span className="text-xs text-[#E8922A] font-medium">
-                      {zubrik.unlocked ? '✓ Найден' : '🔒 Искать'}
-                    </span>
+                    {type === 'zubrik' ? (
+                      <span className="text-xs text-[#E8922A] font-medium">
+                        {item.unlocked ? '✓ Найден' : '🔒 Искать'}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-[#0D9488] font-medium bg-[#0D9488]/10 px-2 py-1 rounded-full">Место</span>
+                    )}
                   </button>
                 ))
               ) : (
