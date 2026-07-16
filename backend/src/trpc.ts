@@ -750,6 +750,8 @@ export const trpcRouter = trpc.router({
         stops: mainRoute._count.waypoints,
         description: mainRoute.description,
         icon: mainRoute.icon ?? 'Crown',
+        imageUrl: mainRoute.imageUrl,
+        imageColor: mainRoute.imageColor ?? '#1A3D2B',
       },
     }
   }),

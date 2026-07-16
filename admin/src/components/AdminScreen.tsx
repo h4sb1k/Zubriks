@@ -412,11 +412,11 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
                   className="bg-white rounded-[24px] p-4 shadow-[0_4px_16px_rgba(0,0,0,0.04)] border border-[#E5E3DD]/60 flex items-center gap-5 active:scale-[0.97] transition-all cursor-pointer hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)]"
                 >
                   <div
-                    className="w-[84px] h-[84px] rounded-full flex items-center justify-center shadow-inner shrink-0 overflow-hidden border-[3px] border-white p-[2px]"
+                    className="w-[140px] h-[84px] rounded-[16px] flex items-center justify-center shadow-inner shrink-0 overflow-hidden border-[3px] border-white"
                     style={{ backgroundColor: r.imageUrl ? '#F5F2EB' : (r.imageColor || '#1A3D2B') }}
                   >
                     {r.imageUrl ? (
-                      <div className="w-full h-full rounded-full overflow-hidden">
+                      <div className="w-full h-full rounded-[12px] overflow-hidden">
                         <img 
                           src={r.imageUrl} 
                           alt={r.name} 
@@ -428,7 +428,7 @@ export default function AdminScreen({ onClose }: { onClose: () => void }) {
                         />
                       </div>
                     ) : null}
-                    <div className={`w-full h-full rounded-full flex items-center justify-center text-3xl ${r.imageUrl ? 'hidden' : ''}`} style={{ backgroundColor: r.imageColor || '#1A3D2B' }}>
+                    <div className={`w-full h-full rounded-[12px] flex items-center justify-center text-3xl ${r.imageUrl ? 'hidden' : ''}`} style={{ backgroundColor: r.imageColor || '#1A3D2B' }}>
                       <DynamicIcon name={r.icon || 'MapPin'} size={36} className="text-white" />
                     </div>
                   </div>

@@ -7,6 +7,7 @@ import { MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet'
 import { trpc } from '../lib/trpc'
 import AlertModal from './AlertModal'
 import ConfirmModal from './ConfirmModal'
+import ImageCropperModal from './ImageCropperModal'
 
 const customIcon = L.divIcon({
   className: 'custom-icon',
@@ -136,13 +137,33 @@ export default function ZubrikBuilder({
   const isValid = name.trim() && description.trim() && position
 
   const [isUploading, setIsUploading] = useState(false)
+  
+  // Cropper states
+  const [cropperImageSrc, setCropperImageSrc] = useState<string | null>(null)
+  const [showCropper, setShowCropper] = useState(false)
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
+    // Read file as data URL to pass to cropper
+    const reader = new FileReader()
+    reader.addEventListener('load', () => {
+      setCropperImageSrc(reader.result?.toString() || null)
+      setShowCropper(true)
+    })
+    reader.readAsDataURL(file)
+
+    // Clear input so same file can be selected again
+    e.target.value = ''
+  }
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    setShowCropper(false)
+    setCropperImageSrc(null)
+
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', croppedBlob, 'cropped_zubrik.jpg')
 
     setIsUploading(true)
     try {
@@ -342,6 +363,18 @@ export default function ZubrikBuilder({
         title="Ошибка загрузки"
         message={uploadError || ''}
         onClose={() => setUploadError(null)}
+      />
+
+      <ImageCropperModal
+        isOpen={showCropper}
+        imageSrc={cropperImageSrc}
+        onClose={() => {
+          setShowCropper(false)
+          setCropperImageSrc(null)
+        }}
+        onCropComplete={handleCropComplete}
+        aspectRatio={3 / 4}
+        cropShape="rect"
       />
     </div>
   )

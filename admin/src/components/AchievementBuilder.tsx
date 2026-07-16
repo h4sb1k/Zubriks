@@ -8,6 +8,7 @@ import AlertModal from './AlertModal'
 import ConfirmModal from './ConfirmModal'
 import { DynamicIcon } from './DynamicIcon'
 import { IconPicker } from './IconPicker'
+import ImageCropperModal from './ImageCropperModal'
 
 export type AchievementEditData = {
   id: string
@@ -41,6 +42,10 @@ export default function AchievementBuilder({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showIconPicker, setShowIconPicker] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  
+  // Cropper states
+  const [cropperImageSrc, setCropperImageSrc] = useState<string | null>(null)
+  const [showCropper, setShowCropper] = useState(false)
 
   // Получаем список зубриков для дропдауна SPECIFIC_ZUBRIK
   const { data: zubriksData } = trpc.adminGetZubriksList.useQuery(undefined, {
@@ -80,12 +85,27 @@ export default function AchievementBuilder({
     const file = e.target.files?.[0]
     if (!file) return
 
+    // Read file as data URL to pass to cropper
+    const reader = new FileReader()
+    reader.addEventListener('load', () => {
+      setCropperImageSrc(reader.result?.toString() || null)
+      setShowCropper(true)
+    })
+    reader.readAsDataURL(file)
+    
+    // Clear input so same file can be selected again
+    e.target.value = ''
+  }
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    setShowCropper(false)
+    setCropperImageSrc(null)
+    
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', croppedBlob, 'cropped.jpg')
 
     setIsUploading(true)
     try {
-      // The proxy in vite.config.ts will route this to the backend
       const res = await fetch('/admin-api/upload', {
         method: 'POST',
         body: formData,
@@ -388,6 +408,18 @@ export default function AchievementBuilder({
         title="Ошибка"
         message={uploadError || ''}
         onClose={() => setUploadError(null)}
+      />
+      
+      <ImageCropperModal
+        isOpen={showCropper}
+        imageSrc={cropperImageSrc}
+        onClose={() => {
+          setShowCropper(false)
+          setCropperImageSrc(null)
+        }}
+        onCropComplete={handleCropComplete}
+        aspectRatio={1}
+        cropShape="round"
       />
     </motion.div>
   )

@@ -204,18 +204,20 @@ export default function ProfileScreen() {
                 {/* Изображение на всю карточку */}
                 <div className="absolute inset-0 pt-2 px-2 pb-8 flex items-center justify-center pointer-events-none">
                   {achievement.imageUrl && achievement.imageUrl !== '' ? (
-                    <ImageWithFallback
-                      src={achievement.imageUrl}
-                      alt={achievement.name}
-                      className="w-full h-full object-contain drop-shadow-lg"
-                      fallback={
-                        <div className="w-[80%] aspect-square rounded-full flex items-center justify-center bg-gradient-to-br from-[#FCE182] via-[#E8922A] to-[#8C520E] shadow-xl p-[3px] transform group-hover:scale-105 transition-all">
-                          <div className={`w-full h-full rounded-full flex items-center justify-center ${achievement.earned ? 'bg-white text-[#E8922A]' : 'bg-gray-100 text-[#6B6B6B]'}`}>
-                            <DynamicIcon name={achievement.icon || 'Trophy'} size={48} />
-                          </div>
-                        </div>
-                      }
-                    />
+                    <div className="w-[80%] aspect-square rounded-full flex items-center justify-center bg-gradient-to-br from-[#FCE182] via-[#E8922A] to-[#8C520E] shadow-xl p-[3px] transform group-hover:scale-105 transition-all">
+                      <div className={`w-full h-full rounded-full overflow-hidden flex items-center justify-center ${achievement.earned ? 'bg-white' : 'bg-gray-100'}`}>
+                        <ImageWithFallback
+                          src={achievement.imageUrl}
+                          alt={achievement.name}
+                          className="w-full h-full object-cover"
+                          fallback={
+                            <div className={`w-full h-full flex items-center justify-center ${achievement.earned ? 'text-[#E8922A]' : 'text-[#6B6B6B]'}`}>
+                              <DynamicIcon name={achievement.icon || 'Trophy'} size={48} />
+                            </div>
+                          }
+                        />
+                      </div>
+                    </div>
                   ) : (
                     <div className="w-[80%] aspect-square rounded-full flex items-center justify-center bg-gradient-to-br from-[#FCE182] via-[#E8922A] to-[#8C520E] shadow-xl p-[3px] transform group-hover:scale-105 transition-all">
                       <div className={`w-full h-full rounded-full flex items-center justify-center ${achievement.earned ? 'bg-white text-[#E8922A]' : 'bg-gray-100 text-[#6B6B6B]'}`}>
@@ -258,18 +260,20 @@ export default function ProfileScreen() {
                 <div className="absolute top-0 right-0 w-20 h-20 bg-[#E8922A]/20 rounded-full blur-xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
                 <div className="absolute inset-0 pt-2 px-2 pb-8 flex items-center justify-center">
                   {achievement.imageUrl && achievement.imageUrl !== '' ? (
-                    <ImageWithFallback
-                      src={achievement.imageUrl}
-                      alt={achievement.name}
-                      className="w-full h-full object-contain drop-shadow-lg"
-                      fallback={
-                        <div className="w-[80%] aspect-square rounded-full flex items-center justify-center bg-gradient-to-br from-[#FCE182] via-[#E8922A] to-[#8C520E] shadow-xl p-[3px] transform group-hover:scale-105 transition-all">
-                          <div className={`w-full h-full rounded-full flex items-center justify-center ${achievement.earned ? 'bg-white text-[#E8922A]' : 'bg-gray-100 text-[#6B6B6B]'}`}>
-                            <DynamicIcon name={achievement.icon || 'Trophy'} size={48} />
-                          </div>
-                        </div>
-                      }
-                    />
+                    <div className="w-[80%] aspect-square rounded-full flex items-center justify-center bg-gradient-to-br from-[#FCE182] via-[#E8922A] to-[#8C520E] shadow-xl p-[3px] transform group-hover:scale-105 transition-all">
+                      <div className={`w-full h-full rounded-full overflow-hidden flex items-center justify-center ${achievement.earned ? 'bg-white' : 'bg-gray-100'}`}>
+                        <ImageWithFallback
+                          src={achievement.imageUrl}
+                          alt={achievement.name}
+                          className="w-full h-full object-cover"
+                          fallback={
+                            <div className={`w-full h-full flex items-center justify-center ${achievement.earned ? 'text-[#E8922A]' : 'text-[#6B6B6B]'}`}>
+                              <DynamicIcon name={achievement.icon || 'Trophy'} size={48} />
+                            </div>
+                          }
+                        />
+                      </div>
+                    </div>
                   ) : (
                     <div className="w-[80%] aspect-square rounded-full flex items-center justify-center bg-gradient-to-br from-[#FCE182] via-[#E8922A] to-[#8C520E] shadow-xl p-[3px] transform group-hover:scale-105 transition-all">
                       <div className={`w-full h-full rounded-full flex items-center justify-center ${achievement.earned ? 'bg-white text-[#E8922A]' : 'bg-gray-100 text-[#6B6B6B]'}`}>
@@ -350,20 +354,22 @@ export default function ProfileScreen() {
                     {/* Огромное изображение по центру */}
                     <div className="absolute inset-0 pt-3 px-3 pb-16 flex items-center justify-center pointer-events-none">
                       {achievement.imageUrl && achievement.imageUrl !== '' ? (
-                        <ImageWithFallback
-                          src={achievement.imageUrl}
-                          alt={achievement.name}
-                          className={`w-full h-full object-contain drop-shadow-md transition-all duration-500 ${
-                            !achievement.earned ? 'grayscale opacity-30 scale-90' : 'scale-100 hover:scale-110'
-                          }`}
-                          fallback={
-                            <div className={`w-[80%] aspect-square rounded-full flex items-center justify-center p-[3px] transform transition-all ${achievement.earned ? 'bg-gradient-to-br from-[#FCE182] via-[#E8922A] to-[#8C520E] shadow-xl hover:scale-105' : 'bg-[#E5E3DD] opacity-50 grayscale'}`}>
-                              <div className={`w-full h-full rounded-full flex items-center justify-center ${achievement.earned ? 'bg-white text-[#E8922A]' : 'bg-gray-100 text-[#6B6B6B]'}`}>
-                                <DynamicIcon name={achievement.icon || 'Trophy'} size={40} />
-                              </div>
-                            </div>
-                          }
-                        />
+                        <div className={`w-[80%] aspect-square rounded-full flex items-center justify-center p-[3px] transform transition-all ${achievement.earned ? 'bg-gradient-to-br from-[#FCE182] via-[#E8922A] to-[#8C520E] shadow-xl hover:scale-105' : 'bg-[#E5E3DD] opacity-50 grayscale'}`}>
+                          <div className={`w-full h-full rounded-full overflow-hidden flex items-center justify-center ${achievement.earned ? 'bg-white' : 'bg-gray-100'}`}>
+                            <ImageWithFallback
+                              src={achievement.imageUrl}
+                              alt={achievement.name}
+                              className={`w-full h-full object-cover transition-all duration-500 ${
+                                !achievement.earned ? 'grayscale opacity-30 scale-90' : 'scale-100 hover:scale-110'
+                              }`}
+                              fallback={
+                                <div className={`w-full h-full flex items-center justify-center ${achievement.earned ? 'text-[#E8922A]' : 'text-[#6B6B6B]'}`}>
+                                  <DynamicIcon name={achievement.icon || 'Trophy'} size={40} />
+                                </div>
+                              }
+                            />
+                          </div>
+                        </div>
                       ) : (
                         <div className={`w-[80%] aspect-square rounded-full flex items-center justify-center p-[3px] transform transition-all ${achievement.earned ? 'bg-gradient-to-br from-[#FCE182] via-[#E8922A] to-[#8C520E] shadow-xl hover:scale-105' : 'bg-[#E5E3DD] opacity-50 grayscale'}`}>
                           <div className={`w-full h-full rounded-full flex items-center justify-center ${achievement.earned ? 'bg-white text-[#E8922A]' : 'bg-gray-100 text-[#6B6B6B]'}`}>

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { Calendar, Check, ChevronRight, Clock,Lock, MapPin, Route, Trophy } from 'lucide-react'
+import { Calendar, Check, ChevronRight, Clock, Lock, MapPin, Route, Tag, Trophy } from 'lucide-react'
 import { useState } from 'react'
 
 import { trpc } from '../lib/trpc'
@@ -10,6 +10,22 @@ import LoadingZubrik from './LoadingZubrik'
 import RouteActive from './RouteActive'
 import ZubrikDetail from './ZubrikDetail'
 import ZubrikImage from './ZubrikImage'
+
+// Дефолтные иконки по категориям — используются, если у события нет imageUrl
+const categoryIcon: Record<string, string> = {
+  Выставка: 'Palette',
+  Концерт: 'Music',
+  Фестиваль: 'Ticket',
+  Театр: 'Sparkles',
+  'Мастер-класс': 'Brush',
+  Кино: 'Film',
+}
+
+/** Форматирует ISO-дату в читаемый вид: «3 июля» */
+function formatDate(isoDate: string): string {
+  const date = new Date(isoDate)
+  return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
+}
 
 type Zubrik = {
   id: string
@@ -28,15 +44,19 @@ type UserData = {
   avatarUrl: string | null
 }
 
+type HomeScreenProps = {
+  userLocation: [number, number] | null
+  user: UserData
+  onNavigate: () => void
+  onNavigateToEvents?: () => void
+}
+
 export default function HomeScreen({
   userLocation,
   user,
   onNavigate,
-}: {
-  userLocation: [number, number] | null
-  user: UserData
-  onNavigate: () => void
-}) {
+  onNavigateToEvents,
+}: HomeScreenProps) {
   const [selectedZubrik, setSelectedZubrik] = useState<Zubrik | null>(null)
   const [showMainRoute, setShowMainRoute] = useState(false)
   const [showLeaderboard, setShowLeaderboard] = useState(false)
@@ -79,13 +99,7 @@ export default function HomeScreen({
     )
   }
 
-  if (isMainRouteError || !mainRouteData?.mainRoute) {
-    return (
-      <div className="flex-1 flex items-center justify-center bg-[#FAFAF7] p-5">
-        <span className="text-red-500">Ошибка загрузки: {mainRouteError?.message || 'Маршрут не найден'}</span>
-      </div>
-    )
-  }
+
 
   return (
     <>
@@ -116,53 +130,61 @@ export default function HomeScreen({
             </div>
           </div>
 
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="bg-white rounded-[32px] overflow-hidden shadow-[0_12px_30px_rgba(26,61,43,0.08)] mb-8"
-          >
-            <div className="h-56 relative overflow-hidden p-6 flex items-end">
-              <img
-                src={mainRouteData?.mainRoute?.imageUrl || "/images/Tour-Zubriki-1.webp"}
-                alt={mainRouteData?.mainRoute?.name || "Тур Зубрики"}
-                className="absolute inset-0 w-full h-full object-cover transform hover:scale-105 transition-transform duration-700"
-              />
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(26,61,43,0.9), rgba(26,61,43,0.3) 60%, transparent)' }} />
-              <div className="absolute top-5 right-5 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full text-[11px] font-bold text-[#E8922A] uppercase tracking-wider shadow-sm z-10">
-                Главный тур
-              </div>
-              <div className="relative z-10 w-full text-center">
-                <h2 className="text-white text-[32px] font-black mb-1 drop-shadow-md leading-none tracking-tight">{mainRouteData?.mainRoute?.name}</h2>
-              </div>
-            </div>
-            <div className="p-6 pt-5">
-              <p className="text-[15px] text-[#6B6B6B] mb-6 font-medium leading-relaxed">{mainRouteData?.mainRoute?.description}</p>
-              
-              <div className="flex flex-wrap items-center justify-between gap-3 mb-6 bg-[#F5F2EB] p-4 rounded-[20px]">
-                <div className="flex items-center gap-2 text-[14px] font-bold text-[#1C1C1E]">
-                  <Route size={18} className="text-[#E8922A] shrink-0" />
-                  <span>{mainRouteData?.mainRoute?.distance}</span>
+          {mainRouteData?.mainRoute && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="bg-white rounded-[32px] overflow-hidden shadow-[0_12px_30px_rgba(26,61,43,0.08)] mb-8"
+            >
+              <div className="h-56 relative overflow-hidden p-6 flex items-end" style={{ backgroundColor: mainRouteData.mainRoute.imageColor || '#1A3D2B' }}>
+                {mainRouteData.mainRoute.imageUrl ? (
+                  <img
+                    src={mainRouteData.mainRoute.imageUrl}
+                    alt={mainRouteData.mainRoute.name}
+                    className="absolute inset-0 w-full h-full object-cover transform hover:scale-105 transition-transform duration-700"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center opacity-30">
+                    <DynamicIcon name={mainRouteData.mainRoute.icon || 'MapPin'} size={120} className="text-white drop-shadow-2xl" />
+                  </div>
+                )}
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(26,61,43,0.9), rgba(26,61,43,0.3) 60%, transparent)' }} />
+                <div className="absolute top-5 right-5 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full text-[11px] font-bold text-[#E8922A] uppercase tracking-wider shadow-sm z-10">
+                  Главный тур
                 </div>
-                <div className="flex items-center gap-2 text-[14px] font-bold text-[#1C1C1E]">
-                  <Clock size={18} className="text-[#E8922A] shrink-0" />
-                  <span>{mainRouteData?.mainRoute?.duration}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[14px] font-bold text-[#1C1C1E]">
-                  <MapPin size={18} className="text-[#E8922A] shrink-0" />
-                  <span>{mainRouteData?.mainRoute?.stops} ост.</span>
+                <div className="relative z-10 w-full text-center">
+                  <h2 className="text-white text-[32px] font-black mb-1 drop-shadow-md leading-none tracking-tight">{mainRouteData.mainRoute.name}</h2>
                 </div>
               </div>
+              <div className="p-6 pt-5">
+                <p className="text-[15px] text-[#6B6B6B] mb-6 font-medium leading-relaxed">{mainRouteData.mainRoute.description}</p>
+                
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-6 bg-[#F5F2EB] p-4 rounded-[20px]">
+                  <div className="flex items-center gap-2 text-[14px] font-bold text-[#1C1C1E]">
+                    <Route size={18} className="text-[#E8922A] shrink-0" />
+                    <span>{mainRouteData.mainRoute.distance}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[14px] font-bold text-[#1C1C1E]">
+                    <Clock size={18} className="text-[#E8922A] shrink-0" />
+                    <span>{mainRouteData.mainRoute.duration}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[14px] font-bold text-[#1C1C1E]">
+                    <MapPin size={18} className="text-[#E8922A] shrink-0" />
+                    <span>{mainRouteData.mainRoute.stops} ост.</span>
+                  </div>
+                </div>
 
-              <button
-                onClick={() => setShowMainRoute(true)}
-                className="w-full bg-[#E8922A] text-white rounded-full py-4 font-bold text-[16px] shadow-[0_8px_20px_rgba(232,146,42,0.3)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 hover:bg-[#D97706]"
-              >
-                <span>Начать путешествие</span>
-                <ChevronRight size={20} strokeWidth={3} />
-              </button>
-            </div>
-          </motion.div>
+                <button
+                  onClick={() => setShowMainRoute(true)}
+                  className="w-full bg-[#E8922A] text-white rounded-full py-4 font-bold text-[16px] shadow-[0_8px_20px_rgba(232,146,42,0.3)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 hover:bg-[#D97706]"
+                >
+                  <span>Начать путешествие</span>
+                  <ChevronRight size={20} strokeWidth={3} />
+                </button>
+              </div>
+            </motion.div>
+          )}
         </div>
 
         <div className="px-5 pb-8">
@@ -239,7 +261,7 @@ export default function HomeScreen({
               }}
               className="space-y-4"
             >
-              {eventsData.events.map((event) => (
+              {eventsData.events.slice(0, 5).map((event) => (
                 <motion.div 
                   variants={{
                     hidden: { opacity: 0, y: 24 },
@@ -247,31 +269,55 @@ export default function HomeScreen({
                   }}
                   key={event.id} 
                   whileTap={{ scale: 0.98 }}
-                  className="bg-white rounded-[24px] overflow-hidden shadow-[0_8px_20px_rgba(0,0,0,0.05)]"
+                  className="bg-white rounded-[24px] overflow-hidden shadow-[0_8px_20px_rgba(0,0,0,0.05)] border border-transparent hover:border-[#E5E3DD]/50 transition-colors duration-300 cursor-pointer"
                 >
-                  <div className="h-32 flex items-center justify-center relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1A3D2B, #2A5D43)' }}>
+                  <div className="h-44 flex items-center justify-center relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1A3D2B, #E8922A)' }}>
                     {event.imageUrl ? (
-                      <img src={event.imageUrl} alt={event.title} className="absolute inset-0 w-full h-full object-cover opacity-80" />
+                      <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="z-10 bg-white/20 p-4 rounded-full backdrop-blur-sm shadow-lg">
-                        <DynamicIcon name="Tent" size={48} className="text-white drop-shadow-md" />
+                      <div className="flex-1 w-full h-full flex items-center justify-center bg-black/20 backdrop-blur-md">
+                        <DynamicIcon name={categoryIcon[event.category] ?? 'Calendar'} size={56} className="text-white drop-shadow-md" />
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                  </div>
-                  <div className="p-5">
-                    <div className="inline-block bg-[#F5F2EB] px-3 py-1.5 rounded-full text-xs font-bold text-[#6B6B6B] mb-2 shadow-sm">
+                    <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full text-[11px] font-bold text-[#1C1C1E] uppercase tracking-wider shadow-sm">
                       {event.category}
                     </div>
-                    <h3 className="text-[16px] font-bold text-[#1C1C1E] mb-2 leading-tight">{event.title}</h3>
-                    <div className="flex items-center gap-3 text-[13px] font-medium text-[#6B6B6B]">
-                      <span className="flex items-center gap-1"><Calendar size={14} />{event.time}</span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1"><MapPin size={14} />{event.venue}</span>
+                  </div>
+                  <div className="p-5">
+                    <h3 className="text-[18px] font-bold text-[#1C1C1E] mb-3 leading-tight">{event.title}</h3>
+                    <div className="flex flex-col gap-2 text-[14px] font-medium text-[#6B6B6B]">
+                      <div className="flex items-start gap-2">
+                        <Calendar size={18} className="text-[#E8922A] shrink-0 mt-0.5" />
+                        <span className="leading-tight">{formatDate(event.date)} • {event.time}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <MapPin size={18} className="text-[#E8922A] shrink-0 mt-0.5" />
+                        <span className="leading-tight">{event.venue}</span>
+                      </div>
+                      {event.price && (
+                        <div className="flex items-start gap-2 mt-1">
+                          <Tag size={18} className="text-[#E8922A] shrink-0 mt-0.5" />
+                          <span className={`leading-tight font-bold ${event.price === 'Бесплатно' ? 'text-[#34C759]' : 'text-[#1C1C1E]'}`}>{event.price}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </motion.div>
               ))}
+              {eventsData.events.length > 5 && (
+                <motion.button
+                  variants={{
+                    hidden: { opacity: 0, y: 24 },
+                    visible: { opacity: 1, y: 0, transition: { ease: [0.16, 1, 0.3, 1], duration: 0.6 } }
+                  }}
+                  onClick={onNavigateToEvents}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full bg-[#E8922A] text-white rounded-full py-4 font-bold text-[16px] shadow-[0_8px_20px_rgba(232,146,42,0.3)] flex items-center justify-center gap-2 hover:bg-[#D97706] transition-colors duration-300 mt-4 cursor-pointer"
+                >
+                  <span>Больше событий</span>
+                  <ChevronRight size={20} strokeWidth={3} className="text-white" />
+                </motion.button>
+              )}
             </motion.div>
           )}
         </div>

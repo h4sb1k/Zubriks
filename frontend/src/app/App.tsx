@@ -151,7 +151,7 @@ function MainApp() {
   return (
     <div className="size-full flex flex-col bg-[#FAFAF7] max-w-md mx-auto relative h-[100dvh] overflow-hidden">
       {activeTab === 'home' && (
-        <HomeScreen userLocation={userLocation} user={user} onNavigate={() => setActiveTab('profile')} />
+        <HomeScreen userLocation={userLocation} user={user} onNavigate={() => setActiveTab('profile')} onNavigateToEvents={() => setActiveTab('events')} />
       )}
       {activeTab === 'map' && <MapScreen userLocation={userLocation} setUserLocation={setUserLocation} />}
       {activeTab === 'routes' && <RoutesScreen userLocation={userLocation} />}

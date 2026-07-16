@@ -182,20 +182,20 @@ export default function AchievementModal({ achievement, onClose }: AchievementMo
                   className="absolute inset-0 pt-4 px-6 pb-44 flex items-center justify-center pointer-events-none"
                 >
                   {achievement.imageUrl && achievement.imageUrl !== '' ? (
-                    <ImageWithFallback
-                      src={achievement.imageUrl}
-                      alt={achievement.name}
-                      className={`w-full h-full object-contain drop-shadow-[0_20px_30px_rgba(0,0,0,0.4)] ${
-                        !achievement.earned ? 'grayscale opacity-30 drop-shadow-none' : ''
-                      }`}
-                      fallback={
-                        <div className={`w-[70%] aspect-square rounded-full flex items-center justify-center p-[4px] mx-auto drop-shadow-[0_20px_30px_rgba(0,0,0,0.4)] ${achievement.earned ? 'bg-gradient-to-br from-[#FCE182] via-[#E8922A] to-[#8C520E]' : 'bg-[#E5E3DD] grayscale opacity-40 drop-shadow-none'}`}>
-                          <div className={`w-full h-full rounded-full flex items-center justify-center ${achievement.earned ? 'bg-white text-[#E8922A]' : 'bg-[#E5E3DD] text-[#6B6B6B]'}`}>
-                            <DynamicIcon name={achievement.icon || 'Trophy'} size={96} />
-                          </div>
-                        </div>
-                      }
-                    />
+                    <div className={`w-[70%] aspect-square rounded-full flex items-center justify-center p-[4px] mx-auto drop-shadow-[0_20px_30px_rgba(0,0,0,0.4)] ${achievement.earned ? 'bg-gradient-to-br from-[#FCE182] via-[#E8922A] to-[#8C520E]' : 'bg-[#E5E3DD] grayscale opacity-40 drop-shadow-none'}`}>
+                      <div className={`w-full h-full rounded-full overflow-hidden flex items-center justify-center ${achievement.earned ? 'bg-white' : 'bg-[#E5E3DD]'}`}>
+                        <ImageWithFallback
+                          src={achievement.imageUrl}
+                          alt={achievement.name}
+                          className={`w-full h-full object-cover ${!achievement.earned ? 'grayscale opacity-70' : ''}`}
+                          fallback={
+                            <div className={`w-full h-full flex items-center justify-center ${achievement.earned ? 'bg-white text-[#E8922A]' : 'bg-[#E5E3DD] text-[#6B6B6B]'}`}>
+                              <DynamicIcon name={achievement.icon || 'Trophy'} size={96} />
+                            </div>
+                          }
+                        />
+                      </div>
+                    </div>
                   ) : (
                     <div className={`w-[70%] aspect-square rounded-full flex items-center justify-center p-[4px] mx-auto drop-shadow-[0_20px_30px_rgba(0,0,0,0.4)] ${achievement.earned ? 'bg-gradient-to-br from-[#FCE182] via-[#E8922A] to-[#8C520E]' : 'bg-[#E5E3DD] grayscale opacity-40 drop-shadow-none'}`}>
                       <div className={`w-full h-full rounded-full flex items-center justify-center ${achievement.earned ? 'bg-white text-[#E8922A]' : 'bg-[#E5E3DD] text-[#6B6B6B]'}`}>

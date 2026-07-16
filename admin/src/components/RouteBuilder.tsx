@@ -10,6 +10,7 @@ import AlertModal from './AlertModal'
 import { DynamicIcon } from './DynamicIcon'
 import { IconPicker } from './IconPicker'
 import { useOsrmRoute } from '../hooks/useOsrmRoute'
+import ImageCropperModal from './ImageCropperModal'
 import RoutePreviewMap from './RoutePreviewMap'
 
 const customIcon = L.divIcon({
@@ -111,6 +112,10 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
   const [iconPickerIndex, setIconPickerIndex] = useState<number | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+
+  // Cropper states
+  const [cropperImageSrc, setCropperImageSrc] = useState<string | null>(null)
+  const [showCropper, setShowCropper] = useState(false)
   
   const utils = trpc.useUtils()
   
@@ -179,8 +184,24 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
     const file = e.target.files?.[0]
     if (!file) return
 
+    // Read file as data URL to pass to cropper
+    const reader = new FileReader()
+    reader.addEventListener('load', () => {
+      setCropperImageSrc(reader.result?.toString() || null)
+      setShowCropper(true)
+    })
+    reader.readAsDataURL(file)
+
+    // Clear input so same file can be selected again
+    e.target.value = ''
+  }
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    setShowCropper(false)
+    setCropperImageSrc(null)
+
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', croppedBlob, 'cropped_route.jpg')
 
     setIsUploading(true)
     try {
@@ -241,7 +262,7 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
     if (!isValid) return
     if (editRouteId) {
       updateRoute.mutate({
-        routeId: editRouteId,
+        id: editRouteId,
         name,
         description,
         icon: routeIcon,
@@ -397,7 +418,11 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
                 </div>
               ) : imageUrl ? (
                 <>
-                  <img src={imageUrl} alt="preview" className="max-w-full max-h-[260px] object-contain drop-shadow-lg rounded-[12px] transition-transform group-hover:scale-[1.02]" />
+                  <img 
+                    src={imageUrl} 
+                    alt="preview" 
+                    className="max-w-full max-h-[260px] object-cover drop-shadow-lg transition-transform group-hover:scale-[1.02] rounded-[12px]" 
+                  />
                   <div className="absolute inset-0 bg-[#1C1C1E]/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
                     <div className="bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-[20px] font-bold text-[15px] text-[#1C1C1E] shadow-xl flex items-center gap-2 transform translate-y-2 group-hover:translate-y-0 transition-transform">
                       <ImagePlus size={18} className="text-[#E8922A]" />
@@ -656,6 +681,18 @@ export default function RouteBuilder({ editRouteId, onClose }: { editRouteId?: s
         title="Ошибка загрузки"
         message={uploadError || ''}
         onClose={() => setUploadError(null)}
+      />
+
+      <ImageCropperModal
+        isOpen={showCropper}
+        imageSrc={cropperImageSrc}
+        onClose={() => {
+          setShowCropper(false)
+          setCropperImageSrc(null)
+        }}
+        onCropComplete={handleCropComplete}
+        aspectRatio={16 / 9}
+        cropShape="rect"
       />
     </div>
   )
