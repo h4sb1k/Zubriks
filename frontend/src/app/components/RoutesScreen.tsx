@@ -99,19 +99,7 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
       <div className="px-5 pt-6 pb-4">
         <h1 className="text-[24px] font-bold text-[#1C1C1E] mb-5 tracking-tight">Маршруты</h1>
 
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-5 px-5 scrollbar-hide mb-6">
-          {['Все', 'Мои', 'Избранные'].map((filter) => (
-            <button
-              key={filter}
-              onClick={() => setActiveFilter(filter)}
-              className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-bold transition-all ${
-                activeFilter === filter ? 'bg-[#E8922A] text-white shadow-md' : 'bg-[#F5F2EB] text-[#6B6B6B] hover:bg-[#E5E3DD]'
-              }`}
-            >
-              {filter}
-            </button>
-          ))}
-        </div>
+
 
         <div className="bg-white rounded-[32px] overflow-hidden shadow-[0_12px_30px_rgba(26,61,43,0.08)] mb-8">
           <div className="h-56 relative overflow-hidden p-6 flex items-end">
@@ -159,6 +147,20 @@ export default function RoutesScreen({ userLocation }: { userLocation: [number, 
 
       <div className="px-5 pb-8">
         <h2 className="text-[20px] font-bold text-[#1C1C1E] mb-5 tracking-tight">Другие маршруты</h2>
+        
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-5 px-5 scrollbar-hide mb-5">
+          {['Все', 'Мои', 'Избранные'].map((filter) => (
+            <button
+              key={filter}
+              onClick={() => setActiveFilter(filter)}
+              className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-bold transition-all ${
+                activeFilter === filter ? 'bg-[#E8922A] text-white shadow-md' : 'bg-[#F5F2EB] text-[#6B6B6B] hover:bg-[#E5E3DD]'
+              }`}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
         <div className="grid grid-cols-2 gap-3">
           {filteredRoutes.map((route) => (
             <div

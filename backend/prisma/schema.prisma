@@ -135,10 +135,11 @@ model UserRoute {
   userId      String
   routeId     String
   liked       Boolean   @default(false)
-  startedAt   DateTime?
-  completedAt DateTime?
-  route       Route     @relation(fields: [routeId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startedAt      DateTime?
+  completedAt    DateTime?
+  completedCount Int       @default(0)
+  route          Route     @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, routeId])
   @@index([userId])

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowLeft, CheckCircle2, MapPin, Navigation, Settings } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Lock, MapPin, Navigation, RotateCcw, Settings } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import type { NewAchievement } from '../hooks/useProximityCheck'
@@ -44,6 +44,16 @@ export default function RouteActive({ routeId, routeName: initialRouteName, auth
       onClose()
     }
   })
+
+  const restartMutation = trpc.restartRoute.useMutation({
+    onSuccess: () => {
+      utils.getRouteWaypoints.invalidate()
+      utils.getRoutes.invalidate()
+      utils.getProfileStats.invalidate()
+      utils.getLeaderboard.invalidate()
+    }
+  })
+
   const canEdit = Boolean(user && authorId === user.id)
 
   const handleDelete = () => {
@@ -64,6 +74,7 @@ export default function RouteActive({ routeId, routeName: initialRouteName, auth
       description: w.description,
       icon: w.icon,
       completed: w.completed,
+      locked: (w as any).locked,
       coords: { lat: w.latitude, lon: w.longitude, name: w.name } as MapPoint,
       distance: userLocation ? calculateDistance(userLocation[0], userLocation[1], w.latitude, w.longitude) : '...',
     }))
@@ -78,7 +89,7 @@ export default function RouteActive({ routeId, routeName: initialRouteName, auth
 
   const waypointPoints = useMemo(() => {
     return waypoints
-      .filter((w) => !w.completed)
+      .filter((w) => !w.completed && !w.locked)
       .map((w) => ({ id: w.id, latitude: w.coords.lat, longitude: w.coords.lon, type: 'waypoint' as const }))
   }, [waypoints])
 
@@ -282,8 +293,10 @@ export default function RouteActive({ routeId, routeName: initialRouteName, auth
                     <div className="w-12 h-12 rounded-full bg-[#1A3D2B] flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
                       {avatarUrl ? (
                         <img src={avatarUrl} alt="Аватар" className="w-full h-full object-cover" />
+                      ) : !hasAuthor ? (
+                        <img src="/images/Zubriks_Admin_ava.webp" alt="Аватар Зубриков" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-xl">🦬</span>
+                        <span className="text-xl">👤</span>
                       )}
                     </div>
                     <div className="flex flex-col items-start">
@@ -341,6 +354,15 @@ export default function RouteActive({ routeId, routeName: initialRouteName, auth
               <CheckCircle2 size={22} />
               <span>Вернуться назад</span>
             </button>
+            <button
+              onClick={() => {
+                restartMutation.mutate({ routeId })
+              }}
+              className="w-full mt-3 bg-[#F5F2EB] text-[#1C1C1E] rounded-[20px] py-4 flex items-center justify-center gap-2 active:scale-95 transition-transform text-[16px] font-bold"
+            >
+              <RotateCcw size={22} />
+              <span>Пройти заново</span>
+            </button>
           </motion.div>
         ) : (
           <>
@@ -395,15 +417,21 @@ export default function RouteActive({ routeId, routeName: initialRouteName, auth
                   className={`flex items-start gap-4 p-4 rounded-[24px] transition-colors border ${
                     waypoint.completed
                       ? 'bg-white border-[#E5E3DD] opacity-70 shadow-sm'
-                      : index === currentStep
-                        ? 'bg-[#FFF9E6] border-[#E8922A]/30 shadow-sm'
-                        : 'bg-white border-transparent shadow-[0_4px_20px_rgba(0,0,0,0.03)]'
+                      : waypoint.locked
+                        ? 'bg-[#F5F2EB]/50 border-transparent opacity-60'
+                        : index === currentStep
+                          ? 'bg-[#FFF9E6] border-[#E8922A]/30 shadow-sm'
+                          : 'bg-white border-transparent shadow-[0_4px_20px_rgba(0,0,0,0.03)]'
                   }`}
                 >
                   <div className="flex items-center justify-center shrink-0">
                     {waypoint.completed ? (
                       <div className="w-10 h-10 rounded-full bg-[#34C759]/10 flex items-center justify-center">
                         <CheckCircle2 size={24} className="text-[#34C759]" />
+                      </div>
+                    ) : waypoint.locked ? (
+                      <div className="w-10 h-10 rounded-full bg-gray-200/60 flex items-center justify-center">
+                        <Lock size={18} className="text-gray-400" />
                       </div>
                     ) : (
                       <div

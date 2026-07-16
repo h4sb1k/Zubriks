@@ -223,13 +223,14 @@ const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
 })
 
 async function checkAndAwardAchievements(prisma: PrismaClient, userId: string) {
-  const [unlockedZubriks, totalZubriks, completedRoutes, createdRoutes, mainRoute] = await Promise.all([
+  const [unlockedZubriks, totalZubriks, urAgg, createdRoutes, mainRoute] = await Promise.all([
     prisma.userZubrik.findMany({ where: { userId }, select: { zubrikId: true } }),
     prisma.zubrik.count(),
-    prisma.userRoute.count({ where: { userId, completedAt: { not: null } } }),
+    prisma.userRoute.aggregate({ _sum: { completedCount: true }, where: { userId } }),
     prisma.route.count({ where: { authorId: userId } }),
     prisma.route.findFirst({ where: { isMain: true }, select: { id: true } })
   ])
+  const completedRoutes = urAgg._sum.completedCount || 0
 
   const zubrikCount = unlockedZubriks.length
   const unlockedZubrikIds = new Set(unlockedZubriks.map((uz) => uz.zubrikId))
@@ -237,7 +238,7 @@ async function checkAndAwardAchievements(prisma: PrismaClient, userId: string) {
   const mainRouteCompleted = mainRoute
     ? await prisma.userRoute.findUnique({
         where: { userId_routeId: { userId, routeId: mainRoute.id } }
-      }).then(ur => ur?.completedAt != null)
+      }).then(ur => ur ? ur.completedCount > 0 : false)
     : false
 
   // Получаем все ачивки и уже заработанные
@@ -525,7 +526,7 @@ export const trpcRouter = trpc.router({
     if (!user) throw new TRPCError({ code: 'UNAUTHORIZED' })
 
     const daysInApp = Math.floor((Date.now() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24)) + 1
-    const completedRoutesCount = user.routeInteractions.filter((r) => r.completedAt !== null).length
+    const completedRoutesCount = user.routeInteractions.reduce((sum, r) => sum + r.completedCount, 0)
     const totalZubriks = await ctx.prisma.zubrik.count()
 
     const mapRoute = (r: {
@@ -563,7 +564,7 @@ export const trpcRouter = trpc.router({
       where: { id: input.userId },
       include: {
         _count: { select: { unlockedZubriks: true } },
-        routeInteractions: { where: { completedAt: { not: null } } },
+        routeInteractions: { where: { completedCount: { gt: 0 } } },
         createdRoutes: { include: { _count: { select: { waypoints: true } } } },
         achievements: { include: { achievement: true } },
       }
@@ -585,7 +586,7 @@ export const trpcRouter = trpc.router({
       stats: {
         zubriksCount: user._count.unlockedZubriks,
         totalZubriks,
-        routesCount: user.routeInteractions.length,
+        routesCount: user.routeInteractions.reduce((sum, r) => sum + r.completedCount, 0),
         daysCount: daysInApp
       },
       createdRoutes: user.createdRoutes.map(r => ({
@@ -607,7 +608,7 @@ export const trpcRouter = trpc.router({
           select: { unlockedZubriks: true },
         },
         routeInteractions: {
-          where: { completedAt: { not: null } },
+          where: { completedCount: { gt: 0 } },
         },
       },
     })
@@ -617,7 +618,7 @@ export const trpcRouter = trpc.router({
       name: user.name || 'Исследователь',
       avatarUrl: user.avatarUrl,
       zubriksCount: user._count.unlockedZubriks,
-      routesCount: user.routeInteractions.length,
+      routesCount: user.routeInteractions.reduce((sum, r) => sum + r.completedCount, 0),
     }))
 
     // Сортировка: сначала по зубрикам (по убыванию), затем по пройденным маршрутам
@@ -773,8 +774,12 @@ export const trpcRouter = trpc.router({
       userWaypoints.forEach((uw) => completedIds.add(uw.waypointId))
     }
 
-    return {
-      waypoints: waypoints.map((w) => ({
+    let prevCompleted = true
+    const waypointsWithLock = waypoints.map((w, i) => {
+      const isCompleted = completedIds.has(w.id)
+      const isLocked = i > 0 && !prevCompleted
+      prevCompleted = isCompleted
+      return {
         id: w.id,
         name: w.name,
         description: w.description ?? '',
@@ -782,8 +787,13 @@ export const trpcRouter = trpc.router({
         latitude: w.latitude,
         longitude: w.longitude,
         orderIndex: w.orderIndex,
-        completed: completedIds.has(w.id),
-      })),
+        completed: isCompleted,
+        locked: isLocked,
+      }
+    })
+
+    return {
+      waypoints: waypointsWithLock,
     }
   }),
 
@@ -1007,6 +1017,25 @@ export const trpcRouter = trpc.router({
     })
     if (!waypoint) throw new TRPCError({ code: 'NOT_FOUND' })
 
+    // 1.5. Проверяем строгий порядок (Strict route completion)
+    if (waypoint.orderIndex > 0) {
+      const previousWaypoint = await ctx.prisma.waypoint.findFirst({
+        where: { routeId: waypoint.routeId, orderIndex: { lt: waypoint.orderIndex } },
+        orderBy: { orderIndex: 'desc' },
+      })
+      if (previousWaypoint) {
+        const isPrevCompleted = await ctx.prisma.userWaypoint.findUnique({
+          where: { userId_waypointId: { userId: ctx.userId, waypointId: previousWaypoint.id } },
+        })
+        if (!isPrevCompleted) {
+          throw new TRPCError({ 
+            code: 'FORBIDDEN', 
+            message: 'Сначала пройдите предыдущую точку маршрута!' 
+          })
+        }
+      }
+    }
+
     // 2. Записываем прогресс (upsert чтобы не падать при повторном вызове)
     await ctx.prisma.userWaypoint.upsert({
       where: { userId_waypointId: { userId: ctx.userId, waypointId: input.waypointId } },
@@ -1026,14 +1055,32 @@ export const trpcRouter = trpc.router({
     if (completedWaypoints >= totalWaypoints) {
       await ctx.prisma.userRoute.upsert({
         where: { userId_routeId: { userId: ctx.userId, routeId: waypoint.routeId } },
-        create: { userId: ctx.userId, routeId: waypoint.routeId, completedAt: new Date(), startedAt: new Date() },
-        update: { completedAt: new Date() },
+        create: { userId: ctx.userId, routeId: waypoint.routeId, completedAt: new Date(), startedAt: new Date(), completedCount: 1 },
+        update: { completedAt: new Date(), completedCount: { increment: 1 } },
       })
     }
 
     // 4. Проверяем ачивки
     const newAchievements = await checkAndAwardAchievements(ctx.prisma, ctx.userId)
     return { completed: true, routeCompleted: completedWaypoints >= totalWaypoints, newAchievements }
+  }),
+
+  restartRoute: protectedProcedure.input(z.object({ routeId: z.string() })).mutation(async ({ input, ctx }) => {
+    // Удаляем прогресс по точкам
+    await ctx.prisma.userWaypoint.deleteMany({
+      where: {
+        userId: ctx.userId,
+        waypoint: { routeId: input.routeId },
+      },
+    })
+    
+    // Сбрасываем статус завершения маршрута, но сохраняем completedCount
+    await ctx.prisma.userRoute.updateMany({
+      where: { userId: ctx.userId, routeId: input.routeId },
+      data: { completedAt: null, startedAt: new Date() },
+    })
+
+    return { success: true }
   }),
 
   unlockZubrik: protectedProcedure.input(z.object({ zubrikId: z.string() })).mutation(async ({ input, ctx }) => {
@@ -1070,24 +1117,26 @@ export const trpcRouter = trpc.router({
       userAchievements.forEach((ua) => earnedMap.set(ua.achievementId, { earned: ua.earned, progress: ua.progress, isPinned: ua.isPinned, pinnedAt: ua.pinnedAt, pinOrder: ua.pinOrder }))
 
       // Fetch user stats
-      const [unlockedZubriks, totalZCount, routesC, createdR, mainRoute] = await Promise.all([
+      const [unlockedZubriksResult, totalZubriksResult, urAgg, createdRoutesResult, mainRoute] = await Promise.all([
         ctx.prisma.userZubrik.findMany({ where: { userId: ctx.userId }, select: { zubrikId: true } }),
         ctx.prisma.zubrik.count(),
-        ctx.prisma.userRoute.count({ where: { userId: ctx.userId, completedAt: { not: null } } }),
+        ctx.prisma.userRoute.aggregate({ _sum: { completedCount: true }, where: { userId: ctx.userId } }),
         ctx.prisma.route.count({ where: { authorId: ctx.userId } }),
         ctx.prisma.route.findFirst({ where: { isMain: true }, select: { id: true } })
       ])
       
-      zubrikCount = unlockedZubriks.length
-      totalZubriks = totalZCount
-      completedRoutes = routesC
-      createdRoutes = createdR
-      unlockedZubrikIds = new Set(unlockedZubriks.map((uz) => uz.zubrikId))
+      zubrikCount = unlockedZubriksResult.length
+      totalZubriks = totalZubriksResult
+      completedRoutes = urAgg._sum.completedCount || 0
+      createdRoutes = createdRoutesResult
+      unlockedZubrikIds = new Set(unlockedZubriksResult.map((uz) => uz.zubrikId))
 
       if (mainRoute) {
-        mainRouteCompleted = await ctx.prisma.userRoute.findUnique({
-          where: { userId_routeId: { userId: ctx.userId, routeId: mainRoute.id } }
-        }).then(ur => ur?.completedAt != null)
+        mainRouteCompleted = mainRoute
+        ? await ctx.prisma.userRoute.findUnique({
+            where: { userId_routeId: { userId: ctx.userId, routeId: mainRoute.id } }
+          }).then(ur => ur ? ur.completedCount > 0 : false)
+        : false
       }
     }
 
