@@ -5,6 +5,8 @@ import express from 'express'
 import rateLimit from 'express-rate-limit'
 import path from 'path'
 
+import { prisma } from './prisma'
+import { runGarbageCollection } from './services/garbageCollector'
 import { adminRouter,createAdminContext, createContext, trpcRouter } from './trpc'
 import { upload } from './upload'
 
@@ -70,7 +72,9 @@ expressApp.use('/admin-api/trpc/adminVerify2FA', adminLoginLimiter)
 
 // Image Upload Endpoint (must have valid admin accessToken cookie)
 import { verifyAdminAccessToken } from './auth'
-expressApp.post('/admin-api/upload', adminCors, upload.single('file'), (req, res) => {
+import { processAndSaveUpload } from './services/storage'
+
+expressApp.post('/admin-api/upload', adminCors, upload.single('file'), async (req, res) => {
   try {
     const token = req.cookies?.admin_at
     if (!token) return res.status(401).json({ error: 'Unauthorized' })
@@ -81,10 +85,11 @@ expressApp.post('/admin-api/upload', adminCors, upload.single('file'), (req, res
       return res.status(400).json({ error: 'No file uploaded' })
     }
 
-    // Return the public URL for the uploaded file
-    const url = `/images/uploads/${req.file.filename}`
+    // Process buffer via sharp, convert to webp, strip EXIF, and save locally
+    const url = await processAndSaveUpload(req.file.buffer)
     res.json({ url })
   } catch (err) {
+    console.error('Upload error:', err)
     res.status(500).json({ error: 'Upload failed' })
   }
 })
@@ -101,4 +106,11 @@ expressApp.use(
 const PORT = process.env.PORT || 3000
 expressApp.listen(PORT, () => {
   console.info(`Server is running on http://localhost:${PORT}`)
+
+  // Schedule Garbage Collection 10 seconds after startup, then daily
+  const ONE_DAY = 24 * 60 * 60 * 1000
+  setTimeout(() => {
+    runGarbageCollection(prisma).catch(console.error)
+    setInterval(() => runGarbageCollection(prisma).catch(console.error), ONE_DAY)
+  }, 10000)
 })

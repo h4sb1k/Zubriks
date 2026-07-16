@@ -35,6 +35,7 @@
     "multer": "^2.2.0",
     "otpauth": "^9.5.1",
     "qrcode": "^1.5.4",
+    "sharp": "^0.35.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {

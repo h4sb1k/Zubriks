@@ -21,8 +21,8 @@ const ONBOARDING_KEY = 'onboarding_completed'
 
 const tabs: { id: TabType; icon: typeof Home; label: string }[] = [
   { id: 'home', icon: Home, label: 'Главная' },
-  { id: 'map', icon: Map, label: 'Карта' },
   { id: 'routes', icon: Route, label: 'Маршруты' },
+  { id: 'map', icon: Map, label: 'Карта' },
   { id: 'events', icon: Calendar, label: 'События' },
   { id: 'profile', icon: User, label: 'Профиль' },
 ]

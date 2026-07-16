@@ -23,6 +23,8 @@ import {
   verifyTurnstileToken} from './auth'
 import { generateOTP, sendVerificationEmail } from './email'
 import { prisma } from './prisma'
+import { runGarbageCollection } from './services/garbageCollector'
+import { processAndSaveExternalImage } from './services/storage'
 
 async function calculateRouteStats(waypoints: {latitude: number, longitude: number}[]) {
   let totalKm = 0
@@ -1389,6 +1391,8 @@ export const adminRouter = trpc.router({
       imageUrl: z.string().min(1)
     }))
     .mutation(async ({ input, ctx }) => {
+      const processedImageUrl = await processAndSaveExternalImage(input.imageUrl)
+
       const zubrik = await ctx.prisma.zubrik.create({
         data: {
           name: input.name,
@@ -1396,7 +1400,7 @@ export const adminRouter = trpc.router({
           latitude: input.latitude,
           longitude: input.longitude,
           locationName: 'Неизвестно',
-          imageUrl: input.imageUrl
+          imageUrl: processedImageUrl
         }
       })
       return { zubrik }
@@ -1412,6 +1416,8 @@ export const adminRouter = trpc.router({
       imageUrl: z.string().min(1)
     }))
     .mutation(async ({ input, ctx }) => {
+      const processedImageUrl = await processAndSaveExternalImage(input.imageUrl)
+
       const zubrik = await ctx.prisma.zubrik.update({
         where: { id: input.id },
         data: {
@@ -1419,7 +1425,7 @@ export const adminRouter = trpc.router({
           description: input.description,
           latitude: input.latitude,
           longitude: input.longitude,
-          imageUrl: input.imageUrl
+          imageUrl: processedImageUrl
         }
       })
       return { zubrik }
@@ -1459,11 +1465,13 @@ export const adminRouter = trpc.router({
       conditionCount: z.number().int().min(1).default(1),
     }))
     .mutation(async ({ input, ctx }) => {
+      const processedImageUrl = await processAndSaveExternalImage(input.imageUrl)
+
       const achievement = await ctx.prisma.achievement.create({
         data: {
           name: input.name,
           description: input.description,
-          imageUrl: input.imageUrl,
+          imageUrl: processedImageUrl || '',
           icon: input.icon,
           conditionType: input.conditionType,
           conditionTarget: input.conditionTarget ?? null,
@@ -1485,12 +1493,14 @@ export const adminRouter = trpc.router({
       conditionCount: z.number().int().min(1).default(1),
     }))
     .mutation(async ({ input, ctx }) => {
+      const processedImageUrl = await processAndSaveExternalImage(input.imageUrl)
+
       const achievement = await ctx.prisma.achievement.update({
         where: { id: input.id },
         data: {
           name: input.name,
           description: input.description,
-          imageUrl: input.imageUrl,
+          imageUrl: processedImageUrl || '',
           icon: input.icon,
           conditionType: input.conditionType,
           conditionTarget: input.conditionTarget ?? null,
@@ -1564,6 +1574,7 @@ export const adminRouter = trpc.router({
     }))
     .mutation(async ({ input, ctx }) => {
       const { distance, duration } = await calculateRouteStats(input.waypoints)
+      const processedImageUrl = await processAndSaveExternalImage(input.imageUrl)
 
       const route = await ctx.prisma.route.create({
         data: {
@@ -1573,7 +1584,7 @@ export const adminRouter = trpc.router({
           duration,
           imageColor: input.imageColor,
           icon: input.icon,
-          imageUrl: input.imageUrl,
+          imageUrl: processedImageUrl,
           isMain: input.isMain,
           authorId: ctx.userId, // use admin's user id
           waypoints: {
@@ -1606,6 +1617,7 @@ export const adminRouter = trpc.router({
     }))
     .mutation(async ({ input, ctx }) => {
       const { distance, duration } = await calculateRouteStats(input.waypoints)
+      const processedImageUrl = await processAndSaveExternalImage(input.imageUrl)
 
       // update route
       await ctx.prisma.route.update({
@@ -1617,7 +1629,7 @@ export const adminRouter = trpc.router({
           duration,
           imageColor: input.imageColor,
           icon: input.icon,
-          imageUrl: input.imageUrl,
+          imageUrl: processedImageUrl,
           isMain: input.isMain,
         }
       })
@@ -1638,7 +1650,11 @@ export const adminRouter = trpc.router({
       })
       
       return { success: true }
-    })
+    }),
+
+  adminRunGarbageCollection: adminProcedure.mutation(async ({ ctx }) => {
+    return await runGarbageCollection(ctx.prisma)
+  })
 })
 
 export type TrpcRouter = typeof trpcRouter
